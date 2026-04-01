@@ -1,0 +1,504 @@
+[
+  {
+    "id": "EVT-AFD538EB7AA6",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_created",
+    "status": "stable",
+    "actor": "operator",
+    "detail": "Created lane from Surat, Gujarat, India to Ahmedabad, Gujarat, India.",
+    "metadata": {
+      "riskScore": 50,
+      "recommendedRouteId": "south",
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T11:52:13.427895+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-41DB49D3D668",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_refreshed",
+    "status": "stable",
+    "actor": "operator",
+    "detail": "Manual refresh completed for SHP-6DFD054B.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T11:52:13.460407+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-73FFEAEDE9F4",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_refreshed",
+    "status": "stable",
+    "actor": "operator",
+    "detail": "Manual refresh completed for SHP-6DFD054B.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T11:52:13.519156+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-288AD24DE447",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "route_approved",
+    "status": "stable",
+    "actor": "operator",
+    "detail": "Approved route south for shipment SHP-6DFD054B.",
+    "metadata": {
+      "activeRouteId": "south",
+      "recommendedRouteId": "south",
+      "riskScore": 50,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T11:52:13.534557+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-C819CD69493A",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_refreshed",
+    "status": "stable",
+    "actor": "operator",
+    "detail": "Manual refresh completed for SHP-6DFD054B.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T11:52:45.359755+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-E95A98186693",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_monitored",
+    "status": "stable",
+    "actor": "monitor",
+    "detail": "Automatic monitoring cycle completed.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T11:59:21.849492+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-3020C94DEE8D",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_monitored",
+    "status": "stable",
+    "actor": "monitor",
+    "detail": "Automatic monitoring cycle completed.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T11:59:36.879696+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-435DF7DE29BA",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_monitored",
+    "status": "stable",
+    "actor": "monitor",
+    "detail": "Automatic monitoring cycle completed.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T11:59:51.921488+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-F10189352CFE",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_monitored",
+    "status": "stable",
+    "actor": "monitor",
+    "detail": "Automatic monitoring cycle completed.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T12:00:06.999317+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-5A48783D281D",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_monitored",
+    "status": "stable",
+    "actor": "monitor",
+    "detail": "Automatic monitoring cycle completed.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T12:00:22.068612+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-64CF403F4D6C",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_monitored",
+    "status": "stable",
+    "actor": "monitor",
+    "detail": "Automatic monitoring cycle completed.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T12:00:37.102911+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-9A7733F6DDBE",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_monitored",
+    "status": "stable",
+    "actor": "monitor",
+    "detail": "Automatic monitoring cycle completed.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T12:00:52.168003+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-65FC7B2D2B58",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_monitored",
+    "status": "stable",
+    "actor": "monitor",
+    "detail": "Automatic monitoring cycle completed.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T12:01:07.238753+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-EAC3B27818C4",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_monitored",
+    "status": "stable",
+    "actor": "monitor",
+    "detail": "Automatic monitoring cycle completed.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T12:01:22.297774+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-7407A944E2D4",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_monitored",
+    "status": "stable",
+    "actor": "monitor",
+    "detail": "Automatic monitoring cycle completed.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T12:01:32.514768+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-3C7A5EBFC9E2",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_monitored",
+    "status": "stable",
+    "actor": "monitor",
+    "detail": "Automatic monitoring cycle completed.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T12:01:47.683931+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-EE8EB948EAAA",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_monitored",
+    "status": "stable",
+    "actor": "monitor",
+    "detail": "Automatic monitoring cycle completed.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T12:02:02.719663+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-EEEF5D1EA19A",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_monitored",
+    "status": "stable",
+    "actor": "monitor",
+    "detail": "Automatic monitoring cycle completed.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T12:02:17.760691+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-F56578375F93",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_monitored",
+    "status": "stable",
+    "actor": "monitor",
+    "detail": "Automatic monitoring cycle completed.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T12:02:32.811751+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-513F32DA4AE1",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_monitored",
+    "status": "stable",
+    "actor": "monitor",
+    "detail": "Automatic monitoring cycle completed.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T12:02:47.879181+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-BD026114928A",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_monitored",
+    "status": "stable",
+    "actor": "monitor",
+    "detail": "Automatic monitoring cycle completed.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T12:05:30.740239+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  },
+  {
+    "id": "EVT-E16E37CA6503",
+    "shipmentId": "SHP-6DFD054B",
+    "eventType": "shipment_monitored",
+    "status": "stable",
+    "actor": "monitor",
+    "detail": "Automatic monitoring cycle completed.",
+    "metadata": {
+      "riskScore": 50,
+      "alertFlag": false,
+      "dispatchStatus": {
+        "status": "skipped",
+        "reason": "not_configured"
+      },
+      "usedFallbackData": true,
+      "corridorKey": "surat:ahmedabad"
+    },
+    "createdAt": "2026-03-29T12:06:58.476835+00:00",
+    "exportStatus": {
+      "status": "skipped",
+      "reason": "not_configured"
+    }
+  }
+]

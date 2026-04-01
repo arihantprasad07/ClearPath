@@ -1,0 +1,101 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+/* App-wide responsive baseline: prevent horizontal scroll, respect mobile viewport */
+html {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  min-height: 100dvh;
+}
+
+html.clearpath-high-contrast {
+  color-scheme: light;
+}
+
+html.clearpath-high-contrast body {
+  background: #ffffff;
+  color: #000000;
+}
+
+html.clearpath-high-contrast *:focus-visible {
+  outline: 3px solid #000000 !important;
+  outline-offset: 3px;
+}
+
+html.clearpath-high-contrast .bg-neutral-100,
+html.clearpath-high-contrast .bg-neutral-50,
+html.clearpath-high-contrast .bg-white,
+html.clearpath-high-contrast .bg-white\/65,
+html.clearpath-high-contrast .bg-white\/70 {
+  background-color: #ffffff !important;
+}
+
+html.clearpath-high-contrast .text-neutral-900,
+html.clearpath-high-contrast .text-neutral-800,
+html.clearpath-high-contrast .text-neutral-700,
+html.clearpath-high-contrast .text-neutral-600,
+html.clearpath-high-contrast .text-neutral-500 {
+  color: #000000 !important;
+}
+
+html.clearpath-high-contrast .border-black\/10,
+html.clearpath-high-contrast .border-neutral-200,
+html.clearpath-high-contrast .border-neutral-300 {
+  border-color: #000000 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Infographic / technical accent utilities */
+@layer utilities {
+  .text-brand-neon {
+    color: var(--brand-neon);
+  }
+  .bg-brand-neon {
+    background-color: var(--brand-neon);
+  }
+  .border-brand-neon {
+    border-color: var(--brand-neon);
+  }
+  .ring-brand-neon {
+    --tw-ring-color: color-mix(in oklab, var(--brand-neon) 45%, transparent);
+  }
+  .text-accent-lime {
+    color: var(--accent-lime);
+  }
+  .bg-accent-lime {
+    background-color: var(--accent-lime);
+  }
+  /* Lime highlight chip — matches infographic “energy” accent */
+  .text-gradient-ai {
+    @apply inline-block rounded-md bg-[#DFFF00] px-2 py-1 font-semibold text-black not-italic shadow-sm ring-1 ring-black/10;
+  }
+  .border-glow-tech {
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.12),
+      0 0 0 1px rgba(223, 255, 0, 0.35);
+  }
+  .font-mono-tech {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+}
