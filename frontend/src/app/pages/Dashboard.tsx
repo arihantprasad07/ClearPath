@@ -6,6 +6,10 @@ import { ShipmentViewModel } from '../lib/api';
 import { cp } from '../lib/cpUi';
 import RouteNetworkMap from '../components/RouteNetworkMap';
 
+function formatPredictionWindow(window: ShipmentViewModel['backend']['predictionWindow']) {
+  return `${window.label} (${window.startHours}-${window.endHours}h, ${window.confidence}% confidence)`;
+}
+
 function ShipmentCard({ shipment, isCompany }: { shipment: ShipmentViewModel; isCompany: boolean }) {
   const isHighRisk = shipment.riskLevel === 'high';
   const riskBadge =
@@ -140,7 +144,7 @@ export default function Dashboard() {
                 Risk score: <span className="font-semibold text-neutral-900">{latestShipment.backend.risk.score}%</span>
               </div>
               <div className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">
-                Prediction window: <span className="font-semibold text-neutral-900">{latestShipment.backend.predictionWindow}</span>
+                Prediction window: <span className="font-semibold text-neutral-900">{formatPredictionWindow(latestShipment.backend.predictionWindow)}</span>
               </div>
               <div className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">
                 Recommended action: <span className="font-semibold text-neutral-900">{latestShipment.backend.decision.recommendedAction}</span>

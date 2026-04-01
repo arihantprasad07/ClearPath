@@ -66,6 +66,12 @@ export interface BackendShipmentRecord {
     text: string;
     probability: number;
   };
+  predictionWindow: {
+    startHours: number;
+    endHours: number;
+    confidence: number;
+    label: string;
+  };
   explanation?: {
     title: string;
     summary: string;
