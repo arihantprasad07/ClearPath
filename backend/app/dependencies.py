@@ -13,6 +13,14 @@ from .storage import shipment_store
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
+def _resolve_user_from_access_token(token: str) -> AuthUser | None:
+    payload = decode_access_token(token)
+    user = shipment_store.get_user_by_id(str(payload.get("sub")))
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found.")
+    return user
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> AuthUser:
@@ -20,17 +28,17 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
 
     if settings.auth_mode == "firebase_primary":
+        try:
+            return _resolve_user_from_access_token(credentials.credentials)
+        except jwt.PyJWTError:
+            pass
         firebase_user = await verify_firebase_bearer_token(credentials.credentials)
         if firebase_user is not None:
             return firebase_user
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Valid Firebase authentication required.")
 
     try:
-        payload = decode_access_token(credentials.credentials)
-        user = shipment_store.get_user_by_id(str(payload.get("sub")))
-        if user is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found.")
-        return user
+        return _resolve_user_from_access_token(credentials.credentials)
     except jwt.PyJWTError:
         firebase_user = await verify_firebase_bearer_token(credentials.credentials)
         if firebase_user is not None:

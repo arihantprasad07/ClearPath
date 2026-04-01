@@ -5,6 +5,7 @@ import sqlite3
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 from uuid import uuid4
 
 
@@ -30,6 +31,8 @@ os.environ["BIGQUERY_TABLE"] = ""
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.config import settings
+from app.schemas import AuthUser
 from app.storage import shipment_store
 
 
@@ -169,6 +172,45 @@ class ClearPathApiTests(unittest.TestCase):
             list_response = client.get("/shipments", headers=user_headers)
             self.assertEqual(list_response.status_code, 200)
             self.assertEqual(list_response.json()["shipments"], [])
+
+    def test_firebase_primary_accepts_backend_jwt_after_exchange(self) -> None:
+        firebase_token = "firebase-demo-token-12345"
+        firebase_user = AuthUser(
+            id="firebase-user-1",
+            username="firebase.user@clearpath.local",
+            role="operator",
+            stakeholderRole="shipper",
+            orgId="org-firebase",
+            phoneNumber=None,
+            deviceToken=None,
+            firebaseUid="firebase-user-1",
+            mfaEnabled=False,
+            createdAt="2026-04-01T00:00:00+00:00",
+        )
+        original_auth_mode = settings.auth_mode
+        settings.auth_mode = "firebase_primary"
+
+        async def fake_verify(token: str):
+            if token == firebase_token:
+                return firebase_user
+            return None
+
+        try:
+            with patch("app.auth_service.verify_firebase_bearer_token", side_effect=fake_verify), patch(
+                "app.dependencies.verify_firebase_bearer_token",
+                side_effect=fake_verify,
+            ):
+                with TestClient(app) as client:
+                    exchange_response = client.post("/auth/firebase", json={"idToken": firebase_token})
+                    self.assertEqual(exchange_response.status_code, 200, exchange_response.text)
+
+                    access_token = exchange_response.json()["accessToken"]
+                    me_response = client.get("/auth/me", headers={"Authorization": f"Bearer {access_token}"})
+                    self.assertEqual(me_response.status_code, 200, me_response.text)
+                    self.assertEqual(me_response.json()["id"], firebase_user.id)
+                    self.assertEqual(me_response.json()["orgId"], firebase_user.org_id)
+        finally:
+            settings.auth_mode = original_auth_mode
 
 
 if __name__ == "__main__":
