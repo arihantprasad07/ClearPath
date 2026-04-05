@@ -201,7 +201,7 @@ function StackSection() {
             </p>
           </div>
           <div className="rounded-2xl border border-white/15 bg-white/5 px-5 py-4 text-sm leading-relaxed text-neutral-200">
-            Purpose-built for judges to see architecture, AI value, and a path to scale inside the software itself.
+            Built for Indian SMB operators who need fast, clear decisions — not enterprise logistics complexity.
           </div>
         </div>
 

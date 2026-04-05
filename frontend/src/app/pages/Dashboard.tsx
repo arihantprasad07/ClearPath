@@ -43,7 +43,7 @@ function ShipmentCard({ shipment, isCompany }: { shipment: ShipmentViewModel; is
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-3">
-        <span className={`text-xs font-mono font-semibold uppercase tracking-wide ${isCompany ? cp.text : cp.textSubtle}`}>{isCompany ? 'Incoming' : 'Outgoing'}</span>
+        <span className={`text-xs font-mono font-semibold uppercase tracking-wide ${isCompany ? cp.text : cp.textSubtle}`}>{isCompany ? 'To receive' : 'In transit'}</span>
         <span className={`text-xs font-medium ${isHighRisk ? 'text-red-600' : cp.text} transition-transform duration-200 group-hover:translate-x-0.5`}>
           {isHighRisk ? 'Resolve ->' : 'Details ->'}
         </span>
@@ -242,8 +242,8 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="mt-5 space-y-3 text-sm leading-relaxed text-neutral-600">
-              <p>ClearPath uses AI to explain action, not just to label a risk score.</p>
-              <p>The operator sees a recommendation, confidence, reason, and follow-through path in one place.</p>
+              <p>ClearPath uses Gemini to explain the reason behind every risk flag — not just a score.</p>
+              <p>The operator sees the recommendation, confidence level, and reasoning in one place before approving.</p>
               <p className="rounded-xl border border-[#DFFF00]/35 bg-[#faffd9] px-4 py-3 text-neutral-900">
                 {latestShipment?.backend.decision.recommendedAction || 'Create a lane to generate the first live AI recommendation.'}
               </p>

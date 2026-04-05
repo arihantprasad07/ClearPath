@@ -71,7 +71,7 @@ export default function LoginPage() {
               </p>
               <h1 className={`mt-6 font-['DM_Serif_Display'] text-4xl ${cp.text}`}>Sign in to ClearPath.</h1>
               <p className={`mt-4 max-w-xl text-base leading-relaxed ${cp.textMuted}`}>
-                This login opens the real frontend-backend flow. Judges can create a lane, inspect AI reasoning, preview localized alerts, and approve a reroute inside the working product.
+                Sign in to see live disruption detection, AI-scored route recommendations, and multilingual transporter alerts — all in one workflow.
               </p>
 
               <div className="mt-8 space-y-4">
