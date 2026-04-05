@@ -1,10 +1,10 @@
 export const initialShipments = [
   {
     id: "1",
-    name: "Electronics - BLR to BOM",
-    source: "Bengaluru",
-    destination: "Mumbai",
-    eta: "Tomorrow, 14:00",
+    name: "Surat Textiles to Mumbai Warehouse",
+    source: "Surat, Gujarat",
+    destination: "Mumbai, Maharashtra",
+    eta: "Delayed — risk detected",
     riskLevel: "high",
     currentRoute: "Route 4B",
     transporter: "+91 9876543210",
@@ -14,7 +14,7 @@ export const initialShipments = [
       { id: "r2", name: "Route 5A", eta: "Tomorrow, 19:00", cost: "+₹0", reliability: "85%", isRecommended: false },
       { id: "r3", name: "Wait out delay", eta: "Day after, 08:00", cost: "-₹100", reliability: "99%", isRecommended: false }
     ],
-    alert: "Severe flooding reported near Surat bypass. Expected delay: 4+ hours."
+    alert: "Heavy rainfall on NH-48 detected. Route change recommended to avoid 6 to 9 hour delay. Tap to approve rerouting."
   },
   {
     id: "2",

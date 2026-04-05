@@ -66,7 +66,7 @@ export default function ShipmentDetail() {
           <div className="min-w-0 flex-1 space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-2.5 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-wider text-neutral-900">
-                {userRole === 'company' ? 'Company workflow' : 'Supplier workflow'}
+                {userRole === 'company' ? 'shipper workflow' : 'transporter workflow'}
               </span>
               <span className={`text-[10px] font-mono uppercase tracking-widest ${cp.textSubtle}`}>Shipment #{shipment.id}</span>
               <span className={`rounded-full px-2.5 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider ${isHighRisk ? 'bg-red-500 text-white' : shipment.riskLevel === 'medium' ? 'bg-amber-100 text-amber-800' : 'bg-neutral-100 text-neutral-700'}`}>

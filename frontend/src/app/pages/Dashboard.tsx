@@ -69,7 +69,7 @@ export default function Dashboard() {
   if (authLoading || !authUser || !userRole) return null;
 
   const isCompany = userRole === 'company';
-  const roleLabel = isCompany ? 'Company view' : 'Supplier view';
+  const roleLabel = isCompany ? 'Shipper view' : 'Transporter view';
   const highRiskCount = shipments.filter((shipment) => shipment.riskLevel === 'high').length;
   const aiReadyCount = shipments.filter((shipment) => shipment.backend.explanation?.reasoning?.length).length;
   const averageConfidence = shipments.length
@@ -103,16 +103,16 @@ export default function Dashboard() {
               <span className="inline-flex items-center rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-neutral-900">{roleLabel}</span>
               <span className="inline-flex items-center rounded-full border border-black/10 bg-neutral-50 px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-neutral-600">{authUser.role} session</span>
             </div>
-            <h1 className="mt-4 font-['DM_Serif_Display'] text-3xl tracking-tight text-neutral-900 sm:text-4xl">Decision dashboard</h1>
+            <h1 className="mt-4 font-['DM_Serif_Display'] text-3xl tracking-tight text-neutral-900 sm:text-4xl">ClearPath dashboard</h1>
             <p className={`mt-3 max-w-2xl text-sm leading-relaxed ${cp.textMuted}`}>
               {shipmentsLoading
                 ? 'Syncing live shipments, route intelligence, and AI reasoning from the backend.'
-                : 'This workspace is optimized for judging criteria: real technical flow, clear operator UX, explainable AI decisions, and measurable logistics impact.'}
+                : 'Live disruption intelligence, route recommendations, and AI-backed decisions for your active shipment lanes.'}
             </p>
           </div>
           <Link to="/add-shipment" className={`${cp.btnPrimary} w-full shrink-0 sm:w-auto`}>
             <Plus size={16} className="shrink-0" aria-hidden />
-            {isCompany ? 'Request shipment' : 'New shipment'}
+            {isCompany ? 'Add shipment' : 'New shipment'}
           </Link>
         </div>
       </div>
@@ -126,14 +126,41 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {latestShipment?.backend.alert?.translations && latestShipment.riskLevel === 'high' && (
+        <section className="rounded-2xl border border-amber-100 bg-amber-50/60 p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-amber-700">Transporter alert — live preview</p>
+              <h2 className="mt-1 font-['DM_Serif_Display'] text-xl text-neutral-900">WhatsApp notification ready</h2>
+            </div>
+            <span className="rounded-full border border-amber-200 bg-amber-100 px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-amber-800">
+              {Object.keys(latestShipment.backend.alert.translations).length} languages
+            </span>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {(['en', 'hi', 'gu', 'ta'] as const).map((lang) => {
+              const labels: Record<string, string> = { en: 'English', hi: 'Hindi', gu: 'Gujarati', ta: 'Tamil' };
+              const text = latestShipment.backend.alert?.translations?.[lang];
+              if (!text) return null;
+              return (
+                <div key={lang} className="rounded-xl border border-amber-100 bg-white px-4 py-3">
+                  <p className="text-[10px] font-mono uppercase tracking-widest text-neutral-400 mb-1">{labels[lang]}</p>
+                  <p className="text-sm leading-relaxed text-neutral-800">{text}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {latestShipment ? (
         <section className="grid gap-6 xl:grid-cols-[1.25fr_0.95fr]">
           <RouteNetworkMap shipment={latestShipment.backend} />
           <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500">Judge demo moment</p>
-                <h2 className="mt-1 font-['DM_Serif_Display'] text-2xl text-neutral-900">What this shipment proves</h2>
+                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500">Active shipment</p>
+                <h2 className="mt-1 font-['DM_Serif_Display'] text-2xl text-neutral-900">Risk overview</h2>
               </div>
               <span className="rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-neutral-900">
                 {latestShipment.riskLevel}
@@ -161,12 +188,12 @@ export default function Dashboard() {
         <section className="relative overflow-hidden rounded-2xl border border-black/10 bg-white p-5 shadow-sm sm:p-6">
           <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[#DFFF00]/12 blur-3xl" aria-hidden />
           <div className="relative z-10 mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className={`text-left font-['DM_Serif_Display'] text-xl font-normal ${cp.text}`}>{isCompany ? 'Incoming shipments' : 'Outgoing shipments'}</h2>
+            <h2 className={`text-left font-['DM_Serif_Display'] text-xl font-normal ${cp.text}`}>{isCompany ? 'My shipments' : 'Active shipments'}</h2>
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex w-fit items-center rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-neutral-900">{sorted.length} active</span>
               <Link to="/add-shipment" className={cp.btnPrimary}>
                 <Plus size={15} className="shrink-0" aria-hidden />
-                {isCompany ? 'Request shipment' : 'New shipment'}
+                {isCompany ? 'Add shipment' : 'New shipment'}
               </Link>
             </div>
           </div>
@@ -210,7 +237,7 @@ export default function Dashboard() {
                 <Brain className="h-5 w-5 text-neutral-900" strokeWidth={1.7} />
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500">AI usefulness</p>
+                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500">AI co-pilot</p>
                 <h2 className="font-['DM_Serif_Display'] text-2xl text-neutral-900">Why AI matters here</h2>
               </div>
             </div>
@@ -223,20 +250,46 @@ export default function Dashboard() {
             </div>
           </section>
 
+          {latestShipment?.backend.signalStack?.length ? (
+            <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
+              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500 mb-1">Live signal feed</p>
+              <h2 className="font-['DM_Serif_Display'] text-2xl text-neutral-900 mb-4">Active risk signals</h2>
+              <div className="space-y-3">
+                {latestShipment.backend.signalStack.slice(0, 3).map((signal) => (
+                  <div key={signal.name} className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <p className="text-sm font-semibold text-neutral-900">{signal.name}</p>
+                      <span className={`text-[10px] font-mono font-bold uppercase tracking-widest ${Math.round(signal.severity * 100) >= 60 ? 'text-red-600' : Math.round(signal.severity * 100) >= 35 ? 'text-amber-600' : 'text-green-600'}`}>
+                        {Math.round(signal.severity * 100)}%
+                      </span>
+                    </div>
+                    <p className="text-xs text-neutral-500">{signal.summary}</p>
+                    <div className="mt-2 h-1 rounded-full bg-neutral-200 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${Math.round(signal.severity * 100) >= 60 ? 'bg-red-500' : Math.round(signal.severity * 100) >= 35 ? 'bg-amber-400' : 'bg-green-500'}`}
+                        style={{ width: `${Math.round(signal.severity * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-black/10 bg-neutral-50">
                 <Zap className="h-5 w-5 text-neutral-900" strokeWidth={1.7} />
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500">Judging fit</p>
-                <h2 className="font-['DM_Serif_Display'] text-2xl text-neutral-900">Submission strengths</h2>
+                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500">Why it works</p>
+                <h2 className="font-['DM_Serif_Display'] text-2xl text-neutral-900">What ClearPath does</h2>
               </div>
             </div>
             <ul className="mt-5 space-y-3 text-sm text-neutral-600">
-              <li className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">Real backend-backed workflow instead of a static mock demo.</li>
-              <li className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">Decision-first UX for companies, suppliers, and transporters.</li>
-              <li className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">Live architecture path for audit logging, delivery, and cloud integrations.</li>
+              <li className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">Predicts disruption 18–24 hours before it affects your shipment.</li>
+              <li className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">Recommends and scores 3 alternate routes in real time.</li>
+              <li className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">Sends multilingual WhatsApp alerts to transporters in their language.</li>
             </ul>
           </section>
 

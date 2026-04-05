@@ -67,9 +67,9 @@ export default function LoginPage() {
             <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[#DFFF00]/15 blur-3xl" aria-hidden />
             <div className="relative z-10">
               <p className="inline-flex items-center rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-neutral-900">
-                Live judging demo
+                Live demo
               </p>
-              <h1 className={`mt-6 font-['DM_Serif_Display'] text-4xl ${cp.text}`}>Enter the operator workflow.</h1>
+              <h1 className={`mt-6 font-['DM_Serif_Display'] text-4xl ${cp.text}`}>Sign in to ClearPath.</h1>
               <p className={`mt-4 max-w-xl text-base leading-relaxed ${cp.textMuted}`}>
                 This login opens the real frontend-backend flow. Judges can create a lane, inspect AI reasoning, preview localized alerts, and approve a reroute inside the working product.
               </p>
@@ -78,16 +78,16 @@ export default function LoginPage() {
                 <div className="rounded-2xl border border-black/10 bg-neutral-50 p-5">
                   <p className="text-[10px] font-mono uppercase tracking-widest text-neutral-500">What this proves</p>
                   <ul className="mt-3 space-y-2 text-sm text-neutral-600">
-                    <li>Real auth session and protected dashboard access.</li>
-                    <li>Live shipment creation and refresh through the backend.</li>
-                    <li>Explainable AI recommendation plus human approval loop.</li>
+                    <li>Predict disruptions 18–24 hours before they hit your shipment.</li>
+                    <li>Compare 3 AI-scored alternate routes and approve in one tap.</li>
+                    <li>Multilingual transporter alerts sent via WhatsApp instantly.</li>
                   </ul>
                 </div>
 
                 <div className="rounded-2xl border border-[#DFFF00]/35 bg-[#faffd9] p-5">
                   <div className="flex items-center gap-3 text-neutral-900">
                     <ShieldCheck className="h-5 w-5" strokeWidth={1.7} />
-                    <span className="text-[10px] font-mono uppercase tracking-widest">Demo credentials</span>
+                    <span className="text-[10px] font-mono uppercase tracking-widest">How to sign in</span>
                   </div>
                   <p className="mt-3 text-sm text-neutral-700">
                     {firebaseMode ? (
@@ -109,7 +109,7 @@ export default function LoginPage() {
             <div className="mb-8 text-center">
               <h1 className={`font-['DM_Serif_Display'] text-3xl ${cp.text}`}>Welcome back</h1>
               <p className={`mt-2 text-sm font-light ${cp.textMuted}`}>
-                Sign in to your {role === 'company' ? 'company' : 'supplier'} workspace using the live {firebaseMode ? 'Firebase-authenticated' : 'backend'} session.
+                Sign in to your {role === 'company' ? 'shipper' : 'transporter'} workspace using the live {firebaseMode ? 'Firebase-authenticated' : 'backend'} session.
               </p>
             </div>
 

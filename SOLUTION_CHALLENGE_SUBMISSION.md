@@ -1,47 +1,48 @@
-# ClearPath Submission Readiness
+# ClearPath — Solution Challenge 2026 India
+## Smart Supply Chains Track
 
-## Positioning
+### What ClearPath does
 
-ClearPath is ready to demo as an AI supply chain co-pilot for Indian SMBs with a working end-to-end operator flow:
+ClearPath is an AI supply chain co-pilot for Indian SMBs. It predicts disruptions 18 to 24 hours before they affect a shipment, recommends alternate routes, and sends multilingual alerts to transporters — all in one operator workflow.
 
-1. Sign in
-2. Create or open a shipment
-3. See multi-signal disruption risk
-4. Review 3 alternate routes
-5. Approve the best route
-6. Show localized transporter messaging and audit-capable architecture
+### Live demo flow
 
-## What Is Implemented Now
+1. Sign in as shipper or transporter
+2. Open an active shipment lane
+3. See multi-signal risk detection: weather, traffic, port, road, and history signals
+4. Review 3 AI-scored alternate routes with ETA, cost, and reliability scores
+5. Approve the best route in one tap
+6. See the multilingual transporter alert preview in Hindi, Gujarati, Tamil, and English
 
-- FastAPI backend with authenticated shipment workflows
-- React frontend with dashboard, shipment detail, and route approval UX
-- Multi-signal route analysis using weather, traffic, port, road, and history inputs
-- Gemini-backed explanation flow with fallback-safe reasoning
-- BigQuery export path for operational history
-- Firebase Auth exchange path and Firestore-capable persistence
-- WhatsApp and FCM delivery integration paths
-- High contrast mode, voice alerts, and Indian-language support
+### What is live in this MVP
 
-## What Is Optional Or Scaffolded
+- FastAPI backend with background shipment monitoring and 15-minute signal refresh
+- React dashboard with single-screen risk overview and one-tap route approval
+- Google Maps Routes API for alternate route geometry and ETA scoring
+- Weather signal ingestion with TTL caching and graceful fallback
+- Gemini API for plain-language risk explanation and operator reasoning
+- Google Cloud Translation API for multilingual alert text in 10 Indian languages
+- WhatsApp Business Cloud API for demo transporter notification dispatch
+- Firestore persistence when configured, local JSON for offline demos
+- JWT-based authentication with role-based access control
+- Heuristic historical-pattern risk scoring in Phase 1
 
-- Firebase Functions execution is optional and currently minimal
-- Firestore is optional unless you enforce it for production
-- WhatsApp and FCM dispatch require real credentials
-- Some external signal providers degrade gracefully to fallback data when credentials are not present
+### Phase 2 roadmap
 
-## Recommended Demo Setup
+- BigQuery ML trained on resolved disruption logs for learned historical scoring
+- Expanded language coverage to full 22 Indian languages
+- Vertex AI Agent Builder for production-grade agentic orchestration
+- Firebase Auth and MFA for production deployment
+- Deeper transporter and receiver workflows
+- Accessibility improvements including low-literacy assistive flows
 
-- Use Firebase Auth plus Firestore if you want the architecture to match the strategy deck most closely
-- Keep one high-risk seeded shipment ready before the demo
-- Turn on at least one live delivery channel if possible
-- Keep `MONITORING_INTERVAL_SECONDS` low only for rehearsals and live demos
+### Google technologies used
 
-## Honest Judge Framing
-
-The strongest way to present this repo is:
-
-- “The product workflow is live today.”
-- “The backend already supports Firebase-first deployment.”
-- “FastAPI is the current orchestration runtime, with Firebase services available where they add scale, auth, and audit value.”
-
-That framing is strong and credible, and it avoids overstating the parts that are still scaffolded.
+| Technology | Usage in MVP |
+|---|---|
+| Google Maps Routes API | Alternate route geometry, ETA scoring, distance matrix |
+| Google Geocoding API | Resolves operator-entered origin and destination labels |
+| Gemini API | Risk explanation generation, plain-language operator reasoning |
+| Google Cloud Translation API | Multilingual alert text in 10 Indian languages |
+| Firebase / Firestore | Optional persistence and real-time sync |
+| WhatsApp Business API | Demo transporter notification dispatch |

@@ -48,7 +48,7 @@ function Hero() {
               onClick={() => navigate('/login', { state: { role: 'company' } })}
               className="inline-flex items-center justify-center gap-2 rounded-full bg-[#DFFF00] px-7 py-3.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-black transition-all duration-200 hover:bg-[#c8e800]"
             >
-              Open company demo
+              Open shipper demo
               <ArrowUpRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
             </button>
             <button
@@ -56,7 +56,7 @@ function Hero() {
               onClick={() => navigate('/login', { state: { role: 'supplier' } })}
               className="inline-flex items-center justify-center rounded-full border border-white/25 bg-white/5 px-7 py-3.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-white transition-all duration-200 hover:border-[#DFFF00]/45 hover:bg-[#DFFF00]/10 hover:text-[#DFFF00]"
             >
-              Open supplier demo
+              Open transporter demo
             </button>
           </div>
 
@@ -121,7 +121,7 @@ function CriteriaFit() {
     {
       title: 'Technical Merit',
       subtitle: 'Real full-stack workflow',
-      desc: 'Connected frontend, FastAPI backend, risk engine, route ranking, monitoring, audit events, and live shipment decisions.',
+      desc: 'FastAPI backend, React dashboard, live risk engine, Gemini-powered explanations, Google Maps route scoring, and multilingual alert dispatch in 10 Indian languages.',
       icon: <Activity className="h-5 w-5" strokeWidth={1.7} />,
     },
     {
@@ -149,11 +149,11 @@ function CriteriaFit() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="mx-auto max-w-3xl text-center">
           <p className="inline-flex items-center rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-900">
-            Built to match the evaluation criteria
+            Built for real logistics pressure
           </p>
-          <h2 className="mt-6 font-['DM_Serif_Display'] text-4xl tracking-tight text-neutral-900 sm:text-5xl">Why this product scores.</h2>
+          <h2 className="mt-6 font-['DM_Serif_Display'] text-4xl tracking-tight text-neutral-900 sm:text-5xl">Why ClearPath works.</h2>
           <p className="mt-4 text-base leading-relaxed text-neutral-600 sm:text-lg">
-            ClearPath is not just a concept mockup. It is structured to communicate technical depth, operational usability, measurable relevance, and a distinct product point of view.
+            ClearPath detects disruptions before they cascade, recommends alternate routes in real time, and sends multilingual alerts to transporters — all in one operator workflow.
           </p>
         </div>
 
@@ -193,7 +193,7 @@ function StackSection() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <p className="inline-flex items-center rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#DFFF00]">
-              Google developer technologies
+              Powered by Google technologies
             </p>
             <h2 className="mt-6 font-['DM_Serif_Display'] text-4xl tracking-tight sm:text-5xl">A stronger technical story.</h2>
             <p className="mt-4 text-base leading-relaxed text-neutral-300 sm:text-lg">
@@ -280,7 +280,7 @@ function CTA() {
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white px-5 py-3 text-sm font-semibold text-black transition-all duration-200 hover:bg-neutral-100"
           >
             <Truck className="h-4 w-4" strokeWidth={2} aria-hidden />
-            Open supplier journey
+            Open transporter journey
           </Link>
           <Link
             to="/login"
@@ -288,7 +288,7 @@ function CTA() {
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#DFFF00]/45 bg-[#DFFF00] px-5 py-3 text-sm font-semibold text-black transition-all duration-200 hover:bg-[#c8e800]"
           >
             <Building className="h-4 w-4" strokeWidth={2} aria-hidden />
-            Open company journey
+            Open shipper journey
           </Link>
         </div>
       </div>
