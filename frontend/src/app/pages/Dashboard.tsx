@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { ArrowUpRight, Brain, ChevronRight, Package, Plus, RefreshCw, Zap } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { LanguageSelect } from '../components/LanguageSelect';
 import { ShipmentViewModel } from '../lib/api';
 import { cp } from '../lib/cpUi';
 import RouteNetworkMap from '../components/RouteNetworkMap';
@@ -102,6 +103,9 @@ export default function Dashboard() {
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="inline-flex items-center rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-neutral-900">{roleLabel}</span>
               <span className="inline-flex items-center rounded-full border border-black/10 bg-neutral-50 px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-neutral-600">{authUser.role} session</span>
+              <div title="Alert language for transporter notifications" className="min-w-[180px]">
+                <LanguageSelect variant="inline" hideHelper id="dashboard-language" />
+              </div>
             </div>
             <h1 className="mt-4 font-['DM_Serif_Display'] text-3xl tracking-tight text-neutral-900 sm:text-4xl">ClearPath dashboard</h1>
             <p className={`mt-3 max-w-2xl text-sm leading-relaxed ${cp.textMuted}`}>

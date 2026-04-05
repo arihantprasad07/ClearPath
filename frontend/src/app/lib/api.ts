@@ -72,6 +72,12 @@ export interface BackendShipmentRecord {
     confidence: number;
     label: string;
   };
+  cascadeImpact: {
+    severity: 'low' | 'medium' | 'high';
+    affectedOrders: number;
+    slaRisk: string;
+    summary: string;
+  };
   explanation?: {
     title: string;
     summary: string;
@@ -151,6 +157,19 @@ export interface ShipmentViewModel {
   routes: RouteCardModel[];
   alert: string | null;
   backend: BackendShipmentRecord;
+}
+
+export interface AuditEventRecord {
+  id: string;
+  eventType: string;
+  status: string;
+  actor: string;
+  detail: string;
+  createdAt: string;
+  exportStatus: {
+    status?: string;
+    reason?: string;
+  } | null;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -289,4 +308,9 @@ export async function applyShipmentRoute(token: string, shipmentId: string, rout
     token,
   );
   return mapShipmentRecord(payload);
+}
+
+export async function fetchAuditEvents(token: string, shipmentId: string): Promise<AuditEventRecord[]> {
+  const payload = await request<{ events: AuditEventRecord[] }>(`/shipments/${shipmentId}/events`, {}, token);
+  return payload.events;
 }

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate, useParams } from 'react-router';
-import { Contrast, LayoutGrid, Plus, LogOut, Volume2, VolumeX } from 'lucide-react';
+import { Contrast, LayoutGrid, Plus, LogOut, Volume2, VolumeX, X } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { cp } from '../lib/cpUi';
 
@@ -25,12 +25,30 @@ function useShellTitle(): string {
 
 export default function AppShell() {
   const navigate = useNavigate();
-  const { authUser, logout, userRole, highContrastEnabled, setHighContrastEnabled, voiceAlertsEnabled, setVoiceAlertsEnabled } = useAppContext();
+  const { authUser, demoMode, logout, userRole, highContrastEnabled, setHighContrastEnabled, voiceAlertsEnabled, setVoiceAlertsEnabled } = useAppContext();
   const title = useShellTitle();
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  useEffect(() => {
+    try {
+      setBannerDismissed(sessionStorage.getItem('clearpath-demo-banner-dismissed') === 'true');
+    } catch {
+      setBannerDismissed(false);
+    }
+  }, []);
 
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const dismissBanner = () => {
+    setBannerDismissed(true);
+    try {
+      sessionStorage.setItem('clearpath-demo-banner-dismissed', 'true');
+    } catch {
+      // Ignore storage failures.
+    }
   };
 
   const navItem =
@@ -39,7 +57,7 @@ export default function AppShell() {
     'bg-neutral-900 font-semibold text-white shadow-[0_10px_24px_-14px_rgba(0,0,0,0.45)] ring-1 ring-[#DFFF00]/45 hover:bg-neutral-900 hover:text-white';
 
   return (
-    <div className={`flex min-h-[100dvh] min-h-screen w-full ${cp.text} ${cp.bgPage}`}>
+    <div className={`flex min-h-[100dvh] min-h-screen w-full ${cp.text} ${cp.bgPage} ${highContrastEnabled ? 'high-contrast' : ''}`}>
       <aside
         className="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-neutral-200 bg-white"
         aria-label="App navigation"
@@ -86,6 +104,14 @@ export default function AppShell() {
       </aside>
 
       <div className="flex min-h-screen flex-1 flex-col pl-64">
+        {demoMode && !bannerDismissed ? (
+          <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-100 px-6 py-2 text-xs text-amber-950">
+            <span>Demo mode — connect API keys to enable live Google Maps, Gemini, and weather signals</span>
+            <button type="button" onClick={dismissBanner} className="inline-flex items-center rounded-full border border-amber-300 p-1 text-amber-900 transition hover:bg-amber-200" aria-label="Dismiss demo mode banner">
+              <X className="h-3.5 w-3.5" aria-hidden />
+            </button>
+          </div>
+        ) : null}
         <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-black/10 bg-white/65 px-6 shadow-[0_10px_36px_-22px_rgba(0,0,0,0.28)] backdrop-blur-xl">
           <h1 className="font-['DM_Serif_Display'] text-left text-xl font-normal tracking-tight text-neutral-900">{title}</h1>
           <div className="flex items-center gap-2">
@@ -97,7 +123,7 @@ export default function AppShell() {
               aria-label={highContrastEnabled ? 'Disable high contrast mode' : 'Enable high contrast mode'}
             >
               <Contrast className="h-3.5 w-3.5" aria-hidden />
-              Contrast
+              High Contrast
             </button>
             <button
               type="button"

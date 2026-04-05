@@ -158,6 +158,12 @@ async def list_audit_events_endpoint(
     return AuditTrailResponse(events=events).model_dump(by_alias=True)
 
 
+@app.get("/shipments/{shipment_id}/events")
+async def list_shipment_events_endpoint(shipment_id: str, current_user: AuthUser = Depends(get_current_user)) -> dict:
+    events = await list_operational_events(shipment_id, current_user)
+    return AuditTrailResponse(events=events).model_dump(by_alias=True)
+
+
 @app.get("/shipments/{shipment_id}")
 async def get_shipment_endpoint(shipment_id: str, current_user: AuthUser = Depends(get_current_user)) -> dict:
     try:

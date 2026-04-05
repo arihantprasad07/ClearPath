@@ -20,6 +20,81 @@ html.clearpath-high-contrast {
   color-scheme: light;
 }
 
+.high-contrast {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+.high-contrast,
+.high-contrast * {
+  border-color: #ffffff !important;
+}
+
+.high-contrast .text-neutral-600,
+.high-contrast .text-neutral-500,
+.high-contrast .text-neutral-400,
+.high-contrast .text-slate-400,
+.high-contrast .text-slate-500 {
+  color: #dddddd !important;
+}
+
+.high-contrast .bg-white,
+.high-contrast .bg-white\/65,
+.high-contrast .bg-white\/70,
+.high-contrast .bg-neutral-100,
+.high-contrast .bg-neutral-50,
+.high-contrast .bg-black\/45,
+.high-contrast .bg-black\/70 {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+.high-contrast .bg-\[\#DFFF00\],
+.high-contrast .bg-brand-neon,
+.high-contrast .bg-accent-lime {
+  background: #ffff00 !important;
+  color: #000000 !important;
+}
+
+.high-contrast .text-red-600,
+.high-contrast .text-red-700,
+.high-contrast .text-red-900,
+.high-contrast .bg-red-50,
+.high-contrast .bg-red-100,
+.high-contrast .bg-red-500 {
+  color: #ff6b6b !important;
+}
+
+.high-contrast .text-green-600,
+.high-contrast .text-green-700,
+.high-contrast .text-green-900,
+.high-contrast .bg-green-50,
+.high-contrast .bg-green-500 {
+  color: #00ff88 !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes pulse-ring {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.15);
+      opacity: 0.4;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .risk-pulse {
+    animation: pulse-ring 1.8s ease-in-out infinite;
+    transform-origin: center;
+  }
+}
+
 html.clearpath-high-contrast body {
   background: #ffffff;
   color: #000000;

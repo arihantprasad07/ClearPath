@@ -21,6 +21,7 @@ const HIGH_CONTRAST_STORAGE_KEY = 'clearpath-high-contrast';
 const VOICE_ALERTS_STORAGE_KEY = 'clearpath-voice-alerts';
 
 interface AppContextType {
+  authToken: string | null;
   userRole: UserRoleView | null;
   setUserRole: (role: UserRoleView | null) => void;
   shipments: ShipmentViewModel[];
@@ -42,6 +43,7 @@ interface AppContextType {
   voiceAlertsEnabled: boolean;
   setVoiceAlertsEnabled: (enabled: boolean) => void;
   liveAnnouncement: string;
+  demoMode: boolean;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -135,7 +137,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [preferredLanguage]);
 
   useEffect(() => {
-    document.documentElement.classList.toggle('clearpath-high-contrast', highContrastEnabled);
     try {
       localStorage.setItem(HIGH_CONTRAST_STORAGE_KEY, String(highContrastEnabled));
     } catch {
@@ -297,12 +298,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     lastAnnouncementRef.current = nextAnnouncement;
     setLiveAnnouncement(nextAnnouncement);
 
-    if (!voiceAlertsEnabled || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    const utterance = new SpeechSynthesisUtterance(nextAnnouncement);
-    utterance.rate = 0.95;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-  }, [shipments, voiceAlertsEnabled]);
+  }, [shipments]);
 
   const setHighContrastEnabled = (enabled: boolean) => {
     setHighContrastEnabledState(enabled);
@@ -330,8 +326,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addShipmentToState(updated);
   };
 
+  const demoMode = useMemo(() => shipments.some((shipment) => shipment.backend.usedFallbackData), [shipments]);
+
   const value = useMemo<AppContextType>(
     () => ({
+      authToken,
       userRole,
       setUserRole,
       shipments,
@@ -353,8 +352,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       voiceAlertsEnabled,
       setVoiceAlertsEnabled,
       liveAnnouncement,
+      demoMode,
     }),
-    [userRole, shipments, preferredLanguage, authUser, authLoading, authError, shipmentsLoading, highContrastEnabled, voiceAlertsEnabled, liveAnnouncement],
+    [authToken, userRole, shipments, preferredLanguage, authUser, authLoading, authError, shipmentsLoading, highContrastEnabled, voiceAlertsEnabled, liveAnnouncement, demoMode],
   );
 
   return (

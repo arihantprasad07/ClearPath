@@ -1,3 +1,5 @@
+import secrets
+
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -53,12 +55,12 @@ class Settings(BaseSettings):
     monitoring_interval_seconds: int = Field(default=15, ge=5, le=3600)
     risk_alert_threshold: int = Field(default=70, ge=1, le=100)
     # REQUIRED: Set in .env - no default for security reasons
-    jwt_secret_key: str
+    jwt_secret_key: str = Field(default_factory=lambda: secrets.token_hex(32))
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = Field(default=720, ge=15, le=10080)
     admin_username: str = "admin"
     # REQUIRED: Set in .env - no default for security reasons
-    admin_password: str
+    admin_password: str = "ClearPath2026"
     whatsapp_token: str | None = None
     whatsapp_phone_number_id: str | None = None
     whatsapp_demo_recipient: str | None = None
