@@ -22,6 +22,10 @@ export default function LoginPage() {
     if (authUser) navigate('/dashboard');
   }, [authUser, navigate]);
 
+  useEffect(() => {
+    document.title = 'Sign in — ClearPath';
+  }, []);
+
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsSubmitting(true);

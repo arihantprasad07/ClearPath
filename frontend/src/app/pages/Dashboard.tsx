@@ -1,11 +1,79 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { ArrowUpRight, Brain, ChevronRight, Package, Plus, RefreshCw, Zap } from 'lucide-react';
+import { ArrowUpRight, Brain, ChevronRight, Package, Plus, RefreshCw, Zap, CloudRain, Car, Ship, TrendingDown, Activity, Route as RouteIcon } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { LanguageSelect } from '../components/LanguageSelect';
 import { ShipmentViewModel } from '../lib/api';
 import { cp } from '../lib/cpUi';
 import RouteNetworkMap from '../components/RouteNetworkMap';
+import { ConfidenceMeter } from '../components/ConfidenceMeter';
+
+function getSignalIcon(name: string) {
+  const lower = name.toLowerCase();
+  if (lower.includes('weather') || lower.includes('rain') || lower.includes('storm')) return CloudRain;
+  if (lower.includes('traffic') || lower.includes('road')) return Car;
+  if (lower.includes('port') || lower.includes('ship')) return Ship;
+  if (lower.includes('history') || lower.includes('trend')) return TrendingDown;
+  if (lower.includes('nhai') || lower.includes('highway')) return RouteIcon;
+  return Activity;
+}
+
+function useCountUp(target: number, duration: number = 800) {
+  const [count, setCount] = useState(0);
+  const hasAnimated = useRef(false);
+  
+  const prefersReducedMotion = useMemo(() => {
+    if (typeof window !== 'undefined') {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+    return false;
+  }, []);
+
+  useEffect(() => {
+    if (hasAnimated.current) return;
+    if (prefersReducedMotion) {
+      setCount(target);
+      hasAnimated.current = true;
+      return;
+    }
+
+    let startTime: number;
+    const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+
+    const animate = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = timestamp - startTime;
+      const t = Math.min(progress / duration, 1);
+      
+      setCount(Math.round(target * easeOut(t)));
+      
+      if (t < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        hasAnimated.current = true;
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [target, duration, prefersReducedMotion]);
+
+  return count;
+}
+
+function AnimatedStatCard({ label, target, isConfidence = false, classes }: { label: string; target: number; isConfidence?: boolean; classes: string }) {
+  const value = useCountUp(target);
+  
+  return (
+    <div className={classes}>
+      <div className={`mb-2 text-[10px] font-mono uppercase tracking-wider ${cp.textSubtle}`}>{label}</div>
+      {isConfidence ? (
+        <ConfidenceMeter confidence={value} />
+      ) : (
+        <div className={`font-['DM_Serif_Display'] text-3xl ${cp.text}`}>{value}</div>
+      )}
+    </div>
+  );
+}
 
 function formatPredictionWindow(window: ShipmentViewModel['backend']['predictionWindow']) {
   return `${window.label} (${window.startHours}-${window.endHours}h, ${window.confidence}% confidence)`;
@@ -23,7 +91,7 @@ function ShipmentCard({ shipment, isCompany }: { shipment: ShipmentViewModel; is
     );
 
   return (
-    <Link to={`/shipment/${shipment.id}`} className={`group flex h-full min-h-[240px] flex-col ${cp.cardInteractive} ${isHighRisk ? 'ring-1 ring-red-100' : ''}`}>
+    <Link to={`/shipment/${shipment.id}`} className={`group flex h-full min-h-[240px] flex-col ${cp.cardInteractive} ${isHighRisk ? 'border-l-4 border-l-red-500' : shipment.riskLevel === 'medium' ? 'border-l-4 border-l-amber-400' : 'border-l-4 border-l-green-400'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <Package size={18} className={isHighRisk ? 'shrink-0 text-red-500' : 'shrink-0 text-neutral-400'} aria-hidden />
@@ -62,6 +130,10 @@ export default function Dashboard() {
     if (!authLoading && !authUser) navigate('/');
   }, [authLoading, authUser, navigate]);
 
+  useEffect(() => {
+    document.title = 'Dashboard — ClearPath';
+  }, []);
+
   const sorted = useMemo(() => {
     const order = { high: 0, medium: 1, low: 2 } as Record<string, number>;
     return [...shipments].sort((a, b) => (order[a.riskLevel] ?? 3) - (order[b.riskLevel] ?? 3));
@@ -87,28 +159,22 @@ export default function Dashboard() {
     }
   };
 
-  const impactCards = [
-    { label: 'Active lanes', value: shipments.length.toString(), classes: cp.card },
-    { label: 'Critical risks', value: highRiskCount.toString(), classes: 'rounded-2xl border border-red-100 bg-red-50/80 p-6 shadow-sm' },
-    { label: 'AI-backed analyses', value: aiReadyCount.toString(), classes: 'rounded-2xl border border-[#DFFF00]/35 bg-[#faffd9] p-6 shadow-sm' },
-    { label: 'Average confidence', value: `${averageConfidence}%`, classes: 'rounded-2xl border border-amber-100 bg-amber-50/80 p-6 shadow-sm' },
-  ];
-
   return (
     <div className="w-full min-w-0 space-y-8">
-      <div className="relative overflow-hidden rounded-2xl border border-black/10 bg-white p-5 shadow-sm sm:p-6">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-36 w-36 rounded-full bg-[#DFFF00]/12 blur-3xl" aria-hidden />
+      <div className="relative overflow-hidden rounded-2xl border border-black/10 border-b-[#DFFF00]/25 bg-black p-5 text-white shadow-sm sm:p-6">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.03)_1px,transparent_1px)]" style={{ backgroundSize: '28px 28px' }} aria-hidden />
+        <div className="pointer-events-none absolute -right-16 -top-16 h-36 w-36 rounded-full bg-[#DFFF00]/18 blur-[80px]" aria-hidden />
         <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-neutral-900">{roleLabel}</span>
-              <span className="inline-flex items-center rounded-full border border-black/10 bg-neutral-50 px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-neutral-600">{authUser.role} session</span>
+              <span className="inline-flex items-center rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-[#DFFF00]">{roleLabel}</span>
+              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-neutral-300">{authUser.role} session</span>
               <div title="Alert language for transporter notifications" className="min-w-[180px]">
                 <LanguageSelect variant="inline" hideHelper id="dashboard-language" />
               </div>
             </div>
-            <h1 className="mt-4 font-['DM_Serif_Display'] text-3xl tracking-tight text-neutral-900 sm:text-4xl">ClearPath dashboard</h1>
-            <p className={`mt-3 max-w-2xl text-sm leading-relaxed ${cp.textMuted}`}>
+            <h1 className="mt-4 font-['DM_Serif_Display'] text-3xl tracking-tight text-white sm:text-4xl">ClearPath dashboard</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-neutral-300">
               {shipmentsLoading
                 ? 'Syncing live shipments, route intelligence, and AI reasoning from the backend.'
                 : 'Live disruption intelligence, route recommendations, and AI-backed decisions for your active shipment lanes.'}
@@ -122,12 +188,10 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {impactCards.map((card) => (
-          <div key={card.label} className={card.classes}>
-            <div className={`mb-2 text-[10px] font-mono uppercase tracking-wider ${cp.textSubtle}`}>{card.label}</div>
-            <div className={`font-['DM_Serif_Display'] text-3xl ${cp.text}`}>{card.value}</div>
-          </div>
-        ))}
+        <AnimatedStatCard label="Active lanes" target={shipments.length} classes={cp.card} />
+        <AnimatedStatCard label="Critical risks" target={highRiskCount} classes="rounded-2xl border border-red-100 bg-red-50/80 p-6 shadow-sm" />
+        <AnimatedStatCard label="AI-backed analyses" target={aiReadyCount} classes="rounded-2xl border border-[#DFFF00]/35 bg-[#faffd9] p-6 shadow-sm" />
+        <AnimatedStatCard label="Average confidence" target={averageConfidence} isConfidence classes="rounded-2xl border border-amber-100 bg-amber-50/80 p-6 shadow-sm flex flex-col justify-between" />
       </div>
 
       {latestShipment?.backend.alert?.translations && latestShipment.riskLevel === 'high' && (
@@ -207,11 +271,16 @@ export default function Dashboard() {
               Pulling the latest route intelligence, AI summaries, and shipment health from the backend.
             </div>
           ) : sorted.length === 0 ? (
-            <div className={`rounded-2xl border border-dashed ${cp.borderHairline} bg-neutral-50/80 p-8 text-center`}>
-              <p className={`text-sm ${cp.textMuted}`}>No live shipments are registered yet.</p>
-              <Link to="/add-shipment" className={`${cp.btnPrimary} mt-4 inline-flex`}>
-                <Plus size={15} className="shrink-0" aria-hidden />
-                Create your first shipment
+            <div className="rounded-2xl border border-dashed border-black/15 bg-gradient-to-br from-neutral-50 to-white p-12 text-center">
+              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12">
+                <RouteIcon size={24} className="text-neutral-900" strokeWidth={1.7} />
+              </div>
+              <h3 className="font-['DM_Serif_Display'] text-2xl text-neutral-900">No active shipment lanes yet.</h3>
+              <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-neutral-500">
+                Create a lane between two Indian cities. ClearPath will predict disruption risk, score alternate routes, and prepare multilingual transporter alerts.
+              </p>
+              <Link to="/add-shipment" className={`${cp.btnPrimary} mt-6 inline-flex`}>
+                <Plus size={15} className="shrink-0" aria-hidden /> Create first lane
               </Link>
             </div>
           ) : (
@@ -256,26 +325,38 @@ export default function Dashboard() {
 
           {latestShipment?.backend.signalStack?.length ? (
             <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
-              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500 mb-1">Live signal feed</p>
+              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500 mb-1">
+                {latestShipment.backend.signalStack.some(s => !s.usedFallback) && <span className="mr-2 inline-block h-2 w-2 rounded-full bg-green-500 animate-pulse" />}
+                Live signal feed
+              </p>
               <h2 className="font-['DM_Serif_Display'] text-2xl text-neutral-900 mb-4">Active risk signals</h2>
               <div className="space-y-3">
-                {latestShipment.backend.signalStack.slice(0, 3).map((signal) => (
-                  <div key={signal.name} className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <p className="text-sm font-semibold text-neutral-900">{signal.name}</p>
-                      <span className={`text-[10px] font-mono font-bold uppercase tracking-widest ${Math.round(signal.severity * 100) >= 60 ? 'text-red-600' : Math.round(signal.severity * 100) >= 35 ? 'text-amber-600' : 'text-green-600'}`}>
-                        {Math.round(signal.severity * 100)}%
-                      </span>
+                {latestShipment.backend.signalStack.map((signal) => {
+                  const severity = Math.round(signal.severity * 100);
+                  const barColor = severity >= 60 ? 'bg-red-500' : severity >= 35 ? 'bg-amber-400' : 'bg-green-500';
+                  const textColor = severity >= 60 ? 'text-red-600' : severity >= 35 ? 'text-amber-600' : 'text-green-600';
+                  const Icon = getSignalIcon(signal.name);
+                  return (
+                    <div key={signal.name} className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-2">
+                          <Icon size={14} className="text-neutral-500" strokeWidth={1.7} aria-hidden />
+                          <p className="text-sm font-semibold text-neutral-900">{signal.name}</p>
+                        </div>
+                        <span className={`text-[10px] font-mono font-bold uppercase tracking-widest ${textColor}`}>
+                          {severity}%
+                        </span>
+                      </div>
+                      <p className="text-xs text-neutral-500">{signal.summary}</p>
+                      <div className="mt-2 h-1.5 rounded-full bg-neutral-200 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${barColor} transition-all duration-700 ease-out`}
+                          style={{ width: `${severity}%` }}
+                        />
+                      </div>
                     </div>
-                    <p className="text-xs text-neutral-500">{signal.summary}</p>
-                    <div className="mt-2 h-1 rounded-full bg-neutral-200 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${Math.round(signal.severity * 100) >= 60 ? 'bg-red-500' : Math.round(signal.severity * 100) >= 35 ? 'bg-amber-400' : 'bg-green-500'}`}
-                        style={{ width: `${Math.round(signal.severity * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           ) : null}

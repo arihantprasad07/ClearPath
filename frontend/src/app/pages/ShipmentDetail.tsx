@@ -1,10 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import confetti from 'canvas-confetti';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   AlertTriangle,
   ArrowLeft,
   Brain,
-  CheckCircle2,
+  CheckCircle,
   ChevronDown,
   Clock,
   DollarSign,
@@ -13,6 +15,12 @@ import {
   ShieldCheck,
   Sparkles,
   Volume2,
+  CloudRain,
+  Car,
+  Factory,
+  Ship,
+  TrendingDown,
+  Activity,
 } from 'lucide-react';
 import RouteNetworkMap from '../components/RouteNetworkMap';
 import { useAppContext } from '../context/AppContext';
@@ -55,44 +63,23 @@ function formatTimestamp(value: string) {
   }).format(date);
 }
 
-function severityTone(severity: number) {
-  if (severity > 0.6) return { bar: 'bg-red-500', text: 'text-red-600' };
-  if (severity > 0.35) return { bar: 'bg-amber-400', text: 'text-amber-600' };
+function severityTone(score: number) {
+  if (score >= 0.6) return { bar: 'bg-red-500', text: 'text-red-600' };
+  if (score >= 0.35) return { bar: 'bg-amber-400', text: 'text-amber-600' };
   return { bar: 'bg-green-500', text: 'text-green-600' };
 }
 
-function renderArcPath(radius: number) {
-  const centerX = radius + 6;
-  const centerY = radius + 6;
-  return `M ${centerX - radius} ${centerY} A ${radius} ${radius} 0 0 1 ${centerX + radius} ${centerY}`;
+function getSignalIcon(name: string) {
+  const lower = name.toLowerCase();
+  if (lower.includes('weather') || lower.includes('rain') || lower.includes('storm')) return CloudRain;
+  if (lower.includes('traffic') || lower.includes('road')) return Car;
+  if (lower.includes('port') || lower.includes('ship')) return Ship;
+  if (lower.includes('history') || lower.includes('trend')) return TrendingDown;
+  if (lower.includes('capacity') || lower.includes('factory')) return Factory;
+  return Activity;
 }
 
-function ConfidenceMeter({ confidence }: { confidence: number }) {
-  const safeConfidence = Math.max(0, Math.min(100, confidence));
-  const arcLength = Math.PI * 30;
-  const dashOffset = arcLength - (arcLength * safeConfidence) / 100;
-  const color = safeConfidence >= 75 ? '#22c55e' : safeConfidence >= 50 ? '#f59e0b' : '#ef4444';
-
-  return (
-    <div className="relative h-[56px] w-[92px]">
-      <svg viewBox="0 0 72 42" className="h-full w-full">
-        <path d={renderArcPath(30)} fill="none" stroke="#e5e7eb" strokeWidth="8" strokeLinecap="round" />
-        <path
-          d={renderArcPath(30)}
-          fill="none"
-          stroke={color}
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={arcLength}
-          strokeDashoffset={dashOffset}
-        />
-      </svg>
-      <div className="absolute inset-x-0 bottom-1 text-center">
-        <div className="text-lg font-semibold text-neutral-900">{safeConfidence}%</div>
-      </div>
-    </div>
-  );
-}
+import { ConfidenceMeter } from '../components/ConfidenceMeter';
 
 export default function ShipmentDetail() {
   const { id } = useParams();
@@ -109,6 +96,10 @@ export default function ShipmentDetail() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
   const lastSpokenShipmentRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    document.title = `${shipment?.name || 'Shipment'} — ClearPath`;
+  }, [shipment?.name]);
 
   const localizedAlert = useMemo(() => {
     if (!shipment) return '';
@@ -193,6 +184,12 @@ export default function ShipmentDetail() {
       setRouteError(null);
       setApprovingRouteId(routeId);
       await updateShipmentRoute(shipment.id, routeId);
+      confetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#DFFF00', '#000000', '#22C55E']
+      });
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
@@ -245,7 +242,10 @@ export default function ShipmentDetail() {
               <div className="mt-4 flex items-end justify-between gap-4">
                 <div>
                   <p className={`text-[10px] font-mono uppercase tracking-widest ${cp.textSubtle}`}>Risk score</p>
-                  <p className={`mt-1 text-3xl font-semibold ${isHighRisk ? 'text-red-600 risk-pulse' : cp.text}`}>{shipment.backend.risk.score}%</p>
+                  <div className="relative mt-1 inline-flex items-center justify-center">
+                    {isHighRisk && <span className="absolute inset-0 rounded-full" style={{ background: 'radial-gradient(circle, rgba(239,68,68,0.15), transparent 70%)' }} aria-hidden />}
+                    <p className={`relative z-10 text-3xl font-semibold ${isHighRisk ? 'text-red-600 risk-pulse' : cp.text}`}>{shipment.backend.risk.score}%</p>
+                  </div>
                 </div>
                 <div className="text-right">
                   <p className={`text-[10px] font-mono uppercase tracking-widest ${cp.textSubtle}`}>Prediction window</p>
@@ -312,27 +312,47 @@ export default function ShipmentDetail() {
                   <h2 className="mt-1 font-['DM_Serif_Display'] text-2xl text-neutral-900">Five-signal disruption stack</h2>
                 </div>
                 <div className="space-y-3">
-                  {shipment.backend.signalStack.map((signal) => {
-                    const tone = severityTone(signal.severity);
-                    const severityPercent = Math.round(signal.severity * 100);
-                    return (
-                      <div key={signal.name} className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">
-                        <div className="mb-1 flex items-center justify-between gap-3">
-                          <p className="text-sm font-semibold text-neutral-900">{signal.name}</p>
-                          <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-mono font-bold uppercase tracking-widest ${tone.text}`}>{severityPercent}%</span>
-                            <span className={`rounded-full px-2 py-0.5 text-[9px] font-mono uppercase tracking-wider ${signal.usedFallback ? 'bg-neutral-200 text-neutral-600' : 'bg-blue-100 text-blue-700'}`}>
-                              {signal.usedFallback ? 'fallback' : 'live'}
-                            </span>
+                  <AnimatePresence>
+                    {shipment.backend.signalStack.map((signal, index) => {
+                      const tone = severityTone(signal.severity);
+                      const severityPercent = Math.round(signal.severity * 100);
+                      const isHighRiskSignal = severityPercent >= 60;
+                      const Icon = getSignalIcon(signal.name);
+                      
+                      return (
+                        <motion.div
+                          key={signal.name}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1, duration: 0.4 }}
+                          className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3"
+                        >
+                          <div className="mb-1 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              <Icon size={14} className="text-neutral-500" aria-hidden />
+                              <p className="text-sm font-semibold text-neutral-900">{signal.name}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <motion.span
+                                animate={isHighRiskSignal ? { scale: [1, 1.05, 1] } : {}}
+                                transition={isHighRiskSignal ? { repeat: Infinity, duration: 2 } : {}}
+                                className={`text-[10px] font-mono font-bold uppercase tracking-widest ${tone.text} inline-block`}
+                              >
+                                {severityPercent}%
+                              </motion.span>
+                              <span className={`rounded-full px-2 py-0.5 text-[9px] font-mono uppercase tracking-wider ${signal.usedFallback ? 'bg-neutral-200 text-neutral-600' : 'bg-blue-100 text-blue-700'}`}>
+                                {signal.usedFallback ? 'fallback' : 'live'}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-neutral-200">
-                          <div className={`h-full rounded-full ${tone.bar}`} style={{ width: `${severityPercent}%` }} />
-                        </div>
-                        <p className="mt-2 text-sm text-neutral-600">{signal.summary}</p>
-                      </div>
-                    );
-                  })}
+                          <div className="h-2 overflow-hidden rounded-full bg-neutral-200">
+                            <div className={`h-full rounded-full ${tone.bar} transition-all duration-700 ease-out`} style={{ width: `${severityPercent}%` }} />
+                          </div>
+                          <p className="mt-2 text-sm text-neutral-600">{signal.summary}</p>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
                 </div>
               </section>
             ) : null}
@@ -398,58 +418,75 @@ export default function ShipmentDetail() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                  {shipment.routes.map((route) => {
+                  {shipment.routes.map((route, index) => {
                     const isBest = route.isRecommended;
 
                     return (
-                      <div
+                      <motion.div
+                        layout
                         key={route.id}
-                        className={`flex h-full min-h-0 flex-col rounded-2xl border p-6 shadow-sm transition-all duration-200 hover:shadow-md ${
-                          isBest ? 'border-black bg-[#F7F7F7] ring-2 ring-[#DFFF00]/50' : `border ${cp.borderHairline} bg-white hover:border-neutral-200`
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.08 }}
+                        className={`relative flex h-full min-h-0 flex-col rounded-2xl border p-6 transition-all duration-200 ${
+                          isBest
+                            ? 'border-black border-t-4 border-t-[#DFFF00] bg-[#FAFFDD] shadow-[0_8px_32px_-12px_rgba(223,255,0,0.4),0_2px_8px_rgba(0,0,0,0.08)]'
+                            : `border ${cp.borderHairline} bg-white hover:border-black/20 hover:shadow-[0_4px_16px_-8px_rgba(0,0,0,0.12)]`
                         }`}
                       >
                         {isBest && (
-                          <div className="-mt-2 mb-3 self-center rounded-full border border-black bg-[#DFFF00] px-3 py-1 text-[9px] font-mono font-bold uppercase tracking-widest text-black">
-                            AI recommended
-                          </div>
+                          <motion.div
+                            animate={{ opacity: [0.4, 0.8, 0.4] }}
+                            transition={{ repeat: Infinity, duration: 3 }}
+                            className="pointer-events-none absolute inset-0 z-0 rounded-2xl bg-[#DFFF00]/20 blur-xl"
+                            aria-hidden
+                          />
                         )}
 
-                        <h3 className={`mb-6 text-center text-base font-bold ${cp.text}`}>{route.name}</h3>
+                        <div className="relative z-10 flex h-full flex-col">
+                          {isBest && (
+                            <div className="-mt-2 mb-3 self-center rounded-full border border-black bg-[#DFFF00] px-3 py-1 text-[9px] font-mono font-bold uppercase tracking-widest text-black shadow-[0_2px_0_0_rgba(0,0,0,1)]">
+                              AI recommended
+                            </div>
+                          )}
 
-                        <div className="mb-8 flex flex-1 flex-col gap-4 text-sm">
-                          <div className="flex items-center justify-between gap-3">
-                            <span className={`flex items-center gap-2 ${cp.textMuted}`}><Clock size={14} aria-hidden /> ETA</span>
-                            <span className={`font-medium ${cp.text}`}>{route.eta}</span>
+                          <h3 className={`mb-6 text-center text-base font-bold ${cp.text}`}>{route.name}</h3>
+
+                          <div className="mb-8 flex flex-1 flex-col gap-4 text-sm">
+                            <div className="flex items-center justify-between gap-3">
+                              <span className={`flex items-center gap-2 ${cp.textMuted}`}><Clock size={14} aria-hidden /> ETA</span>
+                              <span className={`font-medium ${cp.text}`}>{route.eta}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3">
+                              <span className={`flex items-center gap-2 ${cp.textMuted}`}><DollarSign size={14} aria-hidden /> Cost</span>
+                              <span className={`font-medium ${route.cost.startsWith('+') && route.cost !== '+₹0' ? 'text-amber-600' : 'text-green-600'}`}>{route.cost}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3">
+                              <span className={`flex items-center gap-2 ${cp.textMuted}`}><ShieldCheck size={14} aria-hidden /> Reliability</span>
+                              <span className="font-medium text-green-600">{route.reliability}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center justify-between gap-3">
-                            <span className={`flex items-center gap-2 ${cp.textMuted}`}><DollarSign size={14} aria-hidden /> Cost</span>
-                            <span className={`font-medium ${route.cost.startsWith('+') && route.cost !== '+₹0' ? 'text-amber-600' : 'text-green-600'}`}>{route.cost}</span>
-                          </div>
-                          <div className="flex items-center justify-between gap-3">
-                            <span className={`flex items-center gap-2 ${cp.textMuted}`}><ShieldCheck size={14} aria-hidden /> Reliability</span>
-                            <span className="font-medium text-green-600">{route.reliability}</span>
-                          </div>
+
+                          {userRole === 'company' ? (
+                            <button
+                              type="button"
+                              onClick={() => handleApprove(route.id)}
+                              disabled={approvingRouteId !== null}
+                              className={
+                                isBest
+                                  ? `${cp.btnPrimaryBlock} disabled:cursor-not-allowed disabled:opacity-60`
+                                  : `inline-flex w-full items-center justify-center rounded-xl border ${cp.border} bg-white px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-neutral-700 transition-all duration-200 hover:border-neutral-300 hover:bg-neutral-50 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-60`
+                              }
+                            >
+                              {approvingRouteId === route.id ? 'Applying route...' : isBest ? 'Approve best route' : 'Select route'}
+                            </button>
+                          ) : (
+                            <div className={`rounded-xl border ${cp.borderHairline} bg-neutral-50 py-2.5 text-center text-[10px] font-mono uppercase tracking-widest ${cp.textSubtle}`}>
+                              Awaiting company approval
+                            </div>
+                          )}
                         </div>
-
-                        {userRole === 'company' ? (
-                          <button
-                            type="button"
-                            onClick={() => handleApprove(route.id)}
-                            disabled={approvingRouteId !== null}
-                            className={
-                              isBest
-                                ? `${cp.btnPrimaryBlock} disabled:cursor-not-allowed disabled:opacity-60`
-                                : `inline-flex w-full items-center justify-center rounded-xl border ${cp.border} bg-white px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-neutral-700 transition-all duration-200 hover:border-neutral-300 hover:bg-neutral-50 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-60`
-                            }
-                          >
-                            {approvingRouteId === route.id ? 'Applying route...' : isBest ? 'Approve best route' : 'Select route'}
-                          </button>
-                        ) : (
-                          <div className={`rounded-xl border ${cp.borderHairline} bg-neutral-50 py-2.5 text-center text-[10px] font-mono uppercase tracking-widest ${cp.textSubtle}`}>
-                            Awaiting company approval
-                          </div>
-                        )}
-                      </div>
+                      </motion.div>
                     );
                   })}
                 </div>
@@ -508,6 +545,7 @@ export default function ShipmentDetail() {
               <svg viewBox="0 0 320 48" className="h-16 w-full" aria-hidden>
                 {[0, 1, 2].map((segmentIndex) => {
                   const isActive = journeyStep > segmentIndex;
+                  const lineLength = 86;
                   return (
                     <line
                       key={`segment-${segmentIndex}`}
@@ -517,15 +555,17 @@ export default function ShipmentDetail() {
                       y2={24}
                       stroke={isActive ? '#22c55e' : '#d4d4d8'}
                       strokeWidth="4"
-                      strokeDasharray={isActive ? undefined : '6 6'}
+                      strokeDasharray={isActive ? `${lineLength}` : '6 6'}
+                      strokeDashoffset={isActive ? `${lineLength}` : undefined}
+                      style={isActive ? { animation: `clearpath-line-draw 0.8s ease-out ${segmentIndex * 0.3}s forwards` } : undefined}
                     />
                   );
                 })}
                 {[
-                  { cx: 24, fill: '#22c55e' },
-                  { cx: 110, fill: '#22c55e' },
-                  { cx: 196, fill: isHighRisk ? '#ef4444' : '#d4d4d8' },
-                  { cx: 282, fill: shipment.backend.status === 'stable' ? '#22c55e' : shipment.backend.status === 'risk_detected' ? '#ef4444' : '#d4d4d8' },
+                  { cx: 24, fill: '#22c55e', active: true },
+                  { cx: 110, fill: '#22c55e', active: true },
+                  { cx: 196, fill: isHighRisk ? '#ef4444' : '#d4d4d8', active: isHighRisk },
+                  { cx: 282, fill: shipment.backend.status === 'stable' ? '#22c55e' : shipment.backend.status === 'risk_detected' ? '#ef4444' : '#d4d4d8', active: shipment.backend.status === 'stable' || shipment.backend.status === 'risk_detected' },
                 ].map((node, index) => (
                   <circle
                     key={`node-${node.cx}`}
@@ -535,14 +575,18 @@ export default function ShipmentDetail() {
                     fill={node.fill}
                     stroke={index === 2 && !isHighRisk ? '#a1a1aa' : node.fill}
                     strokeDasharray={index === 2 && !isHighRisk ? '4 3' : undefined}
+                    style={node.active ? { filter: `drop-shadow(0 0 4px ${node.fill})` } : undefined}
                   />
                 ))}
               </svg>
-              <div className="mt-2 grid grid-cols-4 gap-3 text-center text-xs text-neutral-600">
-                <div>Origin</div>
-                <div>In Transit</div>
-                <div>Risk Detected</div>
-                <div>Destination</div>
+              <div className="mt-2 grid grid-cols-4 gap-3 text-center text-xs">
+                <div className={journeyStep >= 1 ? 'font-semibold text-neutral-900' : 'text-neutral-400'}>Origin</div>
+                <div className={journeyStep >= 2 ? 'font-semibold text-neutral-900' : 'text-neutral-400'}>In Transit</div>
+                <div className={isHighRisk ? 'font-semibold text-red-600' : journeyStep >= 3 ? 'font-semibold text-neutral-900' : 'text-neutral-400'}>
+                  {isHighRisk && <span className="mr-1 inline-block h-2 w-2 rounded-full bg-red-500 animate-pulse" />}
+                  Risk Detected
+                </div>
+                <div className={journeyStep >= 4 ? 'font-semibold text-neutral-900' : 'text-neutral-400'}>Destination</div>
               </div>
             </section>
           </div>
@@ -654,10 +698,14 @@ export default function ShipmentDetail() {
                     <h2 className="font-['DM_Serif_Display'] text-2xl text-neutral-900">Downstream exposure</h2>
                   </div>
                 </div>
-                <div className="mt-5 flex flex-wrap gap-2">
+                <p className="mt-5 mb-3 font-['DM_Serif_Display'] text-3xl text-neutral-900">{cascadeImpact.affectedOrders} orders at risk</p>
+                <motion.div className="flex flex-wrap gap-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.06 }}>
                   {Array.from({ length: Math.min(cascadeImpact.affectedOrders, 8) }).map((_, index) => (
-                    <span
+                    <motion.span
                       key={`impact-${index}`}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: index * 0.06 }}
                       className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border ${
                         cascadeImpact.severity === 'high'
                           ? 'border-red-200 bg-red-50 text-red-600'
@@ -667,10 +715,13 @@ export default function ShipmentDetail() {
                       }`}
                     >
                       <Package className="h-4 w-4" aria-hidden />
-                    </span>
+                    </motion.span>
                   ))}
-                </div>
-                <p className="mt-4 text-sm font-medium text-neutral-900">{cascadeImpact.slaRisk}</p>
+                </motion.div>
+                <p className="mt-4 text-sm font-medium text-neutral-900">
+                  <span className={`mr-2 inline-block h-2 w-2 rounded-full ${cascadeImpact.severity === 'high' ? 'bg-red-500' : cascadeImpact.severity === 'medium' ? 'bg-amber-500' : 'bg-neutral-400'}`} />
+                  {cascadeImpact.slaRisk}
+                </p>
                 <p className="mt-2 text-sm leading-relaxed text-neutral-600">{cascadeImpact.summary}</p>
               </section>
             ) : null}
@@ -685,20 +736,25 @@ export default function ShipmentDetail() {
         ) : null}
 
         {showSuccess && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/90 p-4 backdrop-blur-sm">
-            <div className="max-w-md rounded-2xl border border-green-200 bg-green-50 p-8 text-center shadow-lg transition-all duration-200">
-              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-500 text-white shadow-md">
-                <CheckCircle2 size={32} aria-hidden />
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+              className="max-w-md rounded-2xl border border-[#DFFF00]/45 bg-black p-8 text-center shadow-lg"
+            >
+              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#DFFF00] text-black shadow-md">
+                <CheckCircle size={32} aria-hidden />
               </div>
-              <h3 className="font-['DM_Serif_Display'] text-2xl text-green-900">Route approved</h3>
-              <p className="mt-2 text-sm text-green-800/90">
+              <h3 className="font-['DM_Serif_Display'] text-2xl text-white">Route locked in.</h3>
+              <p className="mt-2 text-sm text-neutral-300">
                 {shipment.backend.dispatchStatus?.status === 'queued'
                   ? 'Driver notification has been queued for dispatch.'
                   : authUser?.role === 'admin'
                     ? 'The live route selection has been saved to the backend.'
                     : 'The live route selection has been saved.'}
               </p>
-            </div>
+            </motion.div>
           </div>
         )}
       </div>

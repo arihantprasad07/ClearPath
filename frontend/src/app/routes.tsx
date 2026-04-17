@@ -11,7 +11,7 @@ const ContactPage = lazy(() => import("./pages/ContactPage"));
 
 function withSuspense(Component: React.LazyExoticComponent<() => React.JSX.Element>) {
   return (
-    <Suspense fallback={<div className="flex min-h-[40vh] items-center justify-center text-sm text-neutral-500">Loading...</div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><span className="text-[10px] font-mono uppercase tracking-widest text-neutral-400">Loading...</span></div>}>
       <Component />
     </Suspense>
   );

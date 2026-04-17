@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import {
   Activity,
+  Anchor,
   ArrowUpRight,
+  BarChart2,
   Brain,
   Building,
+  Car,
   CheckCircle2,
   Cloud,
   Database,
@@ -16,13 +19,57 @@ import {
 } from 'lucide-react';
 import { Features, Roles } from '../components/RolesAndFeatures';
 
+function useInViewCountUp(target: number, duration: number = 1200) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) {
+      setCount(target);
+      hasAnimated.current = true;
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAnimated.current) {
+          hasAnimated.current = true;
+          let startTime: number;
+          const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+          const animate = (timestamp: number) => {
+            if (!startTime) startTime = timestamp;
+            const t = Math.min((timestamp - startTime) / duration, 1);
+            setCount(Math.round(target * easeOut(t)));
+            if (t < 1) requestAnimationFrame(animate);
+          };
+          requestAnimationFrame(animate);
+        }
+      },
+      { threshold: 0.3 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [target, duration]);
+
+  return { count, ref };
+}
+
+function HeroMetricCard({ label, value, isAnimated, target, duration }: { label: string; value?: string; isAnimated?: boolean; target?: number; duration?: number }) {
+  const { count, ref } = useInViewCountUp(target ?? 0, duration ?? 1200);
+  return (
+    <div ref={ref} className="rounded-2xl border border-white/15 border-b-2 border-b-[#DFFF00]/50 bg-white/5 px-4 py-4 transition-all duration-200 hover:border-[#DFFF00]/60 hover:bg-white/[0.08]">
+      <div className="font-['DM_Serif_Display'] text-3xl text-[#DFFF00]">{isAnimated ? count : value}</div>
+      <div className="mt-2 text-neutral-400">{label}</div>
+    </div>
+  );
+}
+
 function Hero() {
   const navigate = useNavigate();
-  const metrics = [
-    { label: 'Decision time target', value: '<30s' },
-    { label: 'Indian languages', value: '22' },
-    { label: 'Live operator views', value: '3' },
-  ];
 
   return (
     <section id="product" className="relative overflow-hidden bg-black pt-24 text-white sm:pt-28 md:pt-32">
@@ -61,12 +108,9 @@ function Hero() {
           </div>
 
           <div className="mt-10 grid grid-cols-1 gap-3 text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-300 sm:grid-cols-3">
-            {metrics.map((metric) => (
-              <div key={metric.label} className="rounded-2xl border border-white/15 bg-white/5 px-4 py-4">
-                <div className="text-2xl text-white">{metric.value}</div>
-                <div className="mt-2 text-neutral-400">{metric.label}</div>
-              </div>
-            ))}
+            <HeroMetricCard label="Decision time target" value="<30s" />
+            <HeroMetricCard label="Indian languages supported" isAnimated target={22} duration={1200} />
+            <HeroMetricCard label="Operator stakeholder roles" isAnimated target={3} duration={800} />
           </div>
         </div>
 
@@ -261,6 +305,97 @@ function ProductOutcomes() {
   );
 }
 
+function FiveSignals() {
+  const signals = [
+    { name: 'IMD Weather', icon: <Cloud className="h-5 w-5" strokeWidth={1.7} />, desc: 'Real-time rain, wind, and visibility from OpenWeatherMap', delay: '0s' },
+    { name: 'Maps Traffic', icon: <Car className="h-5 w-5" strokeWidth={1.7} />, desc: 'Live corridor congestion via Google Maps Routes API', delay: '0.5s' },
+    { name: 'Port Feeds', icon: <Anchor className="h-5 w-5" strokeWidth={1.7} />, desc: 'Terminal wait-time signals for major Indian freight ports', delay: '1s' },
+    { name: 'NHAI Roads', icon: <Route className="h-5 w-5" strokeWidth={1.7} />, desc: 'Highway blockage and construction status from NHAI feeds', delay: '1.5s' },
+    { name: 'History', icon: <BarChart2 className="h-5 w-5" strokeWidth={1.7} />, desc: 'Pattern matching from resolved disruptions via BigQuery', delay: '2s' },
+  ];
+
+  return (
+    <section className="border-y border-black/10 bg-white py-16 sm:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="inline-flex items-center rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-900">
+            Signal architecture
+          </p>
+          <h2 className="mt-6 font-['DM_Serif_Display'] text-4xl tracking-tight text-neutral-900 sm:text-5xl">Five signals. One decision.</h2>
+          <p className="mt-4 text-base leading-relaxed text-neutral-600 sm:text-lg">
+            ClearPath fuses weather, traffic, port congestion, highway status, and historical patterns into a single risk score — 18 to 24 hours before a shipment is affected.
+          </p>
+        </div>
+
+        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {signals.map((signal) => (
+            <div key={signal.name} className="flex flex-col gap-4 rounded-2xl border border-black/10 bg-black p-6 text-white">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#DFFF00]/40 bg-[#DFFF00]/10 text-[#DFFF00]">
+                {signal.icon}
+              </div>
+              <h3 className="font-['DM_Serif_Display'] text-xl">{signal.name}</h3>
+              <p className="flex-1 text-sm leading-relaxed text-neutral-300">{signal.desc}</p>
+              <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-[#DFFF00]"
+                  style={{ animation: `pulse-bar 3s ease-in-out infinite ${signal.delay}` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PriyaStory() {
+  const steps = [
+    'ClearPath detects rainfall on NH-44 — 85% probability of 6+ hour delay.',
+    'Surat terminal congestion spike detected — avg wait +4 hours.',
+    "Priya receives a Gujarati WhatsApp alert: 'Your shipment may be delayed. Tap to approve rerouting.'",
+    'One tap. Transporter gets new route. Zero phone calls. Total time: 30 seconds.',
+  ];
+
+  return (
+    <section className="overflow-hidden">
+      <div className="grid lg:grid-cols-2">
+        <div className="bg-black px-6 py-16 text-white sm:px-10 sm:py-24 lg:px-16">
+          <h2 className="font-['DM_Serif_Display'] text-3xl text-white sm:text-4xl">Priya's shipment disappeared.</h2>
+          <p className="mt-6 text-sm leading-relaxed text-neutral-300">
+            Priya runs a small textile business in Surat. She ordered 500 metres of fabric from a supplier in Coimbatore. It was supposed to arrive in 4 days. On day 6, she calls the transporter — no answer. She calls the supplier — they say it left on time. She has 12 orders pending, customers calling, and zero visibility. She loses 3 customers that week. Nobody warned her. Nobody rerouted. Nobody even knew there was a problem.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            {[
+              { stat: '₹15,000 Cr', label: 'lost annually' },
+              { stat: '63M', label: 'SMBs affected' },
+              { stat: '6–18 hr', label: 'avg detection delay' },
+            ].map((pill) => (
+              <span key={pill.stat} className="inline-flex items-center gap-2 rounded-full border border-[#DFFF00]/40 bg-[#DFFF00]/10 px-4 py-2 text-[10px] font-mono uppercase tracking-widest text-[#DFFF00]">
+                <span className="font-semibold">{pill.stat}</span> {pill.label}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white px-6 py-16 sm:px-10 sm:py-24 lg:px-16">
+          <h2 className="font-['DM_Serif_Display'] text-3xl text-neutral-900 sm:text-4xl">With ClearPath, Priya gets 18 hours.</h2>
+          <div className="mt-8 space-y-4">
+            {steps.map((step, index) => (
+              <div key={index} className="flex gap-4 rounded-2xl border border-black/10 bg-neutral-50 p-4">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#DFFF00] text-xs font-mono font-bold text-black">
+                  {index + 1}
+                </div>
+                <p className="text-sm leading-relaxed text-neutral-700">{step}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function CTA() {
   return (
     <section className="relative overflow-hidden bg-black px-6 py-16 sm:py-20 md:py-24">
@@ -308,14 +443,20 @@ export default function LandingPage() {
     }
   }, [location.hash, location.pathname]);
 
+  useEffect(() => {
+    document.title = 'ClearPath — AI Supply Chain Co-pilot for Indian SMBs';
+  }, []);
+
   return (
     <main id="main-content">
       <Hero />
       <CriteriaFit />
       <StackSection />
+      <FiveSignals />
       <Roles />
       <Features />
       <ProductOutcomes />
+      <PriyaStory />
       <CTA />
     </main>
   );

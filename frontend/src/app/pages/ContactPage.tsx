@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { motion } from 'motion/react';
 import { ArrowLeft, Building2, Mail, MapPin, MessageSquare, Send, ShieldCheck, User } from 'lucide-react';
@@ -17,77 +17,69 @@ export default function ContactPage() {
     setSubmitted(true);
   };
 
+  useEffect(() => {
+    document.title = 'Contact — ClearPath';
+  }, []);
+
   return (
-    <div className={`relative flex min-h-[100dvh] flex-col justify-center overflow-x-hidden px-4 pb-12 pt-24 sm:px-6 sm:pb-16 sm:pt-28 ${cp.bgPage}`}>
+    <div className={`relative flex min-h-[100dvh] w-full max-w-full flex-col items-center justify-center overflow-x-hidden px-4 pb-8 pt-24 sm:px-6 ${cp.bgPage}`}>
       <div className={cp.blobAccent} aria-hidden />
       <div className={cp.blobNeutral} aria-hidden />
 
-      <div className={`${cp.container} grid w-full items-start gap-10 sm:gap-14 lg:grid-cols-[1fr_1.1fr] lg:gap-20`}>
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="lg:pt-4">
-          <Link to="/" className={`${cp.linkBack} mb-10`}>
-            <ArrowLeft size={16} aria-hidden />
-            Back to home
-          </Link>
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className={`${cp.container} max-w-5xl`}>
+        <Link to="/" className={`${cp.linkBack} mb-8`}>
+          <ArrowLeft size={16} aria-hidden />
+          Back to home
+        </Link>
 
-          <div className="mb-6 flex items-center gap-4">
-            <div className="h-px w-8 bg-neutral-300" />
-            <span className={`font-mono text-[9px] font-medium uppercase tracking-[0.25em] ${cp.text}`}>Pilot and partnership</span>
+        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className={`${cp.panel} hidden lg:block`}>
+            <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[#DFFF00]/15 blur-3xl" aria-hidden />
+            <div className="relative z-10">
+              <h1 className={`font-['DM_Serif_Display'] text-4xl ${cp.text}`}>Built for India's 63 million SMBs.</h1>
+              <p className={`mt-4 max-w-xl text-base leading-relaxed ${cp.textMuted}`}>
+                ClearPath predicts supply chain disruptions, recommends alternate routes, and sends multilingual transporter alerts—empowering operators to act decisively under pressure.
+              </p>
+              
+              <ul className="mt-8 space-y-6">
+                <li className="flex gap-4">
+                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${cp.borderHairline} bg-white shadow-sm`}>
+                    <Mail size={18} className={cp.text} strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <div className={`mb-1 text-[10px] font-mono font-bold uppercase tracking-widest ${cp.textSubtle}`}>Email</div>
+                    <a href="mailto:hello@clearpath.example" className={`break-all text-sm font-medium transition-colors hover:opacity-80 sm:break-normal ${cp.text}`}>
+                      hello@clearpath.example
+                    </a>
+                  </div>
+                </li>
+                <li className="flex gap-4">
+                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${cp.borderHairline} bg-white shadow-sm`}>
+                    <MapPin size={18} className={cp.text} strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <div className={`mb-1 text-[10px] font-mono font-bold uppercase tracking-widest ${cp.textSubtle}`}>Presence</div>
+                    <p className={`text-sm font-medium leading-relaxed ${cp.text}`}>Bengaluru / Mumbai / Delhi NCR</p>
+                  </div>
+                </li>
+                <li className="flex gap-4">
+                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${cp.borderHairline} bg-white shadow-sm`}>
+                    <Building2 size={18} className={cp.text} strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <div className={`mb-1 text-[10px] font-mono font-bold uppercase tracking-widest ${cp.textSubtle}`}>Pilot fit</div>
+                    <p className={`text-sm font-medium leading-relaxed ${cp.text}`}>Best for high-risk routes, time-sensitive goods, and SMB logistics teams.</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
           </div>
 
-          <h1 className={`mb-6 font-['DM_Serif_Display'] text-3xl leading-tight tracking-tight sm:text-4xl md:text-5xl [overflow-wrap:anywhere] ${cp.text}`}>
-            Let&apos;s talk about your supply chain.
-          </h1>
-          <p className={`mb-8 max-w-md text-lg font-light leading-relaxed ${cp.textMuted}`}>
-            ClearPath is designed for pilots, judging demos, and enterprise discussions around disruption prevention, AI-assisted rerouting, and multilingual logistics operations.
-          </p>
-
-          <div className="mb-12 max-w-md">
-            <label htmlFor="contact-language" className={cp.label}>Preferred language</label>
-            <p className={`mb-3 text-xs font-light leading-relaxed ${cp.textMuted}`}>
-              We&apos;ll match your locale for email and pilot onboarding using the same language system visible inside the app.
-            </p>
-            <LanguageSelect variant="contact" id="contact-language" className="w-full" />
-          </div>
-
-          <ul className="space-y-8">
-            <li className="flex gap-4">
-              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${cp.borderHairline} bg-white shadow-sm`}>
-                <Mail size={18} className={cp.text} strokeWidth={1.5} />
-              </div>
-              <div>
-                <div className={`mb-1 text-[10px] font-mono font-bold uppercase tracking-widest ${cp.textSubtle}`}>Email</div>
-                <a href="mailto:hello@clearpath.example" className={`break-all font-light transition-colors hover:opacity-80 sm:break-normal ${cp.text}`}>
-                  hello@clearpath.example
-                </a>
-              </div>
-            </li>
-            <li className="flex gap-4">
-              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${cp.borderHairline} bg-white shadow-sm`}>
-                <MapPin size={18} className={cp.text} strokeWidth={1.5} />
-              </div>
-              <div>
-                <div className={`mb-1 text-[10px] font-mono font-bold uppercase tracking-widest ${cp.textSubtle}`}>Presence</div>
-                <p className={`font-light leading-relaxed ${cp.text}`}>Bengaluru / Mumbai / Delhi NCR</p>
-              </div>
-            </li>
-            <li className="flex gap-4">
-              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${cp.borderHairline} bg-white shadow-sm`}>
-                <Building2 size={18} className={cp.text} strokeWidth={1.5} />
-              </div>
-              <div>
-                <div className={`mb-1 text-[10px] font-mono font-bold uppercase tracking-widest ${cp.textSubtle}`}>Pilot fit</div>
-                <p className={`font-light leading-relaxed ${cp.text}`}>Best for high-risk routes, time-sensitive goods, and SMB logistics teams.</p>
-              </div>
-            </li>
-          </ul>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.06 }} className="w-full">
           <div className={cp.panel}>
-            <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#DFFF00]/12 blur-3xl" aria-hidden />
+            <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[#DFFF00]/15 blur-3xl" aria-hidden />
 
             {submitted ? (
-              <div className="px-4 py-12 text-center">
+              <div className="px-4 py-12 text-center relative z-10">
                 <div className={`mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border ${cp.borderHairline} bg-neutral-100`}>
                   <Send className={cp.text} size={22} strokeWidth={1.5} />
                 </div>
@@ -110,7 +102,14 @@ export default function ContactPage() {
                 </button>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="relative z-10 space-y-6">
+                <div className="mb-8">
+                  <h1 className={`font-['DM_Serif_Display'] text-4xl ${cp.text}`}>Get in touch.</h1>
+                  <p className={`mt-2 text-sm font-light ${cp.textMuted}`}>
+                    ClearPath is designed for pilots, judging demos, and enterprise discussions.
+                  </p>
+                </div>
+                
                 <div className="rounded-2xl border border-[#DFFF00]/35 bg-[#faffd9] p-5">
                   <div className="flex items-center gap-3 text-neutral-900">
                     <ShieldCheck className="h-5 w-5" strokeWidth={1.7} />
@@ -195,8 +194,8 @@ export default function ContactPage() {
               </div>
             )}
           </div>
-        </motion.div>
-      </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

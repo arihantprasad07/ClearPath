@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { ArrowLeft, Brain, MapPin, Send, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
@@ -13,6 +13,10 @@ export default function AddShipment() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isCompany = userRole === 'company';
+
+  useEffect(() => {
+    document.title = 'New Lane — ClearPath';
+  }, []);
 
   const readiness = useMemo(() => {
     if (!source && !destination) return 'Start with a real route pair to generate a live decision lane.';
@@ -42,74 +46,76 @@ export default function AddShipment() {
         Back to dashboard
       </Link>
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className={`relative overflow-hidden ${cp.panel} sm:p-8`}>
-          <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-[#DFFF00]/10 blur-3xl" aria-hidden />
-
-          <div className="relative z-10 max-w-2xl">
-            <div className="mb-3 inline-flex items-center rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-neutral-900">
-              {isCompany ? 'Company workflow' : 'Supplier workflow'}
-            </div>
-            <h1 className={`text-left font-['DM_Serif_Display'] text-2xl sm:text-3xl md:text-4xl [overflow-wrap:anywhere] ${cp.text}`}>
-              Create a live shipment lane
-            </h1>
-            <p className={`mt-2 text-left text-sm leading-relaxed ${cp.textMuted}`}>
-              Enter a real origin and destination so ClearPath can geocode the lane, analyze disruption risk, rank alternate routes, and generate an operator-ready recommendation.
-            </p>
-
-            <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-                <div>
-                  <label htmlFor="add-source" className={cp.label}>{isCompany ? 'Pickup location' : 'Origin'}</label>
-                  <div className="relative">
-                    <MapPin size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" aria-hidden />
-                    <input
-                      id="add-source"
-                      required
-                      type="text"
-                      value={source}
-                      onChange={(event) => setSource(event.target.value)}
-                      placeholder="Mumbai, Maharashtra"
-                      className={cp.input}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="add-destination" className={cp.label}>{isCompany ? 'Destination facility' : 'Destination'}</label>
-                  <div className="relative">
-                    <MapPin size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" aria-hidden />
-                    <input
-                      id="add-destination"
-                      required
-                      type="text"
-                      value={destination}
-                      onChange={(event) => setDestination(event.target.value)}
-                      placeholder="Delhi, India"
-                      className={cp.input}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-black/10 bg-neutral-50/90 px-4 py-4 text-sm text-neutral-600">
-                {readiness}
-              </div>
-
-              {error ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
-
-              <div className="flex justify-center border-t border-neutral-100 pt-6">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={`${cp.btnPrimaryBlock} max-w-md gap-3 sm:min-w-[280px] disabled:cursor-wait disabled:opacity-70`}
-                >
-                  {isSubmitting ? 'Creating lane...' : 'Create live lane'}
-                  <Send size={16} strokeWidth={1.5} aria-hidden />
-                </button>
-              </div>
-            </form>
+      <div className="relative overflow-hidden rounded-2xl border border-black/10 border-b-[#DFFF00]/25 bg-black p-5 text-white shadow-sm sm:p-6">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.03)_1px,transparent_1px)]" style={{ backgroundSize: '28px 28px' }} aria-hidden />
+        <div className="pointer-events-none absolute -right-16 -top-16 h-36 w-36 rounded-full bg-[#DFFF00]/18 blur-[80px]" aria-hidden />
+        <div className="relative z-10 max-w-2xl">
+          <div className="mb-3 inline-flex items-center rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-[#DFFF00]">
+            {isCompany ? 'Company workflow' : 'Supplier workflow'}
           </div>
+          <h1 className="font-['DM_Serif_Display'] text-3xl tracking-tight text-white sm:text-4xl">
+            Create a new shipment lane
+          </h1>
+          <p className="mt-3 text-sm leading-relaxed text-neutral-300">
+            Enter two Indian cities or logistics hubs. ClearPath will analyze weather, traffic, port, and road signals to predict disruption risk on that corridor.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className={`${cp.panel} sm:p-8`}>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+              <div>
+                <label htmlFor="add-source" className={cp.label}>{isCompany ? 'Pickup location' : 'Origin'}</label>
+                <div className="relative">
+                  <MapPin size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" aria-hidden />
+                  <input
+                    id="add-source"
+                    required
+                    type="text"
+                    value={source}
+                    onChange={(event) => setSource(event.target.value)}
+                    placeholder="Mumbai, Maharashtra"
+                    className={cp.input}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="add-destination" className={cp.label}>{isCompany ? 'Destination facility' : 'Destination'}</label>
+                <div className="relative">
+                  <MapPin size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" aria-hidden />
+                  <input
+                    id="add-destination"
+                    required
+                    type="text"
+                    value={destination}
+                    onChange={(event) => setDestination(event.target.value)}
+                    placeholder="Delhi, India"
+                    className={cp.input}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-black/10 bg-neutral-50/90 px-4 py-4 text-sm text-neutral-600">
+              {readiness}
+            </div>
+
+            {error ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+
+            <div className="flex justify-center border-t border-neutral-100 pt-6">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={`${cp.btnPrimaryBlock} max-w-md gap-3 sm:min-w-[280px] disabled:cursor-wait disabled:opacity-70`}
+              >
+                {isSubmitting ? 'Creating lane...' : 'Create live lane'}
+                <Send size={16} strokeWidth={1.5} aria-hidden />
+              </button>
+            </div>
+          </form>
         </div>
 
         <div className="space-y-6">

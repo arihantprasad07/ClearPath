@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { BackendShipmentRecord } from '../lib/api';
 
 interface RouteNetworkMapProps {
@@ -101,16 +102,24 @@ export default function RouteNetworkMap({ shipment, className = '', height = 260
                 <path d={path} fill="none" stroke={color} strokeWidth={isRecommended ? 8 : isActive ? 6 : 4} strokeLinecap="round" strokeLinejoin="round" opacity={0.18} filter="url(#clearpath-glow)" />
                 <path d={path} fill="none" stroke={color} strokeWidth={isRecommended ? 4.5 : isActive ? 3.5 : 2.5} strokeLinecap="round" strokeLinejoin="round" opacity={opacity} />
                 {projectedPoints.slice(1, -1).map((point, index) => (
-                  <circle key={`${route.id}-${index}`} cx={point.x} cy={point.y} r={isRecommended ? 3.5 : 2.5} fill={color} opacity={0.7} />
+                  <motion.circle
+                    key={`${route.id}-${index}`}
+                    cx={point.x}
+                    cy={point.y}
+                    fill={color}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1, r: [isRecommended ? 3.5 : 2.5, isRecommended ? 5.5 : 4.5, isRecommended ? 3.5 : 2.5], opacity: [0.7, 1, 0.7] }}
+                    transition={{ scale: { delay: index * 0.15, type: 'spring' }, r: { repeat: Infinity, duration: 2, delay: index * 0.15 }, opacity: { repeat: Infinity, duration: 2, delay: index * 0.15 } }}
+                  />
                 ))}
               </g>
             );
           })}
 
-          <circle cx={source.x} cy={source.y} r="9" fill="#22C55E" />
-          <circle cx={source.x} cy={source.y} r="16" fill="rgba(34,197,94,0.18)" />
-          <circle cx={destination.x} cy={destination.y} r="9" fill="#F97316" />
-          <circle cx={destination.x} cy={destination.y} r="16" fill="rgba(249,115,22,0.18)" />
+          <motion.circle cx={source.x} cy={source.y} fill="#22C55E" initial={{ scale: 0 }} animate={{ scale: 1, r: [9, 11, 9] }} transition={{ scale: { type: 'spring' }, r: { repeat: Infinity, duration: 2 } }} />
+          <motion.circle cx={source.x} cy={source.y} fill="rgba(34,197,94,0.18)" initial={{ scale: 0 }} animate={{ scale: 1, r: [16, 20, 16] }} transition={{ scale: { type: 'spring' }, r: { repeat: Infinity, duration: 2 } }} />
+          <motion.circle cx={destination.x} cy={destination.y} fill="#F97316" initial={{ scale: 0 }} animate={{ scale: 1, r: [9, 11, 9] }} transition={{ scale: { delay: 0.1, type: 'spring' }, r: { repeat: Infinity, duration: 2, delay: 0.1 } }} />
+          <motion.circle cx={destination.x} cy={destination.y} fill="rgba(249,115,22,0.18)" initial={{ scale: 0 }} animate={{ scale: 1, r: [16, 20, 16] }} transition={{ scale: { delay: 0.1, type: 'spring' }, r: { repeat: Infinity, duration: 2, delay: 0.1 } }} />
 
           <text x={source.x + 14} y={source.y - 10} fill="#E5E7EB" fontSize="13" fontFamily="monospace">
             Origin

@@ -20,6 +20,12 @@ html.clearpath-high-contrast {
   color-scheme: light;
 }
 
+:focus-visible {
+  outline: 2px solid #DFFF00;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
 .high-contrast {
   background: #000000 !important;
   color: #ffffff !important;
@@ -92,6 +98,20 @@ html.clearpath-high-contrast {
   .risk-pulse {
     animation: pulse-ring 1.8s ease-in-out infinite;
     transform-origin: center;
+  }
+
+  @keyframes clearpath-line-draw {
+    from {
+      stroke-dashoffset: 86;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes pulse-bar {
+    0%, 100% { width: 62%; }
+    50% { width: 78%; }
   }
 }
 
