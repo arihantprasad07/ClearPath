@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import confetti from 'canvas-confetti';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -15,18 +15,14 @@ import {
   ShieldCheck,
   Sparkles,
   Volume2,
-  CloudRain,
-  Car,
-  Factory,
-  Ship,
-  TrendingDown,
-  Activity,
 } from 'lucide-react';
 import RouteNetworkMap from '../components/RouteNetworkMap';
 import { useAppContext } from '../context/AppContext';
 import { AuditEventRecord, fetchAuditEvents } from '../lib/api';
 import { cp } from '../lib/cpUi';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
+import { ConfidenceMeter } from '../components/ConfidenceMeter';
+import { getSignalIcon } from '../lib/signalIcons';
 
 const ALERT_LANGUAGE_LABELS: Record<string, string> = {
   en: 'EN',
@@ -69,18 +65,6 @@ function severityTone(score: number) {
   return { bar: 'bg-green-500', text: 'text-green-600' };
 }
 
-function getSignalIcon(name: string) {
-  const lower = name.toLowerCase();
-  if (lower.includes('weather') || lower.includes('rain') || lower.includes('storm')) return CloudRain;
-  if (lower.includes('traffic') || lower.includes('road')) return Car;
-  if (lower.includes('port') || lower.includes('ship')) return Ship;
-  if (lower.includes('history') || lower.includes('trend')) return TrendingDown;
-  if (lower.includes('capacity') || lower.includes('factory')) return Factory;
-  return Activity;
-}
-
-import { ConfidenceMeter } from '../components/ConfidenceMeter';
-
 export default function ShipmentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -95,7 +79,10 @@ export default function ShipmentDetail() {
   const [auditOpen, setAuditOpen] = useState(false);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
+  const [signalBarsAnimated, setSignalBarsAnimated] = useState(false);
+  const [timelineAnimated, setTimelineAnimated] = useState(false);
   const lastSpokenShipmentRef = useRef<string | null>(null);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     document.title = `${shipment?.name || 'Shipment'} — ClearPath`;
@@ -139,6 +126,20 @@ export default function ShipmentDetail() {
       cancelled = true;
     };
   }, [authToken, shipment?.id]);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setSignalBarsAnimated(true);
+      setTimelineAnimated(true);
+      return;
+    }
+    const signalTimeoutId = window.setTimeout(() => setSignalBarsAnimated(true), 100);
+    const timelineTimeoutId = window.setTimeout(() => setTimelineAnimated(true), 60);
+    return () => {
+      window.clearTimeout(signalTimeoutId);
+      window.clearTimeout(timelineTimeoutId);
+    };
+  }, [reducedMotion]);
 
   const speakAlert = (languageCode?: string) => {
     if (!shipment || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
@@ -185,10 +186,10 @@ export default function ShipmentDetail() {
       setApprovingRouteId(routeId);
       await updateShipmentRoute(shipment.id, routeId);
       confetti({
-        particleCount: 150,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#DFFF00', '#000000', '#22C55E']
+        particleCount: 80,
+        spread: 60,
+        origin: { y: 0.5 },
+        colors: ['#DFFF00', '#000000', '#ffffff']
       });
       setShowSuccess(true);
       setTimeout(() => {
@@ -346,7 +347,7 @@ export default function ShipmentDetail() {
                             </div>
                           </div>
                           <div className="h-2 overflow-hidden rounded-full bg-neutral-200">
-                            <div className={`h-full rounded-full ${tone.bar} transition-all duration-700 ease-out`} style={{ width: `${severityPercent}%` }} />
+                            <div className={`h-full rounded-full ${tone.bar} transition-all duration-700 ease-out`} style={{ width: signalBarsAnimated ? `${severityPercent}%` : '0%' }} />
                           </div>
                           <p className="mt-2 text-sm text-neutral-600">{signal.summary}</p>
                         </motion.div>
@@ -417,7 +418,7 @@ export default function ShipmentDetail() {
                   <div className="hidden h-px flex-1 bg-neutral-100 sm:block sm:min-w-[2rem]" aria-hidden />
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <motion.div className="grid grid-cols-1 gap-6 md:grid-cols-3" initial={reducedMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
                   {shipment.routes.map((route, index) => {
                     const isBest = route.isRecommended;
 
@@ -489,7 +490,7 @@ export default function ShipmentDetail() {
                       </motion.div>
                     );
                   })}
-                </div>
+                </motion.div>
               </div>
             )}
 
@@ -556,8 +557,8 @@ export default function ShipmentDetail() {
                       stroke={isActive ? '#22c55e' : '#d4d4d8'}
                       strokeWidth="4"
                       strokeDasharray={isActive ? `${lineLength}` : '6 6'}
-                      strokeDashoffset={isActive ? `${lineLength}` : undefined}
-                      style={isActive ? { animation: `clearpath-line-draw 0.8s ease-out ${segmentIndex * 0.3}s forwards` } : undefined}
+                      strokeDashoffset={isActive ? (timelineAnimated ? 0 : lineLength) : undefined}
+                      style={isActive && !reducedMotion ? { transition: `stroke-dashoffset 0.8s ease-out ${segmentIndex * 0.3}s` } : undefined}
                     />
                   );
                 })}

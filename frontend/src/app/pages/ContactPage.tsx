@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { motion } from 'motion/react';
 import { ArrowLeft, Building2, Mail, MapPin, MessageSquare, Send, ShieldCheck, User } from 'lucide-react';
-import { LanguageSelect } from '../components/LanguageSelect';
 import { cp } from '../lib/cpUi';
 
 export default function ContactPage() {

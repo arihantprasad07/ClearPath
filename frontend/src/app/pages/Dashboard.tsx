@@ -1,22 +1,14 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { ArrowUpRight, Brain, ChevronRight, Package, Plus, RefreshCw, Zap, CloudRain, Car, Ship, TrendingDown, Activity, Route as RouteIcon } from 'lucide-react';
+import { ArrowUpRight, Brain, ChevronRight, Package, Plus, RefreshCw, Route as RouteIcon, Zap } from 'lucide-react';
+import { useReducedMotion } from 'motion/react';
 import { useAppContext } from '../context/AppContext';
 import { LanguageSelect } from '../components/LanguageSelect';
 import { ShipmentViewModel } from '../lib/api';
 import { cp } from '../lib/cpUi';
 import RouteNetworkMap from '../components/RouteNetworkMap';
 import { ConfidenceMeter } from '../components/ConfidenceMeter';
-
-function getSignalIcon(name: string) {
-  const lower = name.toLowerCase();
-  if (lower.includes('weather') || lower.includes('rain') || lower.includes('storm')) return CloudRain;
-  if (lower.includes('traffic') || lower.includes('road')) return Car;
-  if (lower.includes('port') || lower.includes('ship')) return Ship;
-  if (lower.includes('history') || lower.includes('trend')) return TrendingDown;
-  if (lower.includes('nhai') || lower.includes('highway')) return RouteIcon;
-  return Activity;
-}
+import { getSignalIcon } from '../lib/signalIcons';
 
 function useCountUp(target: number, duration: number = 800) {
   const [count, setCount] = useState(0);
@@ -125,6 +117,21 @@ export default function Dashboard() {
   const { authLoading, authUser, refreshShipment, shipments, shipmentsLoading, userRole } = useAppContext();
   const navigate = useNavigate();
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
+  const [signalBarsAnimated, setSignalBarsAnimated] = useState(false);
+  const reducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    document.title = 'Dashboard — ClearPath';
+  }, []);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setSignalBarsAnimated(true);
+      return;
+    }
+    const timeoutId = window.setTimeout(() => setSignalBarsAnimated(true), 100);
+    return () => window.clearTimeout(timeoutId);
+  }, [reducedMotion]);
 
   useEffect(() => {
     if (!authLoading && !authUser) navigate('/');
@@ -325,11 +332,13 @@ export default function Dashboard() {
 
           {latestShipment?.backend.signalStack?.length ? (
             <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
-              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500 mb-1">
-                {latestShipment.backend.signalStack.some(s => !s.usedFallback) && <span className="mr-2 inline-block h-2 w-2 rounded-full bg-green-500 animate-pulse" />}
-                Live signal feed
-              </p>
-              <h2 className="font-['DM_Serif_Display'] text-2xl text-neutral-900 mb-4">Active risk signals</h2>
+              <p className="mb-1 text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500">Live signal feed</p>
+              <h2 className="mb-4 font-['DM_Serif_Display'] text-2xl text-neutral-900">
+                {latestShipment.backend.signalStack.some((signal) => !signal.usedFallback) ? (
+                  <span className="mr-2 inline-block h-2 w-2 rounded-full bg-green-500 align-middle animate-pulse" aria-hidden />
+                ) : null}
+                Active risk signals
+              </h2>
               <div className="space-y-3">
                 {latestShipment.backend.signalStack.map((signal) => {
                   const severity = Math.round(signal.severity * 100);
@@ -351,7 +360,7 @@ export default function Dashboard() {
                       <div className="mt-2 h-1.5 rounded-full bg-neutral-200 overflow-hidden">
                         <div
                           className={`h-full rounded-full ${barColor} transition-all duration-700 ease-out`}
-                          style={{ width: `${severity}%` }}
+                          style={{ width: signalBarsAnimated ? `${severity}%` : '0%' }}
                         />
                       </div>
                     </div>

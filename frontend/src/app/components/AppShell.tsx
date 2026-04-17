@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate, useParams } from 'react-router';
-import { LayoutGrid, Plus, LogOut, Volume2, VolumeX, X, SunMoon } from 'lucide-react';
+import { LogOut, SunMoon, Volume2, VolumeX, X } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { cp } from '../lib/cpUi';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -26,9 +26,10 @@ function useShellTitle(): string {
 
 export default function AppShell() {
   const navigate = useNavigate();
-  const { authUser, demoMode, logout, userRole, highContrastEnabled, setHighContrastEnabled, voiceAlertsEnabled, setVoiceAlertsEnabled } = useAppContext();
+  const { authUser, logout, shipments, userRole, highContrastEnabled, setHighContrastEnabled, voiceAlertsEnabled, setVoiceAlertsEnabled } = useAppContext();
   const title = useShellTitle();
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const demoMode = useMemo(() => shipments.some((shipment) => shipment.backend.usedFallbackData), [shipments]);
 
   useEffect(() => {
     try {
@@ -52,13 +53,8 @@ export default function AppShell() {
     }
   };
 
-  const navItem =
-    'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-neutral-700 transition-all duration-200 hover:bg-neutral-100 hover:text-neutral-900';
-  const navActive =
-    'bg-neutral-900 font-semibold text-white shadow-[0_10px_24px_-14px_rgba(0,0,0,0.45)] ring-1 ring-[#DFFF00]/45 hover:bg-neutral-900 hover:text-white';
-
   return (
-    <div className={`relative z-0 flex min-h-[100dvh] w-full flex-col ${cp.text} ${highContrastEnabled ? 'high-contrast' : cp.bgPage}`}>
+    <div className={`relative z-0 flex min-h-[100dvh] w-full flex-col ${cp.bgPage} ${cp.text} ${highContrastEnabled ? 'high-contrast' : ''}`}>
       <div className="pointer-events-none fixed inset-0 z-[-1] overflow-hidden" aria-hidden>
         <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(0,0,0,0.06)_1px,transparent_1px)]" style={{ backgroundSize: '28px 28px' }} />
         <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 600px 400px at 100% 0%, rgba(223,255,0,0.07), transparent 70%)' }} />
@@ -74,9 +70,9 @@ export default function AppShell() {
         </div>
       )}
 
-      <nav className="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between border-b-[0.5px] border-black/10 border-t-2 border-t-[#DFFF00] bg-white/80 px-6 backdrop-blur-md">
+      <nav className="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between border-b-[0.5px] border-black/[0.08] border-t-2 border-t-[#DFFF00] bg-white/80 px-6 backdrop-blur-md">
         <div className="flex h-full items-center gap-8">
-          <button type="button" onClick={() => navigate('/dashboard')} className="group flex items-center gap-2.5 transition-all duration-200 hover:drop-shadow-[0_0_8px_rgba(223,255,0,0.6)]">
+          <button type="button" onClick={() => navigate('/dashboard')} className="group flex items-center gap-2.5 transition-all duration-200 hover:drop-shadow-[0_0_8px_rgba(223,255,0,0.6)]" aria-label={`Open ${title}`}>
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-black shadow-[0_0_20px_-4px_rgba(223,255,0,0.45)] ring-2 ring-[#DFFF00]/70">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 12h4l3-8 4 16 3-8h4" />

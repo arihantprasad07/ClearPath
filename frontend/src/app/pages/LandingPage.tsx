@@ -448,7 +448,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <main id="main-content">
+    <div>
       <Hero />
       <CriteriaFit />
       <StackSection />
@@ -458,6 +458,6 @@ export default function LandingPage() {
       <ProductOutcomes />
       <PriyaStory />
       <CTA />
-    </main>
+    </div>
   );
 }
