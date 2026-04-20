@@ -70,18 +70,19 @@ export default function AppShell() {
         </div>
       )}
 
-      <nav className="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between border-b-[0.5px] border-black/[0.08] border-t-2 border-t-[#DFFF00] bg-white/80 px-6 backdrop-blur-md">
-        <div className="flex h-full items-center gap-8">
+      <nav className="sticky top-0 z-50 border-b-[0.5px] border-black/[0.08] border-t-2 border-t-[#DFFF00] bg-white/80 backdrop-blur-md">
+        <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className="flex min-w-0 items-center gap-4 sm:gap-8">
           <button type="button" onClick={() => navigate('/dashboard')} className="group flex items-center gap-2.5 transition-all duration-200 hover:drop-shadow-[0_0_8px_rgba(223,255,0,0.6)]" aria-label={`Open ${title}`}>
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-black shadow-[0_0_20px_-4px_rgba(223,255,0,0.45)] ring-2 ring-[#DFFF00]/70">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 12h4l3-8 4 16 3-8h4" />
               </svg>
             </span>
-            <span className="font-['DM_Serif_Display'] text-xl leading-tight tracking-tight text-neutral-900">ClearPath</span>
+            <span className="font-['DM_Serif_Display'] text-lg leading-tight tracking-tight text-neutral-900 sm:text-xl">ClearPath</span>
           </button>
 
-          <div className="flex h-full items-center gap-1">
+          <div className="hidden items-center gap-1 sm:flex">
             <NavLink to="/dashboard" end className={({ isActive }) => `flex h-full items-center border-b-2 px-3 text-sm font-medium transition-all duration-200 ${isActive ? 'border-[#DFFF00] text-neutral-900' : 'border-transparent text-neutral-500 hover:text-neutral-900'}`}>
               Dashboard
             </NavLink>
@@ -91,7 +92,17 @@ export default function AppShell() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end sm:gap-3">
+          <div className="flex items-center gap-1 sm:hidden">
+            <NavLink to="/dashboard" end className={({ isActive }) => `rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200 ${isActive ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600'}`}>
+              Dashboard
+            </NavLink>
+            <NavLink to="/add-shipment" className={({ isActive }) => `rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200 ${isActive ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600'}`}>
+              New
+            </NavLink>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -121,7 +132,7 @@ export default function AppShell() {
             {voiceAlertsEnabled ? <Volume2 className="h-4 w-4" aria-hidden /> : <VolumeX className="h-4 w-4" aria-hidden />}
           </button>
 
-          <span className="rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-widest text-neutral-900 shadow-[0_8px_20px_-16px_rgba(0,0,0,0.45)] backdrop-blur-md">
+          <span className="hidden rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-widest text-neutral-900 shadow-[0_8px_20px_-16px_rgba(0,0,0,0.45)] backdrop-blur-md md:inline-flex">
             {authUser ? `${authUser.role} account` : userRole === 'company' ? 'Company' : 'Supplier'}
           </span>
 
@@ -133,6 +144,8 @@ export default function AppShell() {
           >
             <LogOut className="h-4 w-4" aria-hidden />
           </button>
+        </div>
+        </div>
         </div>
       </nav>
 

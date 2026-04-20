@@ -42,7 +42,7 @@ export default function RouteNetworkMap({ shipment, className = '', height = 260
 
   if (!allPoints.length) {
     return (
-      <div className={`rounded-2xl border border-black/10 bg-neutral-50 px-4 py-6 text-sm text-neutral-500 ${className}`}>
+      <div className={`rounded-[24px] border border-black/10 bg-[#f7f7f3] px-4 py-6 text-sm text-neutral-500 ${className}`}>
         Route geometry will appear here after analysis completes.
       </div>
     );
@@ -61,11 +61,12 @@ export default function RouteNetworkMap({ shipment, className = '', height = 260
   const destination = projectPoint(shipment.destination.lat, shipment.destination.lng, bounds, width, height, padding);
 
   return (
-    <div className={`overflow-hidden rounded-[28px] border border-black/10 bg-[linear-gradient(160deg,#09111f_0%,#13233d_55%,#0f172a_100%)] shadow-sm ${className}`}>
+    <div className={`overflow-hidden rounded-[28px] border border-black bg-[#181a23] shadow-sm ${className}`}>
+      <div className="pointer-events-none absolute" aria-hidden />
       <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4 text-white">
         <div>
           <p className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/65">Live lane view</p>
-          <h3 className="mt-1 font-['DM_Serif_Display'] text-2xl">Route network</h3>
+          <h3 className="mt-1 text-xl font-semibold tracking-tight">Route network</h3>
         </div>
         <div className="rounded-full border border-[#DFFF00]/35 bg-[#DFFF00]/12 px-3 py-1 text-[10px] font-mono uppercase tracking-widest text-[#F2FF9C]">
           {routeOptions.length} options
@@ -87,6 +88,7 @@ export default function RouteNetworkMap({ shipment, className = '', height = 260
             </filter>
           </defs>
 
+          <rect width={width} height={height} rx="22" fill="#12141c" />
           <rect width={width} height={height} rx="22" fill="url(#clearpath-grid)" />
 
           {routeOptions.map((route) => {

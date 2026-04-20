@@ -33,9 +33,9 @@ export function LanguageSelect({
 
   const navbarSelectClass =
     variant === 'navbar' && navbarOnDark
-      ? 'max-w-[180px] cursor-pointer appearance-none rounded-lg border border-white/30 bg-white/95 py-1.5 pl-2 pr-7 text-[10px] font-mono uppercase tracking-wider text-neutral-900 outline-none shadow-sm focus:ring-2 focus:ring-[#DFFF00]/50'
+      ? 'max-w-[180px] cursor-pointer appearance-none rounded-full border border-black/10 bg-white py-2 pl-3 pr-8 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-900 outline-none shadow-sm focus:ring-2 focus:ring-[#DFFF00]/50'
       : variant === 'navbar'
-        ? 'max-w-[180px] cursor-pointer appearance-none rounded-lg border border-black/10 bg-white/90 py-1.5 pl-2 pr-7 text-[10px] font-mono uppercase tracking-wider text-neutral-800 outline-none focus:ring-2 focus:ring-[#DFFF00]/50'
+        ? 'max-w-[180px] cursor-pointer appearance-none rounded-full border border-black/10 bg-white py-2 pl-3 pr-8 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-800 outline-none focus:ring-2 focus:ring-[#DFFF00]/50'
         : '';
 
   const select = (
@@ -46,12 +46,12 @@ export function LanguageSelect({
       aria-label="Preferred alert language"
       className={
         variant === 'hero'
-          ? 'w-full min-w-[200px] max-w-full cursor-pointer appearance-none rounded-xl border border-black/15 bg-white py-3 pl-4 pr-10 text-left text-sm font-medium text-neutral-900 shadow-sm outline-none transition hover:border-black/30 focus:border-black focus:ring-2 focus:ring-black/10 sm:w-auto'
+          ? 'w-full min-w-[200px] max-w-full cursor-pointer appearance-none rounded-[16px] border border-black/15 bg-white py-3 pl-4 pr-10 text-left text-sm font-medium text-neutral-900 shadow-sm outline-none transition hover:border-black/30 focus:border-black focus:ring-2 focus:ring-[#DFFF00]/40 sm:w-auto'
           : variant === 'navbar'
             ? navbarSelectClass
             : variant === 'contact'
-              ? 'w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-10 text-sm text-neutral-900 outline-none focus:border-black focus:ring-1 focus:ring-black/15'
-              : 'w-full min-w-0 max-w-full cursor-pointer appearance-none rounded-lg border border-black/15 bg-white py-2 pl-3 pr-9 text-xs font-medium text-neutral-900 outline-none focus:border-black focus:ring-2 focus:ring-black/10 sm:min-w-[200px] sm:max-w-md'
+              ? 'w-full cursor-pointer appearance-none rounded-[16px] border border-black/15 bg-white py-3 pl-4 pr-10 text-sm text-neutral-900 outline-none focus:border-black focus:ring-2 focus:ring-[#DFFF00]/40'
+              : 'w-full min-w-0 max-w-full cursor-pointer appearance-none rounded-[14px] border border-black/15 bg-white py-2.5 pl-3 pr-9 text-xs font-medium text-neutral-900 outline-none focus:border-black focus:ring-2 focus:ring-[#DFFF00]/40 sm:min-w-[200px] sm:max-w-md'
       }
     >
       {INDIAN_LANGUAGES.map((lang) => (
@@ -65,10 +65,10 @@ export function LanguageSelect({
   if (variant === 'navbar') {
     return (
       <div className={`relative flex min-w-0 items-center gap-1.5 ${className}`}>
-        <Globe className={`h-3.5 w-3.5 shrink-0 ${navbarOnDark ? 'text-white/85' : 'text-neutral-500'}`} aria-hidden />
+        <Globe className="h-3.5 w-3.5 shrink-0 text-neutral-500" aria-hidden />
         <div className="relative min-w-0 shrink">
           {select}
-          <DropdownChevron className={`right-2 ${navbarOnDark ? 'text-neutral-600' : 'text-neutral-500'}`} />
+          <DropdownChevron className="right-3 text-neutral-500" />
         </div>
       </div>
     );

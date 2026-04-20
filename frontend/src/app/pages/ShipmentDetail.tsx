@@ -204,17 +204,23 @@ export default function ShipmentDetail() {
   };
 
   return (
-    <div className="w-full min-w-0 space-y-6">
-      <Link to="/dashboard" className={cp.linkBack}>
+    <div className="mx-auto w-full max-w-6xl space-y-6 pb-10">
+      <Link to="/dashboard" className="inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-neutral-600 transition-colors hover:text-black">
         <ArrowLeft size={16} className="shrink-0" aria-hidden />
         <span className="truncate">Back to dashboard</span>
       </Link>
 
-      <div className={`relative overflow-hidden rounded-2xl border bg-white p-6 shadow-sm transition-all duration-200 sm:p-8 ${isHighRisk ? 'border-red-100 ring-1 ring-red-100' : `border ${cp.borderHairline}`}`}>
+      <div className={`relative overflow-hidden rounded-[28px] border bg-white p-5 shadow-[0_20px_60px_-36px_rgba(0,0,0,0.35)] transition-all duration-200 sm:p-6 ${isHighRisk ? 'border-red-100 ring-1 ring-red-100' : `border ${cp.borderHairline}`}`}>
+        <div className="pointer-events-none absolute right-5 top-5 h-16 w-16 opacity-70" aria-hidden>
+          <div className="absolute left-0 top-0 h-9 w-9 rounded-full border border-black/10 border-dashed" />
+          <div className="absolute left-6 top-6 h-2 w-2 rounded-full bg-[#DFFF00]" />
+          <div className="absolute left-9 top-0 text-lg leading-none text-black">*</div>
+          <div className="absolute left-10 top-7 h-6 w-6 rotate-45 border border-black/80 bg-black" />
+        </div>
         <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0 flex-1 space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-2.5 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-wider text-neutral-900">
+              <span className="rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-3 py-1 text-[9px] font-mono font-semibold uppercase tracking-wider text-neutral-900">
                 {userRole === 'company' ? 'shipper workflow' : 'transporter workflow'}
               </span>
               <span className={`text-[10px] font-mono uppercase tracking-widest ${cp.textSubtle}`}>Shipment #{shipment.id}</span>
@@ -223,7 +229,10 @@ export default function ShipmentDetail() {
               </span>
             </div>
 
-            <h1 className={`text-left font-['DM_Serif_Display'] text-2xl sm:text-3xl md:text-4xl [overflow-wrap:anywhere] ${cp.text}`}>{shipment.name}</h1>
+            <div>
+              <p className="text-[9px] font-mono uppercase tracking-[0.22em] text-neutral-500">Lane intelligence</p>
+              <h1 className={`mt-2 text-left font-['DM_Serif_Display'] text-2xl sm:text-3xl md:text-4xl [overflow-wrap:anywhere] ${cp.text}`}>{shipment.name}</h1>
+            </div>
 
             <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-sm ${cp.textMuted}`}>
               <MapPin size={16} className={`shrink-0 ${isHighRisk ? 'text-red-500' : 'text-neutral-400'}`} aria-hidden />
@@ -234,7 +243,7 @@ export default function ShipmentDetail() {
           </div>
 
           <div className="grid w-full shrink-0 gap-3 md:w-auto md:min-w-[260px]">
-            <div className={`rounded-2xl border ${cp.borderHairline} bg-neutral-50/90 p-5`}>
+            <div className="rounded-[20px] border border-black/10 bg-[#f7f7f3] p-5">
               <div className={`text-[10px] font-mono uppercase tracking-widest ${cp.textSubtle}`}>Current ETA</div>
               <div className={`mt-2 flex items-center gap-2 text-lg font-semibold ${isHighRisk ? 'text-red-600' : cp.text}`}>
                 <Clock size={18} className="shrink-0" aria-hidden />
@@ -255,11 +264,11 @@ export default function ShipmentDetail() {
               </div>
             </div>
 
-            <div className={`rounded-2xl border ${cp.borderHairline} bg-neutral-50/90 p-5`}>
+            <div className="rounded-[20px] border border-black bg-[#181a23] p-5 text-white">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className={`text-[10px] font-mono uppercase tracking-widest ${cp.textSubtle}`}>Decision confidence</p>
-                  <p className={`mt-1 text-sm ${cp.textMuted}`}>AI confidence before route approval</p>
+                  <p className="text-[10px] font-mono uppercase tracking-widest text-white/60">Decision confidence</p>
+                  <p className="mt-1 text-sm text-white/70">AI confidence before route approval</p>
                 </div>
                 <ConfidenceMeter confidence={shipment.backend.decision.confidence} />
               </div>
@@ -418,7 +427,7 @@ export default function ShipmentDetail() {
                   <div className="hidden h-px flex-1 bg-neutral-100 sm:block sm:min-w-[2rem]" aria-hidden />
                 </div>
 
-                <motion.div className="grid grid-cols-1 gap-6 md:grid-cols-3" initial={reducedMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+                <motion.div className="grid grid-cols-1 gap-4 md:grid-cols-3" initial={reducedMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
                   {shipment.routes.map((route, index) => {
                     const isBest = route.isRecommended;
 
@@ -429,42 +438,43 @@ export default function ShipmentDetail() {
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.08 }}
-                        className={`relative flex h-full min-h-0 flex-col rounded-2xl border p-6 transition-all duration-200 ${
+                        className={`relative flex h-full min-h-0 flex-col rounded-[22px] border p-4 transition-all duration-200 ${
                           isBest
-                            ? 'border-black border-t-4 border-t-[#DFFF00] bg-[#FAFFDD] shadow-[0_8px_32px_-12px_rgba(223,255,0,0.4),0_2px_8px_rgba(0,0,0,0.08)]'
-                            : `border ${cp.borderHairline} bg-white hover:border-black/20 hover:shadow-[0_4px_16px_-8px_rgba(0,0,0,0.12)]`
+                            ? 'border-black bg-[#DFFF00] shadow-[0_8px_32px_-12px_rgba(223,255,0,0.4),0_2px_8px_rgba(0,0,0,0.08)]'
+                            : 'border-black bg-[#181a23] text-white hover:shadow-[0_4px_16px_-8px_rgba(0,0,0,0.18)]'
                         }`}
                       >
                         {isBest && (
                           <motion.div
                             animate={{ opacity: [0.4, 0.8, 0.4] }}
                             transition={{ repeat: Infinity, duration: 3 }}
-                            className="pointer-events-none absolute inset-0 z-0 rounded-2xl bg-[#DFFF00]/20 blur-xl"
+                            className="pointer-events-none absolute inset-0 z-0 rounded-[22px] bg-white/20 blur-xl"
                             aria-hidden
                           />
                         )}
 
                         <div className="relative z-10 flex h-full flex-col">
                           {isBest && (
-                            <div className="-mt-2 mb-3 self-center rounded-full border border-black bg-[#DFFF00] px-3 py-1 text-[9px] font-mono font-bold uppercase tracking-widest text-black shadow-[0_2px_0_0_rgba(0,0,0,1)]">
+                            <div className="-mt-1 mb-3 self-start rounded-full border border-black bg-white px-3 py-1 text-[9px] font-mono font-bold uppercase tracking-widest text-black shadow-[0_2px_0_0_rgba(0,0,0,1)]">
                               AI recommended
                             </div>
                           )}
 
-                          <h3 className={`mb-6 text-center text-base font-bold ${cp.text}`}>{route.name}</h3>
+                          <TinyLabel dark={!isBest}>{isBest ? 'Best route' : 'Alternate route'}</TinyLabel>
+                          <h3 className={`mb-5 mt-2 text-left text-base font-semibold ${isBest ? 'text-black' : 'text-white'}`}>{route.name}</h3>
 
-                          <div className="mb-8 flex flex-1 flex-col gap-4 text-sm">
+                          <div className="mb-6 flex flex-1 flex-col gap-3 text-sm">
                             <div className="flex items-center justify-between gap-3">
-                              <span className={`flex items-center gap-2 ${cp.textMuted}`}><Clock size={14} aria-hidden /> ETA</span>
-                              <span className={`font-medium ${cp.text}`}>{route.eta}</span>
+                              <span className={`flex items-center gap-2 ${isBest ? 'text-black/65' : 'text-white/65'}`}><Clock size={14} aria-hidden /> ETA</span>
+                              <span className={`font-medium ${isBest ? 'text-black' : 'text-white'}`}>{route.eta}</span>
                             </div>
                             <div className="flex items-center justify-between gap-3">
-                              <span className={`flex items-center gap-2 ${cp.textMuted}`}><DollarSign size={14} aria-hidden /> Cost</span>
+                              <span className={`flex items-center gap-2 ${isBest ? 'text-black/65' : 'text-white/65'}`}><DollarSign size={14} aria-hidden /> Cost</span>
                               <span className={`font-medium ${route.cost.startsWith('+') && route.cost !== '+₹0' ? 'text-amber-600' : 'text-green-600'}`}>{route.cost}</span>
                             </div>
                             <div className="flex items-center justify-between gap-3">
-                              <span className={`flex items-center gap-2 ${cp.textMuted}`}><ShieldCheck size={14} aria-hidden /> Reliability</span>
-                              <span className="font-medium text-green-600">{route.reliability}</span>
+                              <span className={`flex items-center gap-2 ${isBest ? 'text-black/65' : 'text-white/65'}`}><ShieldCheck size={14} aria-hidden /> Reliability</span>
+                              <span className={`font-medium ${isBest ? 'text-black' : 'text-[#DFFF00]'}`}>{route.reliability}</span>
                             </div>
                           </div>
 
@@ -475,14 +485,14 @@ export default function ShipmentDetail() {
                               disabled={approvingRouteId !== null}
                               className={
                                 isBest
-                                  ? `${cp.btnPrimaryBlock} disabled:cursor-not-allowed disabled:opacity-60`
-                                  : `inline-flex w-full items-center justify-center rounded-xl border ${cp.border} bg-white px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-neutral-700 transition-all duration-200 hover:border-neutral-300 hover:bg-neutral-50 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-60`
+                                  ? 'inline-flex w-full items-center justify-center rounded-xl border border-black bg-black px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition-all duration-200 hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-60'
+                                  : 'inline-flex w-full items-center justify-center rounded-xl border border-white/15 bg-white/10 px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition-all duration-200 hover:border-white/30 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60'
                               }
                             >
                               {approvingRouteId === route.id ? 'Applying route...' : isBest ? 'Approve best route' : 'Select route'}
                             </button>
                           ) : (
-                            <div className={`rounded-xl border ${cp.borderHairline} bg-neutral-50 py-2.5 text-center text-[10px] font-mono uppercase tracking-widest ${cp.textSubtle}`}>
+                            <div className={`rounded-xl border ${isBest ? 'border-black/10 bg-white/50 text-black/70' : 'border-white/10 bg-white/5 text-white/60'} py-2.5 text-center text-[10px] font-mono uppercase tracking-widest`}>
                               Awaiting company approval
                             </div>
                           )}
@@ -653,8 +663,8 @@ export default function ShipmentDetail() {
                           key={language}
                           type="button"
                           onClick={() => setSelectedAlertLanguage(language)}
-                          className={`rounded-full border px-3 py-1 text-[10px] font-mono uppercase tracking-widest transition ${
-                            isSelected ? 'border-black bg-black text-white' : 'border-black/10 bg-white text-neutral-700 hover:border-black'
+                          className={`rounded-full border px-3 py-1.5 text-[10px] font-mono uppercase tracking-[0.18em] transition ${
+                            isSelected ? 'border-black bg-black text-white' : 'border-black/10 bg-neutral-50 text-neutral-700 hover:border-black'
                           }`}
                         >
                           {ALERT_LANGUAGE_LABELS[language] || language.toUpperCase()}

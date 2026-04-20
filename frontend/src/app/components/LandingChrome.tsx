@@ -16,8 +16,6 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const darkNav = !userRole && !scrolled;
-
   const handleLogout = () => {
     logout();
     navigate('/');
@@ -26,7 +24,7 @@ export function Navbar() {
   return (
     <nav
       className={`fixed top-0 z-50 w-full border-b transition-[background,box-shadow,border-color] duration-300 ${
-        scrolled || userRole ? 'border-black/10 bg-white py-3.5 shadow-[0_4px_40px_-10px_rgba(0,0,0,0.08)]' : 'border-white/10 bg-black/90 py-4'
+        scrolled || userRole ? 'border-black/10 bg-white/92 py-3.5 shadow-[0_4px_40px_-10px_rgba(0,0,0,0.08)] backdrop-blur-xl' : 'border-black/10 bg-white/88 py-3.5 backdrop-blur-xl'
       }`}
     >
       <a
@@ -47,25 +45,25 @@ export function Navbar() {
               <path d="M3 12h4l3-8 4 16 3-8h4" />
             </svg>
           </div>
-          <span className={`truncate font-['DM_Serif_Display'] text-lg tracking-wide sm:text-[22px] ${darkNav ? 'text-white' : 'text-slate-900'}`}>
+          <span className="truncate font-['DM_Serif_Display'] text-lg tracking-wide text-slate-900 sm:text-[22px]">
             ClearPath
           </span>
         </button>
 
         {!userRole && (
-          <div className={`hidden min-w-0 flex-1 justify-center px-4 md:flex ${darkNav ? 'text-white/90' : 'text-slate-600'}`}>
+          <div className="hidden min-w-0 flex-1 justify-center px-4 text-slate-600 md:flex">
             <div className="flex max-w-full items-center gap-6 text-[11px] font-mono font-medium uppercase tracking-[0.16em] lg:gap-10">
-              <Link to="/#product" className={`shrink-0 transition-colors ${darkNav ? 'hover:text-[#DFFF00]' : 'hover:text-black'}`}>Overview</Link>
-              <Link to="/#criteria" className={`shrink-0 transition-colors ${darkNav ? 'hover:text-[#DFFF00]' : 'hover:text-black'}`}>Why It Scores</Link>
-              <Link to="/#stack" className={`shrink-0 transition-colors ${darkNav ? 'hover:text-[#DFFF00]' : 'hover:text-black'}`}>Google Stack</Link>
-              <Link to="/#roles" className={`shrink-0 transition-colors ${darkNav ? 'hover:text-[#DFFF00]' : 'hover:text-black'}`}>Journey</Link>
-              <Link to="/contact" className={`shrink-0 transition-colors ${darkNav ? 'hover:text-[#DFFF00]' : 'hover:text-black'}`}>Contact</Link>
+              <Link to="/#product" className="shrink-0 transition-colors hover:text-black">Overview</Link>
+              <Link to="/#criteria" className="shrink-0 transition-colors hover:text-black">Why It Scores</Link>
+              <Link to="/#stack" className="shrink-0 transition-colors hover:text-black">Stack</Link>
+              <Link to="/#roles" className="shrink-0 transition-colors hover:text-black">Journey</Link>
+              <Link to="/contact" className="shrink-0 transition-colors hover:text-black">Contact</Link>
             </div>
           </div>
         )}
 
         <div className="hidden shrink-0 items-center gap-3 md:flex">
-          {!userRole && <LanguageSelect variant="navbar" id="header-language" navbarOnDark={darkNav} />}
+          {!userRole && <LanguageSelect variant="navbar" id="header-language" navbarOnDark={false} />}
           {userRole ? (
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 rounded-full border border-black/15 bg-[#DFFF00]/15 px-4 py-2 text-[10px] font-mono font-bold uppercase tracking-widest text-black shadow-sm ring-1 ring-[#DFFF00]/30">
@@ -84,7 +82,7 @@ export function Navbar() {
             <Link
               to="/login"
               state={{ role: 'company' }}
-              className="inline-flex items-center justify-center rounded-full bg-[#4285F4] px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#2f6dd5]"
+              className="inline-flex items-center justify-center rounded-full border border-black bg-[#DFFF00] px-6 py-3 text-sm font-semibold text-black transition-all duration-200 hover:bg-[#c8e800]"
             >
               Dashboard
             </Link>
@@ -94,7 +92,7 @@ export function Navbar() {
         <div className="flex items-center gap-2 md:hidden">
           <button
             type="button"
-            className={`p-1 -mr-1 ${darkNav ? 'text-white' : 'text-slate-900'}`}
+            className="p-1 -mr-1 text-slate-900"
             onClick={() => setMobileMenuOpen((current) => !current)}
             aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
@@ -119,20 +117,19 @@ export function Navbar() {
 
 export function Footer() {
   return (
-    <footer className="relative z-10 border-t border-white/15 bg-black px-6 py-14 sm:py-16">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(223,255,0,0.08)_0%,transparent_55%)]" aria-hidden />
+    <footer className="relative z-10 border-t border-black/10 bg-neutral-100 px-6 py-14 sm:py-16">
       <div className="mx-auto max-w-7xl">
-        <div className="rounded-2xl border border-white/15 bg-white/5 p-6 shadow-[0_20px_50px_-30px_rgba(0,0,0,0.7)] backdrop-blur-xl sm:rounded-3xl sm:p-8">
+        <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm sm:rounded-3xl sm:p-8">
           <div className="flex flex-col items-center justify-between gap-8 text-center md:flex-row md:text-left">
-            <p className="max-w-lg text-[11px] font-mono uppercase leading-relaxed tracking-[0.12em] text-neutral-400 sm:text-xs sm:tracking-[0.15em]">
+            <p className="max-w-lg text-[11px] font-mono uppercase leading-relaxed tracking-[0.12em] text-neutral-500 sm:text-xs sm:tracking-[0.15em]">
               <span className="block sm:inline">Solution Challenge 2026 India</span>
-              <span className="hidden px-3 text-neutral-600 sm:inline" aria-hidden>|</span>
-              <span className="mt-1 block text-neutral-300 sm:mt-0 sm:inline">Smart Supply Chains Track</span>
+              <span className="hidden px-3 text-neutral-300 sm:inline" aria-hidden>|</span>
+              <span className="mt-1 block text-neutral-900 sm:mt-0 sm:inline">Smart Supply Chains Track</span>
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-10">
-              <button type="button" className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] text-neutral-300 transition-all duration-200 hover:border-[#DFFF00]/45 hover:bg-[#DFFF00]/10 hover:text-[#DFFF00]">Privacy</button>
-              <button type="button" className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] text-neutral-300 transition-all duration-200 hover:border-[#DFFF00]/45 hover:bg-[#DFFF00]/10 hover:text-[#DFFF00]">Terms</button>
+              <button type="button" className="rounded-full border border-black/10 bg-neutral-50 px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] text-neutral-600 transition-all duration-200 hover:border-black hover:bg-[#DFFF00]/10 hover:text-black">Privacy</button>
+              <button type="button" className="rounded-full border border-black/10 bg-neutral-50 px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] text-neutral-600 transition-all duration-200 hover:border-black hover:bg-[#DFFF00]/10 hover:text-black">Terms</button>
             </div>
           </div>
         </div>
