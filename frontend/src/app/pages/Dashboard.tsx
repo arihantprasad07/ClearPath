@@ -1,115 +1,129 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { ArrowUpRight, Brain, ChevronRight, Package, Plus, RefreshCw, Route as RouteIcon, Zap } from 'lucide-react';
-import { useReducedMotion } from 'motion/react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  Brain,
+  ChevronDown,
+  ChevronRight,
+  Globe2,
+  MapPinned,
+  Package,
+  Plus,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp,
+  Zap,
+} from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { LanguageSelect } from '../components/LanguageSelect';
 import { ShipmentViewModel } from '../lib/api';
-import { cp } from '../lib/cpUi';
-import RouteNetworkMap from '../components/RouteNetworkMap';
-import { ConfidenceMeter } from '../components/ConfidenceMeter';
 import { getSignalIcon } from '../lib/signalIcons';
 
-function useCountUp(target: number, duration: number = 800) {
-  const [count, setCount] = useState(0);
-  const hasAnimated = useRef(false);
-  
-  const prefersReducedMotion = useMemo(() => {
-    if (typeof window !== 'undefined') {
-      return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    }
-    return false;
-  }, []);
-
-  useEffect(() => {
-    if (hasAnimated.current) return;
-    if (prefersReducedMotion) {
-      setCount(target);
-      hasAnimated.current = true;
-      return;
-    }
-
-    let startTime: number;
-    const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
-
-    const animate = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
-      const progress = timestamp - startTime;
-      const t = Math.min(progress / duration, 1);
-      
-      setCount(Math.round(target * easeOut(t)));
-      
-      if (t < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        hasAnimated.current = true;
-      }
-    };
-
-    requestAnimationFrame(animate);
-  }, [target, duration, prefersReducedMotion]);
-
-  return count;
-}
-
-function AnimatedStatCard({ label, target, isConfidence = false, classes }: { label: string; target: number; isConfidence?: boolean; classes: string }) {
-  const value = useCountUp(target);
-  
+function DecoCluster({ className = '' }: { className?: string }) {
   return (
-    <div className={classes}>
-      <div className={`mb-2 text-[10px] font-mono uppercase tracking-wider ${cp.textSubtle}`}>{label}</div>
-      {isConfidence ? (
-        <ConfidenceMeter confidence={value} />
-      ) : (
-        <div className={`font-['DM_Serif_Display'] text-3xl ${cp.text}`}>{value}</div>
-      )}
+    <div className={`pointer-events-none absolute ${className}`} aria-hidden>
+      <div className="absolute left-0 top-0 h-10 w-10 rounded-full border border-black/10 border-dashed" />
+      <div className="absolute left-6 top-6 h-2 w-2 rounded-full bg-[#DFFF00]" />
+      <div className="absolute left-10 top-1 text-lg leading-none text-black">*</div>
+      <div className="absolute left-11 top-8 h-7 w-7 rotate-45 border border-black/80 bg-black" />
     </div>
   );
 }
 
-function formatPredictionWindow(window: ShipmentViewModel['backend']['predictionWindow']) {
-  return `${window.label} (${window.startHours}-${window.endHours}h, ${window.confidence}% confidence)`;
+function TinyLabel({ children, dark = false }: { children: React.ReactNode; dark?: boolean }) {
+  return (
+    <p className={`text-[9px] font-mono uppercase tracking-[0.22em] ${dark ? 'text-white/60' : 'text-neutral-500'}`}>
+      {children}
+    </p>
+  );
 }
 
-function ShipmentCard({ shipment, isCompany }: { shipment: ShipmentViewModel; isCompany: boolean }) {
-  const isHighRisk = shipment.riskLevel === 'high';
-  const riskBadge =
-    shipment.riskLevel === 'high' ? (
-      <span className="shrink-0 rounded-full bg-red-500 px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider text-white">Critical</span>
-    ) : shipment.riskLevel === 'medium' ? (
-      <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider text-amber-800">Warning</span>
-    ) : (
-      <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider text-neutral-700">On track</span>
-    );
+function MiniMetricCard({
+  title,
+  value,
+  tone,
+  icon,
+}: {
+  title: string;
+  value: string;
+  tone: 'dark' | 'lime' | 'light';
+  icon: React.ReactNode;
+}) {
+  const tones = {
+    dark: 'border-black bg-[#171922] text-white',
+    lime: 'border-[#b9d700] bg-[#DFFF00] text-black',
+    light: 'border-black/10 bg-white text-black',
+  } as const;
 
   return (
-    <Link to={`/shipment/${shipment.id}`} className={`group flex h-full min-h-[240px] flex-col ${cp.cardInteractive} ${isHighRisk ? 'border-l-4 border-l-red-500' : shipment.riskLevel === 'medium' ? 'border-l-4 border-l-amber-400' : 'border-l-4 border-l-green-400'}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <Package size={18} className={isHighRisk ? 'shrink-0 text-red-500' : 'shrink-0 text-neutral-400'} aria-hidden />
-          <span className={`truncate text-left text-sm font-semibold ${isHighRisk ? 'text-red-900' : cp.text}`}>{shipment.name}</span>
+    <div className={`relative min-h-[88px] rounded-[18px] border p-3 ${tones[tone]}`}>
+      <div className="mb-5 flex items-start justify-between gap-2">
+        <TinyLabel dark={tone === 'dark'}>{title}</TinyLabel>
+        <div className={`flex h-7 w-7 items-center justify-center rounded-full ${tone === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'}`}>
+          {icon}
         </div>
-        {riskBadge}
+      </div>
+      <p className={`text-lg font-semibold tracking-tight ${tone === 'dark' ? 'text-white' : 'text-black'}`}>{value}</p>
+    </div>
+  );
+}
+
+function LaneListItem({
+  shipment,
+  isCompany,
+  refreshing,
+  onRefresh,
+}: {
+  shipment: ShipmentViewModel;
+  isCompany: boolean;
+  refreshing: boolean;
+  onRefresh: () => void;
+}) {
+  const riskTone =
+    shipment.riskLevel === 'high'
+      ? 'text-red-600'
+      : shipment.riskLevel === 'medium'
+        ? 'text-amber-600'
+        : 'text-emerald-600';
+
+  return (
+    <div className="rounded-[18px] border border-black/10 bg-white px-4 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-neutral-950">{shipment.name}</p>
+          <p className="mt-1 text-[11px] text-neutral-500">
+            {shipment.source} <span className="text-neutral-300">{'->'}</span> {shipment.destination}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={refreshing}
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/10 bg-neutral-50 text-neutral-700 transition hover:bg-neutral-100 disabled:opacity-60"
+          aria-label={`Refresh ${shipment.name}`}
+        >
+          <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+        </button>
       </div>
 
-      <div className="my-6 flex flex-1 flex-col justify-center border-y border-neutral-100 py-5">
-        <p className={`text-left text-[10px] font-mono uppercase tracking-widest ${cp.textSubtle}`}>ETA</p>
-        <p className={`mt-1 text-left text-xl font-semibold tracking-tight ${isHighRisk ? 'text-red-600' : cp.text}`}>{shipment.eta}</p>
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <span className={`text-[10px] font-mono uppercase tracking-[0.18em] ${riskTone}`}>{shipment.riskLevel} risk</span>
+        <span className="text-xs text-neutral-500">{isCompany ? 'Company lane' : 'Transport lane'}</span>
       </div>
+    </div>
+  );
+}
 
-      <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-sm ${cp.textMuted}`}>
-        <span className="font-medium text-neutral-800">{shipment.source}</span>
-        <ChevronRight size={14} className="shrink-0 text-neutral-300" aria-hidden />
-        <span className="font-medium text-neutral-800">{shipment.destination}</span>
+function AccordionRow({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-[16px] border border-black/10 bg-white px-4 py-3">
+      <div>
+        <p className="text-xs font-medium text-neutral-900">{title}</p>
+        <p className="mt-1 text-[11px] text-neutral-500">{value}</p>
       </div>
-
-      <div className="mt-4 flex items-center justify-between gap-3">
-        <span className={`text-xs font-mono font-semibold uppercase tracking-wide ${isCompany ? cp.text : cp.textSubtle}`}>{isCompany ? 'To receive' : 'In transit'}</span>
-        <span className={`text-xs font-medium ${isHighRisk ? 'text-red-600' : cp.text} transition-transform duration-200 group-hover:translate-x-0.5`}>
-          {isHighRisk ? 'Resolve ->' : 'Details ->'}
-        </span>
-      </div>
-    </Link>
+      <ChevronDown className="h-4 w-4 text-neutral-400" />
+    </div>
   );
 }
 
@@ -117,29 +131,14 @@ export default function Dashboard() {
   const { authLoading, authUser, refreshShipment, shipments, shipmentsLoading, userRole } = useAppContext();
   const navigate = useNavigate();
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
-  const [signalBarsAnimated, setSignalBarsAnimated] = useState(false);
-  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
-    document.title = 'Dashboard — ClearPath';
+    document.title = 'Dashboard - ClearPath';
   }, []);
-
-  useEffect(() => {
-    if (reducedMotion) {
-      setSignalBarsAnimated(true);
-      return;
-    }
-    const timeoutId = window.setTimeout(() => setSignalBarsAnimated(true), 100);
-    return () => window.clearTimeout(timeoutId);
-  }, [reducedMotion]);
 
   useEffect(() => {
     if (!authLoading && !authUser) navigate('/');
   }, [authLoading, authUser, navigate]);
-
-  useEffect(() => {
-    document.title = 'Dashboard — ClearPath';
-  }, []);
 
   const sorted = useMemo(() => {
     const order = { high: 0, medium: 1, low: 2 } as Record<string, number>;
@@ -149,13 +148,18 @@ export default function Dashboard() {
   if (authLoading || !authUser || !userRole) return null;
 
   const isCompany = userRole === 'company';
-  const roleLabel = isCompany ? 'Shipper view' : 'Transporter view';
-  const highRiskCount = shipments.filter((shipment) => shipment.riskLevel === 'high').length;
-  const aiReadyCount = shipments.filter((shipment) => shipment.backend.explanation?.reasoning?.length).length;
-  const averageConfidence = shipments.length
-    ? Math.round(shipments.reduce((sum, shipment) => sum + (shipment.backend.decision.confidence || 0), 0) / shipments.length)
-    : 0;
   const latestShipment = sorted[0] ?? null;
+  const activeCount = sorted.length;
+  const criticalCount = sorted.filter((shipment) => shipment.riskLevel === 'high').length;
+  const aiCount = sorted.filter((shipment) => shipment.backend.explanation?.summary).length;
+  const avgConfidence = activeCount
+    ? Math.round(sorted.reduce((sum, shipment) => sum + (shipment.backend.decision.confidence || 0), 0) / activeCount)
+    : 0;
+
+  const topSignals = latestShipment?.backend.signalStack?.slice(0, 3) ?? [];
+  const translations = latestShipment?.backend.alert?.translations;
+  const primaryTranslation =
+    translations?.en || translations?.hi || translations?.gu || translations?.ta || latestShipment?.alert || 'Alert preview will appear here.';
 
   const handleRefresh = async (shipmentId: string) => {
     try {
@@ -167,256 +171,246 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="w-full min-w-0 space-y-8">
-      <div className="relative overflow-hidden rounded-2xl border border-black/10 border-b-[#DFFF00]/25 bg-black p-5 text-white shadow-sm sm:p-6">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.03)_1px,transparent_1px)]" style={{ backgroundSize: '28px 28px' }} aria-hidden />
-        <div className="pointer-events-none absolute -right-16 -top-16 h-36 w-36 rounded-full bg-[#DFFF00]/18 blur-[80px]" aria-hidden />
-        <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-[#DFFF00]">{roleLabel}</span>
-              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-neutral-300">{authUser.role} session</span>
-              <div title="Alert language for transporter notifications" className="min-w-[180px]">
-                <LanguageSelect variant="inline" hideHelper id="dashboard-language" />
+    <div className="mx-auto w-full max-w-[390px] pb-10">
+      <div className="space-y-3">
+        <section className="relative overflow-hidden rounded-[26px] border border-black/10 bg-white px-4 pb-4 pt-5 shadow-[0_20px_60px_-36px_rgba(0,0,0,0.35)]">
+          <DecoCluster className="-right-2 top-6 h-16 w-16 opacity-80" />
+          <div className="relative z-10 flex items-start justify-between gap-3">
+            <div>
+              <TinyLabel>Navigating the unknown</TinyLabel>
+              <h1 className="mt-2 max-w-[190px] text-[26px] font-semibold leading-[1.02] tracking-tight text-neutral-950">
+                Shipment
+                <br />
+                intelligence
+              </h1>
+            </div>
+            <div className="flex gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-neutral-50">
+                <Globe2 className="h-4 w-4 text-neutral-700" />
+              </div>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-neutral-50">
+                <Sparkles className="h-4 w-4 text-neutral-700" />
               </div>
             </div>
-            <h1 className="mt-4 font-['DM_Serif_Display'] text-3xl tracking-tight text-white sm:text-4xl">ClearPath dashboard</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-neutral-300">
-              {shipmentsLoading
-                ? 'Syncing live shipments, route intelligence, and AI reasoning from the backend.'
-                : 'Live disruption intelligence, route recommendations, and AI-backed decisions for your active shipment lanes.'}
-            </p>
           </div>
-          <Link to="/add-shipment" className={`${cp.btnPrimary} w-full shrink-0 sm:w-auto`}>
-            <Plus size={16} className="shrink-0" aria-hidden />
-            {isCompany ? 'Add shipment' : 'New shipment'}
-          </Link>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <AnimatedStatCard label="Active lanes" target={shipments.length} classes={cp.card} />
-        <AnimatedStatCard label="Critical risks" target={highRiskCount} classes="rounded-2xl border border-red-100 bg-red-50/80 p-6 shadow-sm" />
-        <AnimatedStatCard label="AI-backed analyses" target={aiReadyCount} classes="rounded-2xl border border-[#DFFF00]/35 bg-[#faffd9] p-6 shadow-sm" />
-        <AnimatedStatCard label="Average confidence" target={averageConfidence} isConfidence classes="rounded-2xl border border-amber-100 bg-amber-50/80 p-6 shadow-sm flex flex-col justify-between" />
-      </div>
+          <p className="relative z-10 mt-3 max-w-[240px] text-[12px] leading-5 text-neutral-500">
+            Compact route oversight with AI reasoning, transporter alerts, and live lane health in one scroll.
+          </p>
 
-      {latestShipment?.backend.alert?.translations && latestShipment.riskLevel === 'high' && (
-        <section className="rounded-2xl border border-amber-100 bg-amber-50/60 p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div>
-              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-amber-700">Transporter alert — live preview</p>
-              <h2 className="mt-1 font-['DM_Serif_Display'] text-xl text-neutral-900">WhatsApp notification ready</h2>
-            </div>
-            <span className="rounded-full border border-amber-200 bg-amber-100 px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-amber-800">
-              {Object.keys(latestShipment.backend.alert.translations).length} languages
+          <div className="relative z-10 mt-4 flex items-center gap-2">
+            <Link
+              to="/add-shipment"
+              className="inline-flex items-center gap-2 rounded-full border border-black bg-black px-3 py-2 text-[10px] font-mono uppercase tracking-[0.18em] text-white"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add lane
+            </Link>
+            <span className="rounded-full border border-black/10 bg-neutral-50 px-3 py-2 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">
+              {isCompany ? 'Company view' : 'Transport view'}
             </span>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {(['en', 'hi', 'gu', 'ta'] as const).map((lang) => {
-              const labels: Record<string, string> = { en: 'English', hi: 'Hindi', gu: 'Gujarati', ta: 'Tamil' };
-              const text = latestShipment.backend.alert?.translations?.[lang];
-              if (!text) return null;
-              return (
-                <div key={lang} className="rounded-xl border border-amber-100 bg-white px-4 py-3">
-                  <p className="text-[10px] font-mono uppercase tracking-widest text-neutral-400 mb-1">{labels[lang]}</p>
-                  <p className="text-sm leading-relaxed text-neutral-800">{text}</p>
-                </div>
-              );
-            })}
-          </div>
         </section>
-      )}
 
-      {latestShipment ? (
-        <section className="grid gap-6 xl:grid-cols-[1.25fr_0.95fr]">
-          <RouteNetworkMap shipment={latestShipment.backend} />
-          <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500">Active shipment</p>
-                <h2 className="mt-1 font-['DM_Serif_Display'] text-2xl text-neutral-900">Risk overview</h2>
-              </div>
-              <span className="rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-neutral-900">
-                {latestShipment.riskLevel}
+        <section className="grid grid-cols-2 gap-3">
+          <MiniMetricCard title="Active lanes" value={String(activeCount)} tone="light" icon={<Package className="h-4 w-4" />} />
+          <MiniMetricCard title="Critical now" value={String(criticalCount)} tone="lime" icon={<AlertTriangle className="h-4 w-4" />} />
+          <MiniMetricCard title="AI analyzed" value={String(aiCount)} tone="dark" icon={<Brain className="h-4 w-4" />} />
+          <MiniMetricCard title="Confidence" value={`${avgConfidence}%`} tone="light" icon={<ShieldCheck className="h-4 w-4" />} />
+        </section>
+
+        <section className="grid grid-cols-[1.1fr_0.9fr] gap-3">
+          <div className="rounded-[22px] border border-black/10 bg-[#DFFF00] p-4">
+            <TinyLabel>Latest action</TinyLabel>
+            <p className="mt-2 text-sm font-semibold leading-5 text-black">
+              {latestShipment?.backend.decision.recommendedAction || 'Create a lane to unlock the first recommendation.'}
+            </p>
+            <div className="mt-4 flex items-center justify-between">
+              <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-black/70">
+                {latestShipment?.riskLevel || 'pending'}
               </span>
-            </div>
-            <div className="mt-5 space-y-3 text-sm text-neutral-600">
-              <div className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">
-                Risk score: <span className="font-semibold text-neutral-900">{latestShipment.backend.risk.score}%</span>
-              </div>
-              <div className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">
-                Prediction window: <span className="font-semibold text-neutral-900">{formatPredictionWindow(latestShipment.backend.predictionWindow)}</span>
-              </div>
-              <div className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">
-                Recommended action: <span className="font-semibold text-neutral-900">{latestShipment.backend.decision.recommendedAction}</span>
-              </div>
-              <div className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">
-                Delivery channel: <span className="font-semibold text-neutral-900">{latestShipment.backend.architectureStatus?.deliveryModes.join(', ') || 'dashboard_only'}</span>
-              </div>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
-        <section className="relative overflow-hidden rounded-2xl border border-black/10 bg-white p-5 shadow-sm sm:p-6">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[#DFFF00]/12 blur-3xl" aria-hidden />
-          <div className="relative z-10 mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className={`text-left font-['DM_Serif_Display'] text-xl font-normal ${cp.text}`}>{isCompany ? 'My shipments' : 'Active shipments'}</h2>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex w-fit items-center rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12 px-3 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-neutral-900">{sorted.length} active</span>
-              <Link to="/add-shipment" className={cp.btnPrimary}>
-                <Plus size={15} className="shrink-0" aria-hidden />
-                {isCompany ? 'Add shipment' : 'New shipment'}
-              </Link>
-            </div>
-          </div>
-
-          {shipmentsLoading ? (
-            <div className={`rounded-2xl border border-dashed ${cp.borderHairline} bg-neutral-50/80 p-8 text-center text-sm ${cp.textMuted}`}>
-              Pulling the latest route intelligence, AI summaries, and shipment health from the backend.
-            </div>
-          ) : sorted.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-black/15 bg-gradient-to-br from-neutral-50 to-white p-12 text-center">
-              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-[#DFFF00]/45 bg-[#DFFF00]/12">
-                <RouteIcon size={24} className="text-neutral-900" strokeWidth={1.7} />
-              </div>
-              <h3 className="font-['DM_Serif_Display'] text-2xl text-neutral-900">No active shipment lanes yet.</h3>
-              <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-neutral-500">
-                Create a lane between two Indian cities. ClearPath will predict disruption risk, score alternate routes, and prepare multilingual transporter alerts.
-              </p>
-              <Link to="/add-shipment" className={`${cp.btnPrimary} mt-6 inline-flex`}>
-                <Plus size={15} className="shrink-0" aria-hidden /> Create first lane
-              </Link>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              {sorted.map((shipment) => (
-                <div key={shipment.id} className="space-y-3">
-                  <ShipmentCard shipment={shipment} isCompany={isCompany} />
-                  <button
-                    type="button"
-                    onClick={() => handleRefresh(shipment.id)}
-                    disabled={refreshingId !== null}
-                    className={`inline-flex items-center gap-2 rounded-xl border ${cp.borderHairline} bg-white px-3 py-2 text-[11px] font-mono uppercase tracking-widest ${cp.textMuted} transition-all duration-200 hover:border-neutral-300 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60`}
-                  >
-                    <RefreshCw size={13} className={refreshingId === shipment.id ? 'animate-spin' : ''} aria-hidden />
-                    {refreshingId === shipment.id ? 'Refreshing...' : 'Refresh analysis'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <div className="space-y-6">
-          <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#DFFF00]/45 bg-[#DFFF00]/12">
-                <Brain className="h-5 w-5 text-neutral-900" strokeWidth={1.7} />
-              </div>
-              <div>
-                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500">AI co-pilot</p>
-                <h2 className="font-['DM_Serif_Display'] text-2xl text-neutral-900">Why AI matters here</h2>
-              </div>
-            </div>
-            <div className="mt-5 space-y-3 text-sm leading-relaxed text-neutral-600">
-              <p>ClearPath uses Gemini to explain the reason behind every risk flag — not just a score.</p>
-              <p>The operator sees the recommendation, confidence level, and reasoning in one place before approving.</p>
-              <p className="rounded-xl border border-[#DFFF00]/35 bg-[#faffd9] px-4 py-3 text-neutral-900">
-                {latestShipment?.backend.decision.recommendedAction || 'Create a lane to generate the first live AI recommendation.'}
-              </p>
-            </div>
-          </section>
-
-          {latestShipment?.backend.signalStack?.length ? (
-            <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
-              <p className="mb-1 text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500">Live signal feed</p>
-              <h2 className="mb-4 font-['DM_Serif_Display'] text-2xl text-neutral-900">
-                {latestShipment.backend.signalStack.some((signal) => !signal.usedFallback) ? (
-                  <span className="mr-2 inline-block h-2 w-2 rounded-full bg-green-500 align-middle animate-pulse" aria-hidden />
-                ) : null}
-                Active risk signals
-              </h2>
-              <div className="space-y-3">
-                {latestShipment.backend.signalStack.map((signal) => {
-                  const severity = Math.round(signal.severity * 100);
-                  const barColor = severity >= 60 ? 'bg-red-500' : severity >= 35 ? 'bg-amber-400' : 'bg-green-500';
-                  const textColor = severity >= 60 ? 'text-red-600' : severity >= 35 ? 'text-amber-600' : 'text-green-600';
-                  const Icon = getSignalIcon(signal.name);
-                  return (
-                    <div key={signal.name} className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <div className="flex items-center gap-2">
-                          <Icon size={14} className="text-neutral-500" strokeWidth={1.7} aria-hidden />
-                          <p className="text-sm font-semibold text-neutral-900">{signal.name}</p>
-                        </div>
-                        <span className={`text-[10px] font-mono font-bold uppercase tracking-widest ${textColor}`}>
-                          {severity}%
-                        </span>
-                      </div>
-                      <p className="text-xs text-neutral-500">{signal.summary}</p>
-                      <div className="mt-2 h-1.5 rounded-full bg-neutral-200 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${barColor} transition-all duration-700 ease-out`}
-                          style={{ width: signalBarsAnimated ? `${severity}%` : '0%' }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          ) : null}
-
-          <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-black/10 bg-neutral-50">
-                <Zap className="h-5 w-5 text-neutral-900" strokeWidth={1.7} />
-              </div>
-              <div>
-                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500">Why it works</p>
-                <h2 className="font-['DM_Serif_Display'] text-2xl text-neutral-900">What ClearPath does</h2>
-              </div>
-            </div>
-            <ul className="mt-5 space-y-3 text-sm text-neutral-600">
-              <li className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">Predicts disruption 18–24 hours before it affects your shipment.</li>
-              <li className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">Recommends and scores 3 alternate routes in real time.</li>
-              <li className="rounded-xl border border-black/10 bg-neutral-50 px-4 py-3">Sends multilingual WhatsApp alerts to transporters in their language.</li>
-            </ul>
-          </section>
-
-          <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="font-['DM_Serif_Display'] text-2xl text-neutral-900">Latest action lane</h2>
               {latestShipment ? (
-                <Link to={`/shipment/${latestShipment.id}`} className="inline-flex items-center gap-1 text-sm font-medium text-neutral-900">
-                  Open
-                  <ArrowUpRight className="h-4 w-4" aria-hidden />
+                <Link to={`/shipment/${latestShipment.id}`} className="inline-flex items-center gap-1 text-xs font-semibold text-black">
+                  Open <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               ) : null}
             </div>
-            {latestShipment ? (
-              <div className="mt-5 rounded-2xl border border-black/10 bg-neutral-50 p-4">
-                <p className="text-sm font-semibold text-neutral-900">{latestShipment.name}</p>
-                <p className={`mt-1 text-sm ${cp.textMuted}`}>{latestShipment.backend.explanation?.summary || latestShipment.backend.statusMessage}</p>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className={`text-[10px] font-mono uppercase tracking-widest ${cp.textSubtle}`}>Confidence</p>
-                    <p className={`mt-1 ${cp.text}`}>{latestShipment.backend.decision.confidence}%</p>
+          </div>
+
+          <div className="rounded-[22px] border border-black bg-[#171922] p-4 text-white">
+            <TinyLabel dark>Prediction</TinyLabel>
+            <p className="mt-2 text-lg font-semibold tracking-tight">
+              {latestShipment?.backend.predictionWindow?.label || 'Waiting'}
+            </p>
+            <p className="mt-1 text-[11px] leading-4 text-white/65">
+              {latestShipment
+                ? `${latestShipment.backend.predictionWindow.startHours}-${latestShipment.backend.predictionWindow.endHours}h watch window`
+                : 'Run analysis to see the forecast band.'}
+            </p>
+          </div>
+        </section>
+
+        <section className="rounded-[24px] border border-black/10 bg-white p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <TinyLabel>Lane overview</TinyLabel>
+              <h2 className="mt-1 text-base font-semibold text-neutral-950">Live shipment cards</h2>
+            </div>
+            <span className="rounded-full border border-black/10 bg-neutral-50 px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.18em] text-neutral-500">
+              {shipmentsLoading ? 'syncing' : `${activeCount} lanes`}
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {shipmentsLoading ? (
+              <div className="rounded-[18px] border border-dashed border-black/10 bg-neutral-50 px-4 py-8 text-center text-sm text-neutral-500">
+                Syncing route intelligence...
+              </div>
+            ) : sorted.length ? (
+              sorted.slice(0, 3).map((shipment) => (
+                <LaneListItem
+                  key={shipment.id}
+                  shipment={shipment}
+                  isCompany={isCompany}
+                  refreshing={refreshingId === shipment.id}
+                  onRefresh={() => handleRefresh(shipment.id)}
+                />
+              ))
+            ) : (
+              <div className="rounded-[18px] border border-dashed border-black/10 bg-neutral-50 px-4 py-8 text-center text-sm text-neutral-500">
+                No lanes yet.
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-[24px] border border-black/10 bg-[#f7f7f3] p-4">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <TinyLabel>Decision stack</TinyLabel>
+              <h2 className="mt-1 text-base font-semibold text-neutral-950">Expandable intelligence</h2>
+            </div>
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
+              <TrendingUp className="h-4 w-4 text-neutral-800" />
+            </div>
+          </div>
+          <div className="space-y-2.5">
+            <AccordionRow
+              title="Risk score"
+              value={latestShipment ? `${latestShipment.backend.risk.score}% probability of disruption` : 'Waiting for analysis'}
+            />
+            <AccordionRow
+              title="Recommended route"
+              value={latestShipment?.backend.routes?.recommendedRouteId || latestShipment?.currentRoute || 'No route selected'}
+            />
+            <AccordionRow
+              title="Delivery mode"
+              value={latestShipment?.backend.architectureStatus?.deliveryModes?.join(', ') || 'dashboard_only'}
+            />
+          </div>
+        </section>
+
+        <section className="rounded-[24px] border border-black/10 bg-[#171922] p-4 text-white">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <TinyLabel dark>Live signal feed</TinyLabel>
+              <h2 className="mt-1 text-base font-semibold text-white">Signals shaping the alert</h2>
+            </div>
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
+              <Zap className="h-4 w-4 text-[#DFFF00]" />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {topSignals.length ? (
+              topSignals.map((signal) => {
+                const SignalIcon = getSignalIcon(signal.name);
+                const severity = Math.round(signal.severity * 100);
+                return (
+                  <div key={signal.name} className="rounded-[18px] border border-white/10 bg-white/5 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
+                          <SignalIcon className="h-4 w-4 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-white">{signal.name}</p>
+                          <p className="text-[11px] text-white/60">{signal.summary}</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#DFFF00]">{severity}%</span>
+                    </div>
+                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                      <div className="h-full rounded-full bg-[#DFFF00]" style={{ width: `${severity}%` }} />
+                    </div>
                   </div>
+                );
+              })
+            ) : (
+              <div className="rounded-[18px] border border-white/10 bg-white/5 p-4 text-sm text-white/60">
+                Signals will appear after the first live analysis.
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="relative overflow-hidden rounded-[24px] border border-black/10 bg-white p-4">
+          <DecoCluster className="right-6 top-7 h-14 w-14 opacity-60" />
+          <div className="relative z-10">
+            <TinyLabel>Transporter alert</TinyLabel>
+            <h2 className="mt-1 text-base font-semibold text-neutral-950">WhatsApp-ready copy</h2>
+
+            <div className="mt-4 rounded-[20px] border border-black/10 bg-[#f8f8f5] p-3">
+              <div className="rounded-[16px] border border-black/10 bg-white p-3 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-full bg-[#DFFF00]" />
                   <div>
-                    <p className={`text-[10px] font-mono uppercase tracking-widest ${cp.textSubtle}`}>Fallback mode</p>
-                    <p className={`mt-1 ${cp.text}`}>{latestShipment.backend.usedFallbackData ? 'Yes' : 'No'}</p>
+                    <p className="text-xs font-semibold text-neutral-900">Driver notification</p>
+                    <p className="text-[10px] text-neutral-500">{latestShipment?.transporter || '+91 transporter'}</p>
                   </div>
                 </div>
+                <div className="mt-3 rounded-[14px] bg-[#DFFF00] px-3 py-2.5 text-[12px] leading-5 text-black">
+                  {primaryTranslation}
+                </div>
               </div>
-            ) : (
-              <p className={`mt-5 text-sm ${cp.textMuted}`}>No shipment has been created yet.</p>
-            )}
-          </section>
-        </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-[24px] border border-black bg-[#171922] p-4 text-white">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <TinyLabel dark>Ops console</TinyLabel>
+              <h2 className="mt-1 text-base font-semibold text-white">Execution snapshot</h2>
+            </div>
+            <MapPinned className="h-4 w-4 text-white/70" />
+          </div>
+
+          <div className="space-y-2 font-mono text-[11px] text-white/75">
+            <div className="flex items-center justify-between gap-3 rounded-[14px] bg-white/5 px-3 py-2">
+              <span>route</span>
+              <span className="text-white">{latestShipment?.currentRoute || 'pending'}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-[14px] bg-white/5 px-3 py-2">
+              <span>eta</span>
+              <span className="text-white">{latestShipment?.eta || 'n/a'}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-[14px] bg-white/5 px-3 py-2">
+              <span>fallback</span>
+              <span className="text-white">{latestShipment?.backend.usedFallbackData ? 'yes' : 'no'}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-[14px] bg-white/5 px-3 py-2">
+              <span>detail</span>
+              {latestShipment ? (
+                <Link to={`/shipment/${latestShipment.id}`} className="inline-flex items-center gap-1 text-[#DFFF00]">
+                  open <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
+              ) : (
+                <span className="text-white">n/a</span>
+              )}
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );
