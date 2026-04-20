@@ -64,9 +64,43 @@ const criteriaCards = [
   },
 ] as const;
 
+function LandingNav() {
+  return (
+    <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 sm:px-6">
+      <div className="mx-auto flex max-w-7xl items-center justify-between rounded-full border border-black/10 bg-white/80 px-4 py-3 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.22)] backdrop-blur-xl sm:px-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-[#DFFF00]">
+            <Route className="h-4 w-4" strokeWidth={2.2} />
+          </div>
+          <div>
+            <p className="font-['DM_Serif_Display'] text-xl leading-none text-black">ClearPath</p>
+          </div>
+        </div>
+        <nav className="hidden items-center gap-6 text-[11px] font-mono uppercase tracking-[0.16em] text-neutral-600 md:flex">
+          <a href="#product" className="transition hover:text-black">Overview</a>
+          <a href="#criteria" className="transition hover:text-black">Why It Scores</a>
+          <a href="#stack" className="transition hover:text-black">Stack</a>
+          <a href="#roles" className="transition hover:text-black">Journey</a>
+        </nav>
+        <div className="hidden md:block">
+          <Link
+            to="/login"
+            state={{ role: "company" }}
+            className="inline-flex items-center justify-center rounded-full border border-black bg-[#DFFF00] px-5 py-2 text-sm font-semibold text-black transition hover:bg-[#c8e800]"
+          >
+            Dashboard
+          </Link>
+        </div>
+      </div>
+    </header>
+  );
+}
+
 export default function LandingPage() {
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-hidden bg-white text-black">
+      <LandingNav />
+
       <section className="relative px-4 pb-16 pt-28 sm:px-6 sm:pb-20 sm:pt-32 lg:pb-28 lg:pt-36">
         <div className={cp.blobAccent} />
         <div className={cp.blobNeutral} />

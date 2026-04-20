@@ -8,6 +8,7 @@ import { cp } from '../lib/cpUi';
 export default function Layout() {
   const { pathname } = useLocation();
   const { authUser, highContrastEnabled, userRole } = useAppContext();
+  const isLandingRoute = pathname === "/";
 
   const isAppRoute =
     (!!authUser || !!userRole) &&
@@ -20,6 +21,10 @@ export default function Layout() {
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:bg-[#DFFF00] focus:text-black focus:px-4 focus:py-2 focus:rounded-lg focus:font-mono focus:text-xs focus:uppercase focus:tracking-widest">Skip to main content</a>
       {isAppRoute ? (
         <AppShell />
+      ) : isLandingRoute ? (
+        <main id="main-content" className="min-w-0 max-w-full flex-1">
+          <Outlet />
+        </main>
       ) : (
         <div
           className={`relative z-0 flex min-h-[100dvh] min-h-screen w-full max-w-full flex-col overflow-x-hidden text-neutral-950 selection:bg-[#DFFF00]/50 selection:text-black ${cp.bgPage} ${highContrastEnabled ? 'high-contrast' : ''}`}
