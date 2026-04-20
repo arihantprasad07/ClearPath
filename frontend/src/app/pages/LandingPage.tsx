@@ -1,385 +1,320 @@
-import React, { useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
+import React from "react";
+import { Link } from "react-router";
 import {
-  AlertTriangle,
   ArrowRight,
   Brain,
-  Building,
-  ChevronRight,
-  Globe2,
   MapPinned,
+  MessageSquareText,
   Route,
   ShieldCheck,
   Sparkles,
-  Truck,
-  Zap,
-} from 'lucide-react';
+  TimerReset,
+  TrafficCone,
+  TriangleAlert,
+} from "lucide-react";
+import { Roles, Features } from "../components/RolesAndFeatures";
+import { LanguageSelect } from "../components/LanguageSelect";
+import { cp } from "../lib/cpUi";
 
-function TinyLabel({ children, dark = false }: { children: React.ReactNode; dark?: boolean }) {
-  return (
-    <p className={`text-[9px] font-mono uppercase tracking-[0.22em] ${dark ? 'text-white/60' : 'text-neutral-500'}`}>
-      {children}
-    </p>
-  );
-}
+const metrics = [
+  { label: "Prediction window", value: "18-24h" },
+  { label: "Route options ranked", value: "3" },
+  { label: "Indian languages", value: "22" },
+  { label: "Operator action time", value: "<30s" },
+] as const;
 
-function DecoCluster({ className = '' }: { className?: string }) {
-  return (
-    <div className={`pointer-events-none absolute ${className}`} aria-hidden>
-      <div className="absolute left-0 top-0 h-9 w-9 rounded-full border border-black/10 border-dashed" />
-      <div className="absolute left-6 top-6 h-2 w-2 rounded-full bg-[#DFFF00]" />
-      <div className="absolute left-9 top-0 text-lg leading-none text-black">*</div>
-      <div className="absolute left-10 top-7 h-6 w-6 rotate-45 border border-black/80 bg-black" />
-    </div>
-  );
-}
+const decisionSignals = [
+  {
+    title: "Weather",
+    body: "Storm pressure and corridor conditions raise disruption probability before operators see delays.",
+    icon: TriangleAlert,
+  },
+  {
+    title: "Traffic",
+    body: "Congestion changes route confidence and pushes ETA risk into the decision layer.",
+    icon: TrafficCone,
+  },
+  {
+    title: "Routing",
+    body: "Google route alternatives are scored for ETA, reliability, and cost tradeoffs.",
+    icon: Route,
+  },
+  {
+    title: "AI reasoning",
+    body: "Gemini explains why the lane is risky and what to do next in plain language.",
+    icon: Brain,
+  },
+] as const;
 
-function Tile({
-  title,
-  value,
-  tone,
-}: {
-  title: string;
-  value: string;
-  tone: 'white' | 'lime' | 'dark';
-}) {
-  const tones = {
-    white: 'border-black/10 bg-white text-black',
-    lime: 'border-[#b6d400] bg-[#DFFF00] text-black',
-    dark: 'border-black bg-[#181a23] text-white',
-  } as const;
-
-  return (
-    <div className={`rounded-[16px] border p-3 ${tones[tone]}`}>
-      <TinyLabel dark={tone === 'dark'}>{title}</TinyLabel>
-      <p className={`mt-6 text-lg font-semibold tracking-tight ${tone === 'dark' ? 'text-white' : 'text-black'}`}>{value}</p>
-    </div>
-  );
-}
-
-function SectionCard({
-  eyebrow,
-  title,
-  description,
-  icon,
-  tone = 'white',
-}: {
-  eyebrow: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  tone?: 'white' | 'dark';
-}) {
-  return (
-    <div className={`rounded-[22px] border p-5 ${tone === 'dark' ? 'border-black bg-[#181a23] text-white' : 'border-black/10 bg-white text-black'}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <TinyLabel dark={tone === 'dark'}>{eyebrow}</TinyLabel>
-          <h3 className={`mt-2 text-lg font-semibold ${tone === 'dark' ? 'text-white' : 'text-neutral-950'}`}>{title}</h3>
-        </div>
-        <div className={`flex h-9 w-9 items-center justify-center rounded-full ${tone === 'dark' ? 'bg-white/10 text-[#DFFF00]' : 'bg-black/10 text-neutral-900'}`}>
-          {icon}
-        </div>
-      </div>
-      <p className={`mt-4 text-sm leading-6 ${tone === 'dark' ? 'text-white/70' : 'text-neutral-600'}`}>{description}</p>
-    </div>
-  );
-}
-
-function LandingHero() {
-  const navigate = useNavigate();
-
-  return (
-    <section id="product" className="mx-auto w-full max-w-6xl px-4 pb-6 pt-24 sm:px-6 sm:pt-28">
-      <div className="grid gap-6 xl:grid-cols-[390px_1fr] xl:items-start">
-        <div className="mx-auto w-full max-w-[360px] xl:mx-0">
-          <div className="space-y-3">
-            <section className="relative overflow-hidden rounded-[24px] border border-black/10 bg-white px-4 pb-4 pt-5 shadow-[0_20px_60px_-36px_rgba(0,0,0,0.35)]">
-              <DecoCluster className="right-4 top-5 h-12 w-12 opacity-80" />
-              <div className="relative z-10 flex items-start justify-between gap-3">
-                <div className="max-w-[200px]">
-                  <TinyLabel>Navigating the unknown</TinyLabel>
-                  <h1 className="mt-2 text-[25px] font-semibold leading-[1.02] tracking-tight text-neutral-950">
-                    Supply-chain
-                    <br />
-                    intelligence
-                  </h1>
-                </div>
-                <div className="flex gap-1.5">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full border border-black/10 bg-neutral-50">
-                    <Globe2 className="h-3.5 w-3.5 text-neutral-700" />
-                  </div>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full border border-black/10 bg-neutral-50">
-                    <Sparkles className="h-3.5 w-3.5 text-neutral-700" />
-                  </div>
-                </div>
-              </div>
-
-              <p className="relative z-10 mt-3 max-w-[235px] text-[11px] leading-5 text-neutral-500">
-                A mobile-first operating layer for Indian shippers and transport teams to detect risk, reroute fast, and notify the field clearly.
-              </p>
-
-              <div className="relative z-10 mt-4 flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigate('/login', { state: { role: 'company' } })}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-black bg-black px-3 py-2 text-[9px] font-mono uppercase tracking-[0.18em] text-white"
-                >
-                  <Building className="h-3 w-3" />
-                  Company demo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('/login', { state: { role: 'supplier' } })}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[#b6d400] bg-[#DFFF00] px-3 py-2 text-[9px] font-mono uppercase tracking-[0.18em] text-black"
-                >
-                  <Truck className="h-3 w-3" />
-                  Transport demo
-                </button>
-              </div>
-            </section>
-
-            <section className="grid grid-cols-2 gap-3">
-              <Tile title="Decision time" value="<30s" tone="white" />
-              <Tile title="Languages" value="10+" tone="lime" />
-              <Tile title="Risk watch" value="18-24h" tone="lime" />
-              <Tile title="AI guided" value="Human loop" tone="dark" />
-            </section>
-
-            <section className="grid grid-cols-2 gap-3">
-              <div className="rounded-[16px] border border-black bg-[#181a23] p-3 text-white">
-                <TinyLabel dark>What it does</TinyLabel>
-                <p className="mt-4 text-[12px] font-medium leading-5 text-white">
-                  Predict disruption before it becomes a customer loss.
-                </p>
-              </div>
-              <div className="rounded-[16px] border border-[#b6d400] bg-[#DFFF00] p-3 text-black">
-                <TinyLabel>Field alert</TinyLabel>
-                <p className="mt-4 text-base font-semibold tracking-tight">WhatsApp-ready</p>
-                <p className="mt-1 text-[10px] leading-4 text-black/70">Local-language handoff</p>
-              </div>
-            </section>
-
-            <section className="rounded-[18px] border border-black bg-[#181a23] p-3 text-white">
-              <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-[12px] bg-white/5 px-2 py-2">
-                  <TinyLabel dark>Weather</TinyLabel>
-                  <p className="mt-2 text-[11px] font-semibold">Live</p>
-                </div>
-                <div className="rounded-[12px] bg-white/5 px-2 py-2">
-                  <TinyLabel dark>Traffic</TinyLabel>
-                  <p className="mt-2 text-[11px] font-semibold">Scored</p>
-                </div>
-                <div className="rounded-[12px] bg-white/5 px-2 py-2">
-                  <TinyLabel dark>Action</TinyLabel>
-                  <p className="mt-2 text-[11px] font-semibold">Approved</p>
-                </div>
-              </div>
-            </section>
-
-            <section className="rounded-[18px] border border-[#b6d400] bg-[#DFFF00] p-3">
-              <div className="flex items-center justify-between gap-2">
-                <TinyLabel>Alert preview</TinyLabel>
-                <Truck className="h-4 w-4 text-black/70" />
-              </div>
-              <div className="mt-3 rounded-[14px] border border-black/10 bg-white/60 px-3 py-3 text-[12px] leading-5 text-black">
-                Heavy rainfall and corridor congestion detected. ClearPath recommends Route 4C to avoid a 6-9 hour delay.
-              </div>
-            </section>
-          </div>
-        </div>
-
-        <div className="grid gap-6">
-          <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-            <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm">
-              <TinyLabel>From landing to dashboard</TinyLabel>
-              <h2 className="mt-2 text-3xl font-semibold tracking-tight text-neutral-950">One design system, one operational story.</h2>
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-neutral-600">
-                The same card rhythm, lime highlights, dark utility panels, and compact mobile blocks now carry from the first screen into the operator dashboard.
-              </p>
-
-              <div className="mt-6 grid gap-4 lg:grid-cols-3">
-                <SectionCard
-                  eyebrow="Predict"
-                  title="Spot disruption early"
-                  description="Blend weather, corridor pressure, and route context into an operator-friendly risk signal."
-                  icon={<AlertTriangle className="h-4 w-4" />}
-                />
-                <SectionCard
-                  eyebrow="Explain"
-                  title="Let AI justify action"
-                  description="Translate signal math into plain-language reasoning so the operator can approve with confidence."
-                  icon={<Brain className="h-4 w-4" />}
-                />
-                <SectionCard
-                  eyebrow="Deliver"
-                  title="Notify the field"
-                  description="Push localized transporter alerts with recommended routes instead of creating another support call."
-                  icon={<Zap className="h-4 w-4" />}
-                  tone="dark"
-                />
-              </div>
-            </div>
-
-            <div className="rounded-[28px] border border-black bg-[#181a23] p-6 text-white shadow-sm">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <TinyLabel dark>Workflow stack</TinyLabel>
-                  <h2 className="mt-1 text-xl font-semibold text-white">Designed like the product UI itself</h2>
-                </div>
-                <MapPinned className="h-4 w-4 text-[#DFFF00]" />
-              </div>
-              <div className="space-y-3">
-                <div className="rounded-[16px] border border-white/10 bg-white/5 p-4">
-                  <TinyLabel dark>1. Detect</TinyLabel>
-                  <p className="mt-2 text-sm text-white/80">Weather, traffic, and network conditions are converted into a live risk layer.</p>
-                </div>
-                <div className="rounded-[16px] border border-white/10 bg-white/5 p-4">
-                  <TinyLabel dark>2. Decide</TinyLabel>
-                  <p className="mt-2 text-sm text-white/80">Alternate routes are scored and paired with a recommendation an operator can approve quickly.</p>
-                </div>
-                <div className="rounded-[16px] border border-white/10 bg-white/5 p-4">
-                  <TinyLabel dark>3. Dispatch</TinyLabel>
-                  <p className="mt-2 text-sm text-white/80">A multilingual field alert closes the loop from dashboard insight to real-world execution.</p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section id="criteria" className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm">
-              <TinyLabel>Why it scores</TinyLabel>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-neutral-950">Built for real Indian logistics pressure.</h2>
-              <div className="mt-5 space-y-3">
-                <div className="rounded-[18px] border border-black/10 bg-[#f7f7f3] p-4">
-                  <p className="text-sm font-semibold text-neutral-950">Decision-first UX</p>
-                  <p className="mt-2 text-sm leading-6 text-neutral-600">The system tells the operator what to do next instead of making them read a complicated dashboard.</p>
-                </div>
-                <div className="rounded-[18px] border border-black/10 bg-[#f7f7f3] p-4">
-                  <p className="text-sm font-semibold text-neutral-950">India-fit delivery</p>
-                  <p className="mt-2 text-sm leading-6 text-neutral-600">Localized alert copy, field-friendly flows, and simple approval paths support real transporter behavior.</p>
-                </div>
-                <div className="rounded-[18px] border border-black/10 bg-[#f7f7f3] p-4">
-                  <p className="text-sm font-semibold text-neutral-950">Human-in-the-loop AI</p>
-                  <p className="mt-2 text-sm leading-6 text-neutral-600">AI explains and recommends, while the operator remains accountable for execution.</p>
-                </div>
-              </div>
-            </div>
-
-            <div id="stack" className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm">
-              <TinyLabel>Google-ready stack</TinyLabel>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-neutral-950">Structured for a credible product path.</h2>
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <SectionCard
-                  eyebrow="Routes"
-                  title="Alternate lane scoring"
-                  description="Route generation and comparison support the operator’s next decision."
-                  icon={<Route className="h-4 w-4" />}
-                />
-                <SectionCard
-                  eyebrow="Reasoning"
-                  title="AI explanation layer"
-                  description="Natural-language summaries make risk outputs understandable under pressure."
-                  icon={<Brain className="h-4 w-4" />}
-                />
-                <SectionCard
-                  eyebrow="Trust"
-                  title="Approval workflow"
-                  description="Human review stays at the center of the final action and alert dispatch."
-                  icon={<ShieldCheck className="h-4 w-4" />}
-                />
-                <SectionCard
-                  eyebrow="Field delivery"
-                  title="Transport communication"
-                  description="Clear handoff from dashboard recommendation to transporter notification."
-                  icon={<Truck className="h-4 w-4" />}
-                  tone="dark"
-                />
-              </div>
-            </div>
-          </section>
-
-          <section id="roles" className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
-            <div className="rounded-[28px] border border-black bg-[#181a23] p-6 text-white shadow-sm">
-              <TinyLabel dark>Role journeys</TinyLabel>
-              <h2 className="mt-2 text-2xl font-semibold text-white">Two views, one shared visual logic.</h2>
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-[18px] border border-white/10 bg-white/5 p-4">
-                  <div className="flex items-center gap-2 text-[#DFFF00]">
-                    <Building className="h-4 w-4" />
-                    <span className="text-[10px] font-mono uppercase tracking-[0.18em]">Company</span>
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-white/75">
-                    Monitor inbound lanes, review AI reasoning, and push route changes before delays become customer-facing.
-                  </p>
-                </div>
-                <div className="rounded-[18px] border border-white/10 bg-white/5 p-4">
-                  <div className="flex items-center gap-2 text-[#DFFF00]">
-                    <Truck className="h-4 w-4" />
-                    <span className="text-[10px] font-mono uppercase tracking-[0.18em]">Transport</span>
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-white/75">
-                    Receive clear alerts, understand why a route changed, and act without the usual call chain.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm">
-              <TinyLabel>Try it live</TinyLabel>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-neutral-950">Open the same themed workflow end to end.</h2>
-              <p className="mt-4 text-sm leading-6 text-neutral-600">
-                Start from the landing screen, enter the sign-in flow, and arrive in the dashboard without the visual language changing underneath you.
-              </p>
-
-              <div className="mt-6 grid gap-3">
-                <Link
-                  to="/login"
-                  state={{ role: 'company' }}
-                  className="inline-flex items-center justify-between rounded-[18px] border border-black bg-[#DFFF00] px-4 py-4 text-sm font-semibold text-black"
-                >
-                  Open company journey
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  to="/login"
-                  state={{ role: 'supplier' }}
-                  className="inline-flex items-center justify-between rounded-[18px] border border-black bg-[#181a23] px-4 py-4 text-sm font-semibold text-white"
-                >
-                  Open transporter journey
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  to="/contact"
-                  className="inline-flex items-center justify-between rounded-[18px] border border-black/10 bg-white px-4 py-4 text-sm font-semibold text-neutral-950"
-                >
-                  Contact the team
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-    </section>
-  );
-}
+const criteriaCards = [
+  {
+    eyebrow: "Not just tracking",
+    title: "Predict before the shipment slips.",
+    body: "ClearPath is built to detect disruption before the downstream dashboard turns red, so operators act while there is still time to protect delivery.",
+  },
+  {
+    eyebrow: "Decision first",
+    title: "Turn signals into one approval-ready move.",
+    body: "The product synthesizes weather, traffic, route, and history inputs into a single route recommendation with a human-in-the-loop approval step.",
+  },
+  {
+    eyebrow: "Built for India",
+    title: "Useful in multilingual field operations.",
+    body: "Alerts and dashboard language are localized so the system supports real logistics workflows instead of just a polished judging demo.",
+  },
+] as const;
 
 export default function LandingPage() {
-  const location = useLocation();
+  return (
+    <div className="relative overflow-hidden">
+      <section className="relative px-4 pb-16 pt-28 sm:px-6 sm:pb-20 sm:pt-32 lg:pb-28 lg:pt-36">
+        <div className={cp.blobAccent} />
+        <div className={cp.blobNeutral} />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(223,255,0,0.18),transparent_28%),linear-gradient(180deg,#ffffff_0%,#f7f7f3_48%,#efefe8_100%)]" />
 
-  useEffect(() => {
-    const id = location.hash.replace(/^#/, '');
-    if (!id) return;
-    const element = document.getElementById(id);
-    if (element) {
-      requestAnimationFrame(() => element.scrollIntoView({ behavior: 'smooth' }));
-    }
-  }, [location.hash, location.pathname]);
+        <div className="mx-auto grid max-w-7xl items-start gap-12 lg:grid-cols-[1.08fr_0.92fr] lg:gap-14">
+          <div className="min-w-0">
+            <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 px-4 py-2 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-700 shadow-sm backdrop-blur">
+              <Sparkles className="h-3.5 w-3.5 text-[#7c8b00]" strokeWidth={2.1} />
+              AI supply chain co-pilot
+            </div>
 
-  useEffect(() => {
-    document.title = 'ClearPath - AI Supply Chain Co-pilot for Indian SMBs';
-  }, []);
+            <h1 className="mt-6 max-w-4xl font-['DM_Serif_Display'] text-5xl leading-[0.94] tracking-tight text-neutral-950 sm:text-6xl lg:text-7xl xl:text-[5.5rem]">
+              Detect route risk early. Explain it clearly. Approve the next move fast.
+            </h1>
 
-  return <LandingHero />;
+            <p className="mt-6 max-w-2xl text-base leading-8 text-neutral-600 sm:text-lg">
+              ClearPath predicts disruption 18-24 hours before failure, ranks three route alternatives,
+              and gives operators one approval-ready action instead of another passive dashboard.
+            </p>
+
+            <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
+              <Link to="/login" state={{ role: "company" }} className={`${cp.btnPrimary} min-w-[190px] rounded-full px-7 py-3 text-sm`}>
+                Open Dashboard
+                <ArrowRight className="h-4 w-4" strokeWidth={2} />
+              </Link>
+              <a
+                href="#product"
+                className="inline-flex min-w-[190px] items-center justify-center rounded-full border border-black/10 bg-white px-7 py-3 text-sm font-semibold text-neutral-900 transition hover:border-black hover:bg-neutral-50"
+              >
+                See Product Story
+              </a>
+            </div>
+
+            <div className="mt-8 max-w-sm">
+              <LanguageSelect variant="hero" id="landing-language" hideHelper={false} />
+            </div>
+
+            <div className="mt-10 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {metrics.map((metric) => (
+                <div key={metric.label} className="rounded-[1.6rem] border border-black/10 bg-white/80 p-5 shadow-sm backdrop-blur">
+                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">{metric.label}</div>
+                  <div className="mt-3 text-3xl font-semibold tracking-tight text-neutral-950">{metric.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="min-w-0">
+            <div className="relative overflow-hidden rounded-[2rem] border border-black/10 bg-black text-white shadow-[0_30px_90px_-36px_rgba(0,0,0,0.4)]">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(223,255,0,0.22),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0))]" />
+              <div className="relative border-b border-white/10 p-6 sm:p-7">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#DFFF00]">Live lane monitor</div>
+                    <div className="mt-2 font-['DM_Serif_Display'] text-3xl text-white sm:text-4xl">Mumbai to Bengaluru</div>
+                  </div>
+                  <div className="rounded-full border border-[#DFFF00]/35 bg-[#DFFF00]/10 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-[#DFFF00]">
+                    risk detected
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative p-6 sm:p-7">
+                <div className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.04]">
+                  <img src="/hero.png" alt="ClearPath route intelligence preview" className="block h-auto w-full" />
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-4">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-400">Delay probability</div>
+                    <div className="mt-2 text-3xl font-semibold text-white">78%</div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-4">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-400">Best alternative</div>
+                    <div className="mt-2 text-3xl font-semibold text-white">4C</div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-4">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-400">ETA protected</div>
+                    <div className="mt-2 text-3xl font-semibold text-white">Yes</div>
+                  </div>
+                </div>
+
+                <div className="mt-5 rounded-[1.6rem] border border-[#DFFF00]/25 bg-[#DFFF00]/10 p-5">
+                  <div className="flex items-start gap-3">
+                    <MessageSquareText className="mt-0.5 h-5 w-5 shrink-0 text-[#DFFF00]" strokeWidth={1.8} />
+                    <div>
+                      <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#DFFF00]">AI recommendation</div>
+                      <p className="mt-2 text-sm leading-7 text-neutral-100">
+                        Weather pressure is stacking on the active route. Switch to Southern Relief Route 4C now to
+                        protect delivery reliability and avoid a late-night cascade.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="product" className="px-4 py-16 sm:px-6 sm:py-20 lg:py-24">
+        <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="rounded-[2rem] border border-black/10 bg-black p-7 text-white shadow-[0_22px_60px_-28px_rgba(0,0,0,0.35)] sm:p-9">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-300">
+              <TimerReset className="h-3.5 w-3.5 text-[#DFFF00]" strokeWidth={2.1} />
+              Core idea
+            </div>
+            <h2 className="mt-5 font-['DM_Serif_Display'] text-4xl tracking-tight sm:text-5xl">
+              The system is built for intervention, not observation.
+            </h2>
+            <p className="mt-5 max-w-xl text-base leading-8 text-neutral-300">
+              Instead of simply showing where a shipment is, ClearPath predicts what is about to go wrong, explains the
+              reasoning, and routes the operator toward a concrete next action.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {criteriaCards.map((card) => (
+              <article key={card.title} className="rounded-[1.8rem] border border-black/10 bg-white p-6 shadow-sm">
+                <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">{card.eyebrow}</div>
+                <h3 className="mt-4 font-['DM_Serif_Display'] text-2xl leading-tight text-neutral-950">{card.title}</h3>
+                <p className="mt-4 text-sm leading-7 text-neutral-600">{card.body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="criteria" className="px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
+        <div className="mx-auto max-w-7xl rounded-[2.2rem] border border-black/10 bg-[linear-gradient(180deg,#f7f7f1_0%,#ffffff_100%)] p-6 shadow-sm sm:p-8 lg:p-10">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500">Why it scores</div>
+              <h2 className="mt-3 font-['DM_Serif_Display'] text-4xl tracking-tight text-neutral-950 sm:text-5xl">
+                A decision surface shaped by the signals that actually break deliveries.
+              </h2>
+            </div>
+            <p className="max-w-xl text-sm leading-7 text-neutral-600 sm:text-base">
+              The homepage now expresses the same story the product tells inside the dashboard: signal awareness, AI
+              explanation, route alternatives, and fast human approval.
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {decisionSignals.map(({ title, body, icon: Icon }) => (
+              <article key={title} className="rounded-[1.6rem] border border-black/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#DFFF00]/45 bg-[#DFFF00]/18 text-black">
+                  <Icon className="h-5 w-5" strokeWidth={1.9} />
+                </div>
+                <h3 className="mt-4 text-lg font-semibold text-neutral-950">{title}</h3>
+                <p className="mt-3 text-sm leading-7 text-neutral-600">{body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="stack" className="px-4 py-16 sm:px-6 sm:py-20 lg:py-24">
+        <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="rounded-[2rem] border border-black/10 bg-white p-7 shadow-sm sm:p-9">
+            <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-neutral-50 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-600">
+              <ShieldCheck className="h-3.5 w-3.5 text-[#7c8b00]" strokeWidth={2} />
+              Solution architecture
+            </div>
+            <h2 className="mt-5 font-['DM_Serif_Display'] text-4xl tracking-tight text-neutral-950 sm:text-5xl">
+              Signal stack in. Clear action out.
+            </h2>
+            <p className="mt-5 max-w-xl text-base leading-8 text-neutral-600">
+              Routes, weather, traffic, road status, history, and multilingual delivery all feed the same product
+              promise: show the operator what to do next with enough confidence to act.
+            </p>
+
+            <div className="mt-8 space-y-3">
+              <div className="rounded-[1.4rem] border border-black/10 bg-neutral-50 p-4 text-sm text-neutral-700">
+                Signal ingestion: maps, corridor conditions, traffic, weather, and historical patterns.
+              </div>
+              <div className="rounded-[1.4rem] border border-black/10 bg-neutral-50 p-4 text-sm text-neutral-700">
+                Decision engine: disruption scoring, route ranking, Gemini explanation, and approval recommendation.
+              </div>
+              <div className="rounded-[1.4rem] border border-black/10 bg-neutral-50 p-4 text-sm text-neutral-700">
+                Delivery layer: dashboard actions, WhatsApp-style clarity, push fallback, and audit-ready outcomes.
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-black/10 bg-black p-7 text-white shadow-[0_22px_60px_-28px_rgba(0,0,0,0.35)] sm:p-9">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.05] p-5">
+                <MapPinned className="h-5 w-5 text-[#DFFF00]" strokeWidth={1.8} />
+                <div className="mt-4 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-400">Maps + routes</div>
+                <p className="mt-3 text-sm leading-7 text-neutral-200">Geocoding and alternative-route analysis set the base for ETA and confidence scoring.</p>
+              </div>
+              <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.05] p-5">
+                <Brain className="h-5 w-5 text-[#DFFF00]" strokeWidth={1.8} />
+                <div className="mt-4 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-400">Gemini reasoning</div>
+                <p className="mt-3 text-sm leading-7 text-neutral-200">Operators see an explanation they can validate quickly, not an opaque risk score.</p>
+              </div>
+              <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.05] p-5">
+                <MessageSquareText className="h-5 w-5 text-[#DFFF00]" strokeWidth={1.8} />
+                <div className="mt-4 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-400">Alert delivery</div>
+                <p className="mt-3 text-sm leading-7 text-neutral-200">The same recommendation can travel through the dashboard, notifications, and localized field messaging.</p>
+              </div>
+              <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.05] p-5">
+                <ShieldCheck className="h-5 w-5 text-[#DFFF00]" strokeWidth={1.8} />
+                <div className="mt-4 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-400">Human approval</div>
+                <p className="mt-3 text-sm leading-7 text-neutral-200">AI recommends. The operator still owns the final reroute decision and the audit trail.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <Roles />
+      <Features />
+
+      <section className="px-4 py-16 sm:px-6 sm:py-20 lg:py-24">
+        <div className="mx-auto max-w-7xl rounded-[2.2rem] border border-black bg-[#DFFF00] p-8 text-black shadow-[0_22px_70px_-34px_rgba(223,255,0,0.65)] sm:p-10 lg:p-12">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-black/70">Ready to demo</div>
+              <h2 className="mt-3 font-['DM_Serif_Display'] text-4xl tracking-tight sm:text-5xl lg:text-6xl">
+                Open the real product and review the decision flow.
+              </h2>
+              <p className="mt-5 max-w-2xl text-base leading-8 text-black/75">
+                The landing page now tells the same story as the dashboard: prediction, explanation, alternatives, and
+                rapid human action.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link
+                to="/login"
+                state={{ role: "company" }}
+                className="inline-flex items-center justify-center rounded-full border border-black bg-black px-7 py-3 text-sm font-semibold text-white transition hover:bg-neutral-900"
+              >
+                Company Dashboard
+              </Link>
+              <Link
+                to="/login"
+                state={{ role: "supplier" }}
+                className="inline-flex items-center justify-center rounded-full border border-black/20 bg-white px-7 py-3 text-sm font-semibold text-black transition hover:bg-neutral-50"
+              >
+                Supplier View
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
 }
