@@ -314,6 +314,35 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="px-4 py-16 sm:px-6 sm:py-20 lg:py-24">
+        <div className="mx-auto max-w-7xl rounded-[2.2rem] border border-black/10 bg-white p-6 shadow-sm sm:p-8 lg:p-10">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500">Figma preview</div>
+              <h2 className="mt-3 font-['DM_Serif_Display'] text-4xl tracking-tight text-neutral-950 sm:text-5xl">
+                Review the design system view inside the page.
+              </h2>
+            </div>
+            <p className="max-w-xl text-sm leading-7 text-neutral-600 sm:text-base">
+              This embedded frame loads the linked Figma design directly in the landing experience so the team can
+              reference the source design without leaving the app.
+            </p>
+          </div>
+
+          <div className="mt-8 overflow-hidden rounded-[1.8rem] border border-black/10 bg-neutral-50 shadow-[0_24px_70px_-40px_rgba(0,0,0,0.35)]">
+            <div className="aspect-video w-full">
+              <iframe
+                title="ClearPath Figma Design Embed"
+                src="https://embed.figma.com/design/VQSzgSv570en1dzf3vbQph/Untitled?node-id=1-516&embed-host=share"
+                allowFullScreen
+                className="h-full w-full"
+                style={{ border: "1px solid rgba(0, 0, 0, 0.1)" }}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <Roles />
       <Features />
 
