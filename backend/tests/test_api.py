@@ -9,10 +9,12 @@ from unittest.mock import patch
 from uuid import uuid4
 
 
-TEST_DB_PATH = Path(__file__).resolve().parents[1] / "data" / "test_suite.db"
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
+TEST_RUNTIME_DIR = BACKEND_ROOT.parent / ".tmp" / "backend-tests"
+TEST_DB_PATH = TEST_RUNTIME_DIR / "test_suite.db"
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
+TEST_RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
 if TEST_DB_PATH.exists():
     TEST_DB_PATH.unlink()
 
@@ -20,7 +22,11 @@ os.environ["ENVIRONMENT"] = "test"
 os.environ["JWT_SECRET_KEY"] = "test-secret-key"
 os.environ["ADMIN_USERNAME"] = "admin"
 os.environ["ADMIN_PASSWORD"] = "Admin1234"
-os.environ["DATABASE_URL"] = "sqlite:///backend/data/test_suite.db"
+os.environ["DATABASE_URL"] = "sqlite:///./.tmp/backend-tests/test_suite.db"
+os.environ["SHIPMENT_STORE_PATH"] = ".tmp/backend-tests/shipments.json"
+os.environ["ALERT_STORE_PATH"] = ".tmp/backend-tests/alerts.json"
+os.environ["USER_STORE_PATH"] = ".tmp/backend-tests/users.json"
+os.environ["AUDIT_STORE_PATH"] = ".tmp/backend-tests/audit_events.json"
 os.environ["FIREBASE_PROJECT_ID"] = ""
 os.environ["FIREBASE_CREDENTIALS_PATH"] = ""
 os.environ["FIREBASE_AUTH_ENABLED"] = "false"
