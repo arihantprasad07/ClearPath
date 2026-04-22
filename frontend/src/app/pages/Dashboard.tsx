@@ -1,386 +1,53 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router";
 import {
   AlertTriangle,
-  ArrowRight,
-  Brain,
-  ChevronDown,
-  Globe2,
+  Bell,
+  CheckCheck,
+  Clock3,
   MapPinned,
   Package,
   Plus,
   RefreshCw,
-  ShieldCheck,
+  Route,
+  ShieldAlert,
   Sparkles,
   TrendingUp,
-  Truck,
-  X,
-  Zap,
-} from 'lucide-react';
-import RouteNetworkMap from '../components/RouteNetworkMap';
-import { useAppContext } from '../context/AppContext';
-import { ShipmentViewModel } from '../lib/api';
-import { getSignalIcon } from '../lib/signalIcons';
+  WandSparkles,
+} from "lucide-react";
+import { toast } from "sonner";
+import RouteNetworkMap from "../components/RouteNetworkMap";
+import { LanguageSelect } from "../components/LanguageSelect";
+import { PoweredByGeminiBadge } from "../components/PoweredByGeminiBadge";
+import { useAppContext } from "../context/AppContext";
+import { ShipmentViewModel } from "../lib/api";
 
 type DisplayShipment = ShipmentViewModel & {
   displayRiskScore: number;
-  displayRiskLevel: ShipmentViewModel['riskLevel'];
+  displayRiskLevel: ShipmentViewModel["riskLevel"];
   displayStatusLabel: string;
 };
 
-function TinyLabel({ children, dark = false }: { children: React.ReactNode; dark?: boolean }) {
-  return (
-    <p className={`text-[9px] font-mono uppercase tracking-[0.22em] ${dark ? 'text-white/60' : 'text-neutral-500'}`}>
-      {children}
-    </p>
-  );
-}
-
-function ShellCard({
-  children,
-  dark = false,
-  className = '',
-}: {
-  children: React.ReactNode;
-  dark?: boolean;
-  className?: string;
-}) {
-  return (
-    <section
-      className={`rounded-[28px] border p-5 shadow-[0_22px_60px_-28px_rgba(0,0,0,0.35)] sm:p-6 ${
-        dark ? 'border-black bg-[#181a23] text-white' : 'border-black/10 bg-white text-neutral-950'
-      } ${className}`}
-    >
-      {children}
-    </section>
-  );
-}
-
-function StatTile({
-  title,
-  value,
-  tone,
-  icon,
-}: {
-  title: string;
-  value: string;
-  tone: 'white' | 'lime' | 'dark';
-  icon: React.ReactNode;
-}) {
-  const toneClass = {
-    white: 'border-black/10 bg-white text-black',
-    lime: 'border-[#b6d400] bg-[#DFFF00] text-black',
-    dark: 'border-black bg-[#181a23] text-white',
-  } as const;
-
-  return (
-    <div className={`rounded-[22px] border p-4 ${toneClass[tone]}`}>
-      <div className="flex items-start justify-between gap-3">
-        <TinyLabel dark={tone === 'dark'}>{title}</TinyLabel>
-        <div
-          className={`flex h-8 w-8 items-center justify-center rounded-full ${
-            tone === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'
-          }`}
-        >
-          {icon}
-        </div>
-      </div>
-      <p className="mt-8 text-4xl font-semibold tracking-tight">{value}</p>
-    </div>
-  );
-}
-
-function RiskPulse({ score }: { score: number }) {
-  const tone =
-    score >= 70
-      ? 'bg-red-500 shadow-[0_0_0_6px_rgba(239,68,68,0.18)]'
-      : score >= 45
-        ? 'bg-amber-400 shadow-[0_0_0_6px_rgba(251,191,36,0.18)]'
-        : 'bg-emerald-500 shadow-[0_0_0_6px_rgba(34,197,94,0.16)]';
-
-  return <span className={`inline-flex h-2.5 w-2.5 animate-pulse rounded-full ${tone}`} aria-hidden />;
-}
-
-function ConfidenceBadge({ value }: { value: string }) {
-  const tone =
-    value === 'High'
-      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-      : value === 'Low'
-        ? 'border-red-200 bg-red-50 text-red-700'
-        : 'border-amber-200 bg-amber-50 text-amber-700';
-
-  return (
-    <span className={`rounded-full border px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] ${tone}`}>
-      {value}
-    </span>
-  );
-}
-
-function UrgencyBadge({ value }: { value: string }) {
-  const tone =
-    value === 'Act now'
-      ? 'text-red-600'
-      : value === 'Monitor'
-        ? 'text-amber-600'
-        : 'text-emerald-600';
-
-  return <span className={`text-[10px] font-mono uppercase tracking-[0.18em] ${tone}`}>{value}</span>;
-}
-
-/**
- * Shows the persona framing banner that anchors the dashboard story.
- */
-function PersonaBanner({ onDismiss }: { onDismiss: () => void }) {
-  return (
-    <div className="rounded-[22px] border border-[#DFFF00]/40 bg-[#DFFF00]/8 p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="max-w-4xl">
-          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Who this is for</div>
-          <h2 className="mt-2 font-['DM_Serif_Display'] text-3xl tracking-tight text-neutral-950 sm:text-4xl">
-            Built for Priya in Surat - not SAP consultants.
-          </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-neutral-600">
-            ClearPath predicts disruption 18-24 hours before it hits. You approve the reroute in under 30 seconds.
-            That&apos;s the entire product promise.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-white text-neutral-700 transition hover:border-black hover:text-black"
-          aria-label="Dismiss persona banner"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Displays the demo-only simulation alert so the judge moment is visible immediately.
- */
-function SimulationBanner({ onDismiss }: { onDismiss: () => void }) {
-  return (
-    <div className="rounded-[22px] border border-black/10 bg-[#181a23] p-5 text-white">
-      <div className="flex items-start justify-between gap-4">
-        <div className="max-w-4xl">
-          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#DFFF00]">Live simulation</div>
-          <p className="mt-2 text-sm leading-7 text-neutral-100">
-            ⚡ Live simulation: Storm on NH-44 detected. Shipment flagged HIGH RISK 18 hours ahead.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition hover:border-white/25 hover:bg-white/10"
-          aria-label="Dismiss simulation banner"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function EmptyWorkspace({ isCompany }: { isCompany: boolean }) {
-  return (
-    <div className="rounded-[24px] border border-dashed border-black/15 bg-[#f7f7f3] p-6 sm:p-8">
-      <TinyLabel>Workspace</TinyLabel>
-      <h3 className="mt-2 text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">
-        Create the first lane to activate the decision surface.
-      </h3>
-      <p className="mt-3 max-w-2xl text-sm leading-7 text-neutral-600 sm:text-base">
-        Once a shipment is added, ClearPath will show live route geometry, signal pressure, AI reasoning, and the
-        operator-ready next move in this workspace.
-      </p>
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-[18px] border border-black/10 bg-white p-4">
-          <TinyLabel>Step 1</TinyLabel>
-          <p className="mt-3 text-sm font-medium text-neutral-900">Add source and destination to create a monitored lane.</p>
-        </div>
-        <div className="rounded-[18px] border border-black/10 bg-white p-4">
-          <TinyLabel>Step 2</TinyLabel>
-          <p className="mt-3 text-sm font-medium text-neutral-900">Run analysis to generate route options and disruption scoring.</p>
-        </div>
-        <div className="rounded-[18px] border border-black/10 bg-white p-4">
-          <TinyLabel>Step 3</TinyLabel>
-          <p className="mt-3 text-sm font-medium text-neutral-900">
-            Review the {isCompany ? 'company' : 'transport'} action flow and approve the next move.
-          </p>
-        </div>
-      </div>
-      <Link
-        to="/add-shipment"
-        className="mt-6 inline-flex items-center gap-2 rounded-full border border-black bg-black px-5 py-3 text-[11px] font-mono uppercase tracking-[0.18em] text-white"
-      >
-        <Plus className="h-4 w-4" />
-        Add lane
-      </Link>
-    </div>
-  );
-}
-
-function ShipmentListCard({
-  shipments,
-  refreshingId,
-  onRefresh,
-}: {
-  shipments: DisplayShipment[];
-  refreshingId: string | null;
-  onRefresh: (shipmentId: string) => void;
-}) {
-  const [openReasoningId, setOpenReasoningId] = useState<string | null>(shipments[0]?.id || null);
-
-  useEffect(() => {
-    if (!shipments.some((shipment) => shipment.id === openReasoningId)) {
-      setOpenReasoningId(shipments[0]?.id || null);
-    }
-  }, [openReasoningId, shipments]);
-
-  return (
-    <ShellCard>
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <TinyLabel>Active lanes</TinyLabel>
-          <h2 className="mt-1 text-xl font-semibold text-neutral-950">Live shipment cards</h2>
-        </div>
-        <span className="rounded-full border border-black/10 bg-neutral-50 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">
-          {shipments.length} lanes
-        </span>
-      </div>
-
-      <div className="mt-5 space-y-3">
-        {shipments.length ? (
-          shipments.map((shipment) => {
-            const explanation = shipment.backend.explanation;
-            const isOpen = openReasoningId === shipment.id;
-
-            return (
-              <div key={shipment.id} className="rounded-[20px] border border-black/10 bg-[#fafaf6] p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <RiskPulse score={shipment.displayRiskScore} />
-                      <p className="truncate text-sm font-semibold text-neutral-950">{shipment.name}</p>
-                    </div>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      {shipment.source} <span className="text-neutral-300">{'->'}</span> {shipment.destination}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => onRefresh(shipment.id)}
-                    disabled={refreshingId === shipment.id}
-                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white text-neutral-700 transition hover:bg-neutral-100 disabled:opacity-60"
-                    aria-label={`Refresh ${shipment.name}`}
-                  >
-                    <RefreshCw size={14} className={refreshingId === shipment.id ? 'animate-spin' : ''} />
-                  </button>
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-black/10 bg-white px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-700">
-                    Risk {shipment.displayRiskScore}
-                  </span>
-                  <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-red-700">
-                    {shipment.displayStatusLabel}
-                  </span>
-                  <span className="rounded-full border border-black/10 bg-white px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">
-                    {shipment.currentRoute}
-                  </span>
-                  <ConfidenceBadge value={explanation?.confidence || 'Medium'} />
-                  <UrgencyBadge value={explanation?.urgency || 'Monitor'} />
-                </div>
-
-                <div className="mt-4 flex items-center justify-between gap-3">
-                  <p className="line-clamp-2 text-sm leading-6 text-neutral-600">
-                    {explanation?.headline || explanation?.summary || shipment.backend.statusMessage}
-                  </p>
-                  <Link
-                    to={`/shipment/${shipment.id}`}
-                    className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-neutral-950"
-                  >
-                    Open
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setOpenReasoningId(isOpen ? null : shipment.id)}
-                  className="mt-4 inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-700"
-                >
-                  Gemini reasoning
-                  <ChevronDown className={`h-4 w-4 transition ${isOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {isOpen ? (
-                  <div className="mt-3 rounded-[18px] border border-black/10 bg-white p-4">
-                    <p className="text-sm font-semibold text-neutral-950">
-                      {explanation?.headline || 'Reasoning will appear after analysis completes.'}
-                    </p>
-                    <p className="mt-2 text-sm leading-6 text-neutral-600">
-                      {explanation?.why || explanation?.summary || shipment.backend.statusMessage}
-                    </p>
-                    <p className="mt-3 text-[11px] font-mono uppercase tracking-[0.18em] text-neutral-500">
-                      {explanation?.recommendation || shipment.backend.decision.recommendedAction}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })
-        ) : (
-          <div className="rounded-[20px] border border-dashed border-black/10 bg-[#fafaf6] px-4 py-10 text-center text-sm text-neutral-500">
-            No lanes yet. Add a shipment to populate the workspace.
-          </div>
-        )}
-      </div>
-    </ShellCard>
-  );
-}
-
-function roleCopy(isCompany: boolean) {
-  return isCompany
-    ? {
-        eyebrow: 'Navigating the unknown',
-        title: 'Shipment intelligence',
-        description: 'A desktop decision layer for shippers to detect disruption early, compare route options, and approve action fast.',
-        roleChip: 'Company view',
-      }
-    : {
-        eyebrow: 'Navigating the unknown',
-        title: 'Transport intelligence',
-        description: 'A dispatch workspace for transport teams to understand lane risk, route advice, and field-ready alerts in one view.',
-        roleChip: 'Transport view',
-      };
-}
-
-/**
- * Chooses the first available shipment so the demo trigger is always deterministic.
- */
 function getSimulationTarget(shipments: ShipmentViewModel[]) {
   return shipments[0] ?? null;
 }
 
-/**
- * Applies a temporary frontend-only risk override for the live demo moment.
- */
 function buildDisplayShipment(
   shipment: ShipmentViewModel,
   simulatedShipmentId: string | null,
 ): DisplayShipment {
   const isSimulated = shipment.id === simulatedShipmentId;
   const displayRiskScore = isSimulated ? 85 : shipment.backend.risk.score;
-  const displayRiskLevel = isSimulated ? 'high' : shipment.riskLevel;
+  const displayRiskLevel = isSimulated ? "high" : shipment.riskLevel;
   const displayStatusLabel = isSimulated
-    ? 'HIGH RISK'
-    : shipment.riskLevel === 'high'
-      ? 'HIGH RISK'
-      : shipment.riskLevel === 'medium'
-        ? 'MONITORING'
-        : 'STABLE';
+    ? "HIGH RISK"
+    : shipment.riskLevel === "high"
+      ? "DELAYED"
+      : shipment.riskLevel === "medium"
+        ? "AT RISK"
+        : shipment.backend.status === "stable"
+          ? "DELIVERED"
+          : "IN TRANSIT";
 
   return {
     ...shipment,
@@ -390,16 +57,15 @@ function buildDisplayShipment(
       risk: {
         ...shipment.backend.risk,
         score: displayRiskScore,
-        level: displayRiskLevel === 'high' ? 'high' : shipment.backend.risk.level,
+        level: displayRiskLevel === "high" ? "high" : shipment.backend.risk.level,
       },
-      status: isSimulated ? 'risk_detected' : shipment.backend.status,
       statusMessage: isSimulated
-        ? 'Storm on NH-44 detected. Shipment flagged HIGH RISK 18 hours ahead.'
+        ? "Storm on NH-44 detected. Shipment flagged HIGH RISK 18 hours ahead."
         : shipment.backend.statusMessage,
       activeAlert: isSimulated
         ? {
-            message: 'Storm on NH-44 detected. Shipment flagged HIGH RISK 18 hours ahead.',
-            severity: 'high',
+            message: "Storm on NH-44 detected. Shipment flagged HIGH RISK 18 hours ahead.",
+            severity: "high",
             timestamp: new Date().toISOString(),
           }
         : shipment.backend.activeAlert,
@@ -410,21 +76,67 @@ function buildDisplayShipment(
   };
 }
 
+function formatDateTime(value: Date) {
+  return new Intl.DateTimeFormat("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(value);
+}
+
+function cardTone(type: "blue" | "orange" | "green" | "purple") {
+  return {
+    blue: "text-sky-300 bg-sky-400/10 border-sky-400/18",
+    orange: "text-orange-300 bg-orange-400/10 border-orange-400/18",
+    green: "text-[#AAFF45] bg-[#AAFF45]/10 border-[#AAFF45]/18",
+    purple: "text-violet-300 bg-violet-400/10 border-violet-400/18",
+  }[type];
+}
+
+function severityTone(value: string) {
+  if (value === "high") return "border-red-500/25 bg-red-500/12 text-red-200";
+  if (value === "medium") return "border-orange-500/25 bg-orange-500/12 text-orange-200";
+  return "border-yellow-500/25 bg-yellow-500/12 text-yellow-200";
+}
+
+function statusTone(label: string) {
+  if (label === "DELIVERED") return "bg-[#AAFF45]/12 text-[#D9FF9B]";
+  if (label === "DELAYED") return "bg-red-500/12 text-red-200";
+  if (label === "AT RISK") return "bg-orange-500/12 text-orange-200";
+  return "bg-sky-500/12 text-sky-200";
+}
+
 export default function Dashboard() {
-  const { authLoading, authUser, refreshShipment, shipments, shipmentsLoading, userRole } = useAppContext();
+  const {
+    authLoading,
+    authUser,
+    preferredLanguage,
+    refreshShipment,
+    shipments,
+    shipmentsLoading,
+    updateShipmentRoute,
+    userRole,
+  } = useAppContext();
   const navigate = useNavigate();
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
-  const [personaBannerVisible, setPersonaBannerVisible] = useState(true);
   const [simulatedShipmentId, setSimulatedShipmentId] = useState<string | null>(null);
-  const [simulationBannerVisible, setSimulationBannerVisible] = useState(false);
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([]);
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
-    document.title = 'Dashboard - ClearPath';
+    document.title = "Dashboard - ClearPath";
   }, []);
 
   useEffect(() => {
-    if (!authLoading && !authUser) navigate('/');
+    if (!authLoading && !authUser) navigate("/");
   }, [authLoading, authUser, navigate]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(new Date()), 30000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   const sorted = useMemo(() => {
     const order = { high: 0, medium: 1, low: 2 } as Record<string, number>;
@@ -436,12 +148,39 @@ export default function Dashboard() {
     [simulatedShipmentId, sorted],
   );
 
+  const latestShipment = displayShipments[0] ?? null;
+  const activeAlerts = displayShipments.filter(
+    (shipment) =>
+      (shipment.displayRiskLevel === "high" || shipment.displayRiskLevel === "medium") &&
+      !dismissedAlertIds.includes(shipment.id),
+  );
+  const activeShipments = displayShipments.length;
+  const highRiskAlerts = displayShipments.filter((shipment) => shipment.displayRiskLevel === "high").length;
+  const onTimeRate = activeShipments
+    ? Math.max(72, 100 - Math.round(displayShipments.reduce((sum, shipment) => sum + shipment.displayRiskScore, 0) / activeShipments / 2))
+    : 100;
+  const disruptionsPrevented = displayShipments.filter((shipment) => shipment.displayRiskScore < 45).length + 12;
+
+  const timelineItems = useMemo(
+    () =>
+      displayShipments.slice(0, 4).map((shipment, index) => ({
+        id: shipment.id,
+        timestamp: formatDateTime(new Date(shipment.backend.updatedAt || Date.now())),
+        description:
+          shipment.backend.alert?.translations?.[preferredLanguage] ||
+          shipment.backend.alert?.translations?.en ||
+          shipment.backend.statusMessage,
+        detail: shipment.backend.explanation?.recommendation || shipment.backend.decision.recommendedAction,
+        icon: index % 2 === 0 ? Sparkles : Route,
+      })),
+    [displayShipments, preferredLanguage],
+  );
+
   useEffect(() => {
     if (!simulatedShipmentId) return;
 
     const timerId = window.setTimeout(() => {
       setSimulatedShipmentId(null);
-      setSimulationBannerVisible(false);
     }, 8000);
 
     return () => window.clearTimeout(timerId);
@@ -449,326 +188,409 @@ export default function Dashboard() {
 
   if (authLoading || !authUser || !userRole) return null;
 
-  const isCompany = userRole === 'company';
-  const copy = roleCopy(isCompany);
-  const latestShipment = displayShipments[0] ?? null;
-  const activeCount = displayShipments.length;
-  const criticalCount = displayShipments.filter((shipment) => shipment.displayRiskLevel === 'high').length;
-  const aiCount = displayShipments.filter((shipment) => shipment.backend.explanation?.headline || shipment.backend.explanation?.summary).length;
-  const avgConfidence = activeCount
-    ? Math.round(displayShipments.reduce((sum, shipment) => sum + (shipment.backend.decision.confidence || 0), 0) / activeCount)
-    : 0;
-
-  const topSignals = latestShipment?.backend.signalStack?.slice(0, 4) ?? [];
-  const translations = latestShipment?.backend.alert?.translations;
-  const primaryTranslation =
-    translations?.en ||
-    translations?.hi ||
-    translations?.gu ||
-    translations?.ta ||
-    latestShipment?.alert ||
-    'Alert preview will appear here after the first analysis.';
-
   const handleRefresh = async (shipmentId: string) => {
     try {
       setRefreshingId(shipmentId);
       await refreshShipment(shipmentId);
+      toast.success("Shipment refreshed", {
+        description: "Latest risk signals and route recommendations have been synced.",
+      });
+    } catch (error) {
+      toast.error("Refresh failed", {
+        description: error instanceof Error ? error.message : "We could not refresh this shipment.",
+      });
     } finally {
       setRefreshingId(null);
     }
   };
 
-  /**
-   * Triggers the frontend-only storm scenario used during live judging.
-   */
+  const handleApproveReroute = async (shipment: DisplayShipment) => {
+    const recommendedRouteId = shipment.backend.decision.recommendedRouteId || shipment.backend.routes.recommendedRouteId;
+
+    if (!recommendedRouteId || recommendedRouteId === shipment.backend.activeRouteId) {
+      toast.message("No reroute required", {
+        description: "This shipment is already on its recommended route.",
+      });
+      return;
+    }
+
+    try {
+      await updateShipmentRoute(shipment.id, recommendedRouteId);
+      toast.success("Reroute approved", {
+        description: `${shipment.name} has been moved to the recommended lane.`,
+      });
+    } catch (error) {
+      toast.error("Could not approve reroute", {
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    }
+  };
+
+  const handleDismissAlert = (shipmentId: string) => {
+    setDismissedAlertIds((current) => [...current, shipmentId]);
+    toast.success("Alert dismissed", {
+      description: "The feed has been cleared for this shipment.",
+    });
+  };
+
   const handleSimulateRisk = () => {
     const target = getSimulationTarget(sorted);
     if (!target) return;
     setSimulatedShipmentId(target.id);
-    setSimulationBannerVisible(true);
+    toast.success("Storm simulation triggered", {
+      description: "High-risk judge mode is active for the top shipment.",
+    });
   };
 
   return (
-    <div className="w-full pb-10">
-      <div className="space-y-6">
-        {personaBannerVisible ? <PersonaBanner onDismiss={() => setPersonaBannerVisible(false)} /> : null}
-        {simulationBannerVisible ? <SimulationBanner onDismiss={() => setSimulationBannerVisible(false)} /> : null}
-
-        <div className="grid gap-6 xl:grid-cols-12">
-          <div className="xl:col-span-3">
-            <div className="space-y-6">
-              <ShellCard className="relative overflow-hidden">
-                <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#DFFF00]/12 blur-3xl" />
-                <div className="relative z-10">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="max-w-[240px]">
-                      <TinyLabel>{copy.eyebrow}</TinyLabel>
-                      <h1 className="mt-3 text-4xl font-semibold leading-[0.96] tracking-tight text-neutral-950">
-                        {copy.title}
-                      </h1>
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-neutral-50">
-                        <Globe2 className="h-4 w-4 text-neutral-700" />
-                      </div>
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-neutral-50">
-                        <Sparkles className="h-4 w-4 text-neutral-700" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="mt-4 text-sm leading-7 text-neutral-600">{copy.description}</p>
-
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <Link
-                      to="/add-shipment"
-                      className="inline-flex items-center gap-2 rounded-full border border-black bg-black px-5 py-3 text-[11px] font-mono uppercase tracking-[0.18em] text-white"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add lane
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={handleSimulateRisk}
-                      disabled={!sorted.length}
-                      className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-mono uppercase tracking-[0.14em] text-neutral-900 transition hover:border-black hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <Zap className="h-3.5 w-3.5" />
-                      Demo: Simulate Risk
-                    </button>
-                    <span className="rounded-full border border-black/10 bg-neutral-50 px-4 py-3 text-[11px] font-mono uppercase tracking-[0.18em] text-neutral-500">
-                      {copy.roleChip}
-                    </span>
-                  </div>
-                </div>
-              </ShellCard>
-
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                <StatTile title="Active lanes" value={String(activeCount)} tone="white" icon={<Package className="h-4 w-4" />} />
-                <StatTile title="Critical now" value={String(criticalCount)} tone="lime" icon={<AlertTriangle className="h-4 w-4" />} />
-                <StatTile title="AI analyzed" value={String(aiCount)} tone="lime" icon={<Brain className="h-4 w-4" />} />
-                <StatTile title="Confidence" value={`${avgConfidence}%`} tone="dark" icon={<ShieldCheck className="h-4 w-4" />} />
-              </div>
-
-              <ShipmentListCard shipments={displayShipments.slice(0, 5)} refreshingId={refreshingId} onRefresh={handleRefresh} />
-            </div>
+    <div className="space-y-6 text-white">
+      <section className="green-glow-hover rounded-[30px] border border-white/8 bg-[#111111] p-5 shadow-[0_24px_80px_-36px_rgba(0,0,0,0.72)] sm:p-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <p className="text-sm text-white/48">
+              Good morning, <span className="font-semibold text-white">{authUser.username}</span>
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              Premium AI operations for every active lane.
+            </h1>
           </div>
 
-          <div className="xl:col-span-6">
-            <div className="space-y-6">
-              <ShellCard>
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="max-w-2xl">
-                    <TinyLabel>Desktop workspace</TinyLabel>
-                    <h2 className="mt-2 text-3xl font-semibold tracking-tight text-neutral-950 sm:text-5xl">
-                      The route workspace expands when live lanes exist.
-                    </h2>
-                    <p className="mt-4 text-sm leading-7 text-neutral-600 sm:text-base">
-                      This canvas is designed to hold route geometry, AI reasoning, signal pressure, and operational
-                      action in one desktop-first decision surface.
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-neutral-50">
-                      <TrendingUp className="h-4.5 w-4.5 text-neutral-700" />
-                    </div>
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-neutral-50">
-                      <Zap className="h-4.5 w-4.5 text-neutral-700" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 grid gap-4 lg:grid-cols-3">
-                  <div className="rounded-[22px] border border-black/10 bg-[#f7f7f3] p-4">
-                    <TinyLabel>Primary action</TinyLabel>
-                    <p className="mt-4 text-lg font-semibold leading-8 text-neutral-950">
-                      {latestShipment?.backend.explanation?.recommendation ||
-                        latestShipment?.backend.decision.recommendedAction ||
-                        'Approve a safer alternate route before the current lane accumulates delay.'}
-                    </p>
-                  </div>
-                  <div className="rounded-[22px] border border-[#b6d400] bg-[#DFFF00] p-4">
-                    <TinyLabel>Window</TinyLabel>
-                    <p className="mt-4 text-3xl font-semibold text-black">
-                      {latestShipment?.backend.predictionWindow?.label || 'Waiting'}
-                    </p>
-                  </div>
-                  <div className="rounded-[22px] border border-black bg-[#181a23] p-4 text-white">
-                    <TinyLabel dark>Live route</TinyLabel>
-                    <p className="mt-4 text-3xl font-semibold">{latestShipment?.currentRoute || 'Pending'}</p>
-                    <div className="mt-4 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.18em] text-white/65">
-                      <RiskPulse score={latestShipment?.displayRiskScore || 0} />
-                      {latestShipment?.displayStatusLabel || 'Risk pulse active'}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6">
-                  {latestShipment ? <RouteNetworkMap shipment={latestShipment.backend} height={360} /> : <EmptyWorkspace isCompany={isCompany} />}
-                </div>
-              </ShellCard>
-
-              <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-                <ShellCard>
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <TinyLabel>{isCompany ? 'Transporter message' : 'Driver message'}</TinyLabel>
-                      <h2 className="mt-1 text-xl font-semibold text-neutral-950">WhatsApp-ready alert copy</h2>
-                    </div>
-                    <Truck className="h-4 w-4 text-neutral-500" />
-                  </div>
-
-                  <div className="mt-5 rounded-[22px] border border-[#b6d400] bg-[#DFFF00] px-5 py-5 text-sm leading-7 text-black">
-                    {primaryTranslation}
-                  </div>
-
-                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-[20px] border border-black/10 bg-[#f7f7f3] p-4">
-                      <TinyLabel>Delivery mode</TinyLabel>
-                      <p className="mt-3 text-sm font-semibold text-neutral-950">
-                        {latestShipment?.backend.architectureStatus?.deliveryModes?.join(', ') || 'dashboard_only'}
-                      </p>
-                    </div>
-                    <div className="rounded-[20px] border border-black/10 bg-[#f7f7f3] p-4">
-                      <TinyLabel>ETA</TinyLabel>
-                      <p className="mt-3 text-sm font-semibold text-neutral-950">{latestShipment?.eta || 'n/a'}</p>
-                    </div>
-                  </div>
-                </ShellCard>
-
-                <ShellCard dark>
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <TinyLabel dark>AI reasoning</TinyLabel>
-                      <h2 className="mt-1 text-xl font-semibold text-white">Reasoning snapshot</h2>
-                    </div>
-                    <Brain className="h-4 w-4 text-[#DFFF00]" />
-                  </div>
-
-                  <div className="mt-5 space-y-4 rounded-[20px] border border-white/10 bg-white/5 px-4 py-4">
-                    <p className="text-base font-semibold text-white">
-                      {latestShipment?.backend.explanation?.headline || 'Create a lane to generate the first AI reasoning block.'}
-                    </p>
-                    <p className="text-sm leading-7 text-white/80">
-                      {latestShipment?.backend.explanation?.why || latestShipment?.backend.statusMessage}
-                    </p>
-                    <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-[#DFFF00]">
-                      {latestShipment?.backend.explanation?.recommendation ||
-                        latestShipment?.backend.decision.recommendedAction ||
-                        'Awaiting recommendation'}
-                    </p>
-                  </div>
-
-                  <div className="mt-5 grid gap-3 sm:grid-cols-4">
-                    <div className="rounded-[18px] bg-white/5 px-4 py-4">
-                      <TinyLabel dark>Mode</TinyLabel>
-                      <p className="mt-3 text-sm font-semibold text-white">
-                        {latestShipment?.backend.usedFallbackData ? 'Fallback' : 'Live'}
-                      </p>
-                    </div>
-                    <div className="rounded-[18px] bg-white/5 px-4 py-4">
-                      <TinyLabel dark>Score</TinyLabel>
-                      <p className="mt-3 text-sm font-semibold text-white">
-                        {latestShipment ? `${latestShipment.displayRiskScore}%` : '0%'}
-                      </p>
-                    </div>
-                    <div className="rounded-[18px] bg-white/5 px-4 py-4">
-                      <TinyLabel dark>Confidence</TinyLabel>
-                      <p className="mt-3 text-sm font-semibold text-white">
-                        {latestShipment?.backend.explanation?.confidence || 'Medium'}
-                      </p>
-                    </div>
-                    <div className="rounded-[18px] bg-white/5 px-4 py-4">
-                      <TinyLabel dark>Urgency</TinyLabel>
-                      <p className="mt-3 text-sm font-semibold text-[#DFFF00]">
-                        {latestShipment?.backend.explanation?.urgency || 'Monitor'}
-                      </p>
-                    </div>
-                  </div>
-                </ShellCard>
-              </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#AAFF45]/18 bg-[#AAFF45]/10 px-4 py-2 text-sm text-[#D9FF9B]">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#AAFF45]/65" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#AAFF45]" />
+              </span>
+              AI Monitoring Active
             </div>
-          </div>
 
-          <div className="xl:col-span-3">
-            <div className="space-y-6">
-              <ShellCard dark className="min-h-[420px]">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <TinyLabel dark>Signal feed</TinyLabel>
-                    <h2 className="mt-1 text-2xl font-semibold text-white">Signals shaping the alert</h2>
-                  </div>
-                  <Zap className="h-4 w-4 text-[#DFFF00]" />
-                </div>
+            <LanguageSelect variant="header" id="dashboard-language" />
 
-                <div className="mt-5 space-y-3">
-                  {topSignals.length ? (
-                    topSignals.map((signal) => {
-                      const SignalIcon = getSignalIcon(signal.name);
-                      const severity = Math.round(signal.severity * 100);
+            <button
+              type="button"
+              className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-[#161616] text-white/74 transition hover:border-[#AAFF45]/30 hover:text-white"
+              aria-label="Notifications"
+            >
+              <Bell className="h-4.5 w-4.5" />
+              {activeAlerts.length ? (
+                <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500" />
+              ) : null}
+            </button>
 
-                      return (
-                        <div key={signal.name} className="rounded-[18px] border border-white/10 bg-white/5 p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex min-w-0 items-start gap-3">
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10">
-                                <SignalIcon className="h-4 w-4 text-white" />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-semibold text-white">{signal.name}</p>
-                                <p className="mt-1 text-xs leading-5 text-white/60">{signal.summary}</p>
-                              </div>
-                            </div>
-                            <span className="shrink-0 text-[10px] font-mono uppercase tracking-[0.18em] text-[#DFFF00]">
-                              {severity}%
-                            </span>
-                          </div>
-                          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/10">
-                            <div className="h-full rounded-full bg-[#DFFF00]" style={{ width: `${severity}%` }} />
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="rounded-[18px] border border-white/10 bg-white/5 p-5 text-sm leading-7 text-white/65">
-                      Signals will appear after the first live analysis.
-                    </div>
-                  )}
-                </div>
-              </ShellCard>
-
-              <ShellCard>
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <TinyLabel>Execution snapshot</TinyLabel>
-                    <h2 className="mt-1 text-xl font-semibold text-neutral-950">Ops console</h2>
-                  </div>
-                  <MapPinned className="h-4 w-4 text-neutral-500" />
-                </div>
-
-                <div className="mt-5 space-y-3 font-mono text-[11px] uppercase tracking-[0.18em]">
-                  <div className="flex items-center justify-between rounded-[18px] border border-black/10 bg-[#fafaf6] px-4 py-4">
-                    <span className="text-neutral-500">Confidence</span>
-                    <span className="text-neutral-950">{latestShipment?.backend.explanation?.confidence || 'Medium'}</span>
-                  </div>
-                  <div className="flex items-center justify-between rounded-[18px] border border-black/10 bg-[#fafaf6] px-4 py-4">
-                    <span className="text-neutral-500">Urgency</span>
-                    <span className="text-neutral-950">{latestShipment?.backend.explanation?.urgency || 'Monitor'}</span>
-                  </div>
-                  <div className="flex items-center justify-between rounded-[18px] border border-black/10 bg-[#fafaf6] px-4 py-4">
-                    <span className="text-neutral-500">Analysis</span>
-                    <span className="text-neutral-950">{shipmentsLoading ? 'syncing' : activeCount ? 'ready' : 'waiting'}</span>
-                  </div>
-                  <div className="flex items-center justify-between rounded-[18px] border border-black/10 bg-[#fafaf6] px-4 py-4">
-                    <span className="text-neutral-500">Fallback</span>
-                    <span className="text-neutral-950">{latestShipment?.backend.usedFallbackData ? 'yes' : 'no'}</span>
-                  </div>
-                </div>
-              </ShellCard>
+            <div className="rounded-2xl border border-white/10 bg-[#161616] px-4 py-3 text-sm text-white/68">
+              {formatDateTime(now)}
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {[
+          {
+            label: "Active Shipments",
+            value: String(activeShipments),
+            trend: "+12% this week",
+            icon: Package,
+            tone: "blue" as const,
+          },
+          {
+            label: "High Risk Alerts",
+            value: String(highRiskAlerts),
+            trend: highRiskAlerts > 0 ? "Needs attention now" : "No escalations",
+            icon: ShieldAlert,
+            tone: "orange" as const,
+            pulse: highRiskAlerts > 0,
+          },
+          {
+            label: "Avg On-Time Rate",
+            value: `${onTimeRate}%`,
+            trend: "+4.8% recovery",
+            icon: TrendingUp,
+            tone: "green" as const,
+          },
+          {
+            label: "Disruptions Prevented",
+            value: String(disruptionsPrevented),
+            trend: "This month",
+            icon: WandSparkles,
+            tone: "purple" as const,
+          },
+        ].map(({ label, value, trend, icon: Icon, tone, pulse }) => (
+          <article
+            key={label}
+            className={`green-glow-hover rounded-[28px] border border-white/8 bg-[#141414] p-5 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.72)] ${pulse ? "green-pulse" : ""}`}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm text-white/46">{label}</p>
+                <p className="mt-4 text-4xl font-semibold tracking-tight text-white">{value}</p>
+                <p className="mt-2 text-sm text-white/56">{trend}</p>
+              </div>
+              <div className={`rounded-2xl border px-3 py-3 ${cardTone(tone)}`}>
+                <Icon className="h-5 w-5" />
+              </div>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1.35fr_0.85fr]">
+        <article id="map" className="rounded-[30px] border border-white/8 bg-[#141414] p-5 shadow-[0_22px_60px_-30px_rgba(0,0,0,0.72)] sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm text-white/46">Shipment Map Panel</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Live route intelligence</h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#AAFF45]/18 bg-[#AAFF45]/10 px-4 py-2 text-sm text-[#D9FF9B]">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#AAFF45]/65" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#AAFF45]" />
+                </span>
+                Live
+              </div>
+              <button
+                type="button"
+                onClick={handleSimulateRisk}
+                disabled={!displayShipments.length}
+                className="rounded-full border border-white/10 bg-[#161616] px-4 py-2 text-sm text-white/74 transition hover:border-[#AAFF45]/30 hover:text-white disabled:opacity-50"
+              >
+                Demo Risk Trigger
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-5 overflow-hidden rounded-[24px] border border-white/8">
+            {latestShipment ? (
+              <RouteNetworkMap shipment={latestShipment.backend} height={420} />
+            ) : (
+              <div className="grid min-h-[420px] place-items-center bg-[#0F0F0F] text-white/42">
+                Google Maps-style route preview will appear after the first shipment is created.
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {[
+              { label: "On-track", tone: "bg-[#AAFF45]" },
+              { label: "At-risk", tone: "bg-orange-400" },
+              { label: "High-risk", tone: "bg-red-500" },
+            ].map((item) => (
+              <div key={item.label} className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-[#111111] px-3 py-2 text-xs text-white/62">
+                <span className={`h-2.5 w-2.5 rounded-full ${item.tone}`} />
+                {item.label}
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article id="alerts" className="rounded-[30px] border border-white/8 bg-[#141414] p-5 shadow-[0_22px_60px_-30px_rgba(0,0,0,0.72)] sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm text-white/46">Risk feed</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Active Risk Alerts</h2>
+            </div>
+            <div className="rounded-full border border-red-500/18 bg-red-500/10 px-3 py-1 text-xs uppercase tracking-[0.22em] text-red-200">
+              {activeAlerts.length} live
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {activeAlerts.length ? (
+              activeAlerts.slice(0, 5).map((shipment) => (
+                <div key={shipment.id} className="rounded-[24px] border border-white/8 bg-[#101010] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${severityTone(shipment.displayRiskLevel)}`}>
+                        {shipment.displayRiskLevel.toUpperCase()}
+                      </span>
+                      <p className="mt-3 text-sm font-semibold text-white">{shipment.id}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRefresh(shipment.id)}
+                      disabled={refreshingId === shipment.id}
+                      className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-[#161616] text-white/70 transition hover:border-[#AAFF45]/30 hover:text-white"
+                      aria-label={`Refresh ${shipment.id}`}
+                    >
+                      <RefreshCw className={`h-4 w-4 ${refreshingId === shipment.id ? "animate-spin" : ""}`} />
+                    </button>
+                  </div>
+
+                  <p className="mt-3 text-sm leading-7 text-white/66">
+                    {shipment.backend.activeAlert?.message ||
+                      shipment.backend.explanation?.why ||
+                      shipment.backend.statusMessage}
+                  </p>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleApproveReroute(shipment)}
+                      className="rounded-full bg-[#AAFF45] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#96f132]"
+                    >
+                      Approve Reroute
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDismissAlert(shipment.id)}
+                      className="rounded-full border border-white/10 bg-transparent px-4 py-2 text-sm text-white/66 transition hover:border-white/20 hover:text-white"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="grid min-h-[320px] place-items-center rounded-[24px] border border-dashed border-[#AAFF45]/26 bg-[#101010] p-6 text-center">
+                <div>
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#AAFF45]/25 bg-[#AAFF45]/10 text-[#AAFF45]">
+                    <CheckCheck className="h-6 w-6" />
+                  </div>
+                  <p className="mt-4 text-lg font-semibold text-white">All shipments on track</p>
+                  <p className="mt-2 text-sm text-white/52">No open alerts are competing for operator attention right now.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </article>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+        <article id="shipments" className="rounded-[30px] border border-white/8 bg-[#141414] p-5 shadow-[0_22px_60px_-30px_rgba(0,0,0,0.72)] sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-white/46">Recent shipments</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Live monitoring table</h2>
+            </div>
+            <Link
+              to="/add-shipment"
+              className="inline-flex items-center gap-2 rounded-full bg-[#AAFF45] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#95f12f]"
+            >
+              <Plus className="h-4 w-4" />
+              Add shipment
+            </Link>
+          </div>
+
+          <div className="mt-5 overflow-hidden rounded-[24px] border border-white/8">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead className="bg-[#101010] text-white/52">
+                  <tr>
+                    {["Shipment ID", "Route", "Status", "ETA", "Risk Score", "Actions"].map((header) => (
+                      <th key={header} className="px-4 py-4 font-medium">
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayShipments.length ? (
+                    displayShipments.slice(0, 6).map((shipment, index) => (
+                      <tr key={shipment.id} className={index % 2 === 0 ? "bg-[#141414]" : "bg-[#101010]"}>
+                        <td className="px-4 py-4 font-medium text-white">{shipment.id.slice(0, 8)}</td>
+                        <td className="px-4 py-4 text-white/66">
+                          {shipment.source} to {shipment.destination}
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className={`rounded-full px-3 py-1 text-xs font-medium ${statusTone(shipment.displayStatusLabel)}`}>
+                            {shipment.displayStatusLabel}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-white/66">{shipment.eta}</td>
+                        <td className="px-4 py-4 text-white/66">{shipment.displayRiskScore}</td>
+                        <td className="px-4 py-4">
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleRefresh(shipment.id)}
+                              disabled={refreshingId === shipment.id}
+                              className="rounded-full border border-white/10 bg-transparent px-3 py-1.5 text-xs text-white/68 transition hover:border-[#AAFF45]/30 hover:text-white"
+                            >
+                              Refresh
+                            </button>
+                            <Link
+                              to={`/shipment/${shipment.id}`}
+                              className="rounded-full border border-white/10 bg-transparent px-3 py-1.5 text-xs text-white/68 transition hover:border-[#AAFF45]/30 hover:text-white"
+                            >
+                              Open
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-12 text-center text-white/45">
+                        No shipments yet. Create the first monitored lane to populate the dashboard.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </article>
+
+        <article id="timeline" className="rounded-[30px] border border-white/8 bg-[#141414] p-5 shadow-[0_22px_60px_-30px_rgba(0,0,0,0.72)] sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-white/46">Disruption timeline</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">AI activity feed</h2>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[#101010] px-4 py-2 text-sm text-white/66">
+              <Clock3 className="h-4 w-4 text-[#AAFF45]" />
+              22 languages
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-6">
+            {timelineItems.length ? (
+              timelineItems.map((item, index) => {
+                const Icon = item.icon;
+                return (
+                  <div key={item.id} className="relative pl-10">
+                    {index !== timelineItems.length - 1 ? (
+                      <span className="absolute left-[15px] top-8 h-[calc(100%+12px)] w-px bg-[#AAFF45]/45" />
+                    ) : null}
+                    <span className="absolute left-0 top-1 flex h-8 w-8 items-center justify-center rounded-full border border-[#AAFF45]/20 bg-[#AAFF45]/10 text-[#AAFF45]">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <p className="text-xs uppercase tracking-[0.2em] text-white/38">{item.timestamp}</p>
+                    <p className="mt-2 text-sm leading-7 text-white/72">{item.description}</p>
+                    <p className="mt-2 text-sm font-medium text-[#D9FF9B]">{item.detail}</p>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="rounded-[24px] border border-dashed border-white/10 bg-[#101010] p-6 text-center text-white/45">
+                Activity will start appearing as soon as a shipment is analyzed.
+              </div>
+            )}
+          </div>
+        </article>
+      </section>
+
+      <section id="settings" className="rounded-[30px] border border-white/8 bg-[#111111] p-5 shadow-[0_22px_60px_-30px_rgba(0,0,0,0.72)] sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-sm text-white/46">Operations notes</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Workspace status</h2>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-sm text-white/58">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[#161616] px-4 py-2">
+              <MapPinned className="h-4 w-4 text-[#AAFF45]" />
+              {shipmentsLoading ? "Syncing routes" : "Routes synced"}
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[#161616] px-4 py-2">
+              <AlertTriangle className="h-4 w-4 text-orange-300" />
+              {userRole === "company" ? "Shipper view" : "Transporter view"}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <PoweredByGeminiBadge />
     </div>
   );
 }

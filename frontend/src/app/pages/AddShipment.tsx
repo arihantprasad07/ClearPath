@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { ArrowLeft, Brain, MapPin, Send, ShieldCheck, Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAppContext } from '../context/AppContext';
 import { geocodeLocation } from '../lib/api';
 
@@ -188,9 +189,16 @@ export default function AddShipment() {
         priority,
         estimatedCargoValue: estimatedCargoValue ? Number(estimatedCargoValue) : null,
       });
+      toast.success('Shipment created', {
+        description: 'The new lane is now being monitored in the dashboard.',
+      });
       navigate('/dashboard');
     } catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : 'Unable to create shipment lane.');
+      const message = submissionError instanceof Error ? submissionError.message : 'Unable to create shipment lane.';
+      setError(message);
+      toast.error('Could not create shipment', {
+        description: message,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -378,6 +386,7 @@ export default function AddShipment() {
                 disabled={isSubmitting}
                 className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-black bg-[#DFFF00] px-5 py-3 text-xs font-semibold uppercase tracking-wide text-black transition-all duration-200 hover:bg-[#c8e800] hover:shadow-[0_8px_28px_-6px_rgba(223,255,0,0.45)] disabled:cursor-wait disabled:opacity-70"
               >
+                {isSubmitting ? <span className="submit-spinner" /> : null}
                 {isSubmitting ? 'Creating lane...' : 'Create live lane'}
                 <Send size={16} strokeWidth={1.5} aria-hidden />
               </button>

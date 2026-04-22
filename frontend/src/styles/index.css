@@ -2,6 +2,10 @@
 @import './tailwind.css';
 @import './theme.css';
 
+html {
+  background: #0a0a0a;
+}
+
 /* App-wide responsive baseline: prevent horizontal scroll, respect mobile viewport */
 html {
   overflow-x: hidden;
@@ -16,14 +20,22 @@ html {
   min-height: 100dvh;
 }
 
+body {
+  background:
+    radial-gradient(circle at top left, rgba(170, 255, 69, 0.08), transparent 26%),
+    radial-gradient(circle at bottom right, rgba(170, 255, 69, 0.05), transparent 24%),
+    #0a0a0a;
+}
+
 html.clearpath-high-contrast {
   color-scheme: light;
 }
 
 :focus-visible {
-  outline: 2px solid #DFFF00;
+  outline: 2px solid #AAFF45;
   outline-offset: 3px;
   border-radius: 4px;
+  box-shadow: 0 0 0 4px rgba(170, 255, 69, 0.16);
 }
 
 .high-contrast {
@@ -80,6 +92,17 @@ html.clearpath-high-contrast {
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  @keyframes clearpath-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   @keyframes pulse-ring {
     0% {
       transform: scale(1);
@@ -112,6 +135,21 @@ html.clearpath-high-contrast {
   @keyframes pulse-bar {
     0%, 100% { width: 62%; }
     50% { width: 78%; }
+  }
+
+  @keyframes clearpath-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes glow-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 rgba(170, 255, 69, 0);
+    }
+    50% {
+      box-shadow: 0 0 24px rgba(170, 255, 69, 0.28);
+    }
   }
 }
 
@@ -163,6 +201,50 @@ html.clearpath-high-contrast .border-neutral-300 {
 
 /* Infographic / technical accent utilities */
 @layer utilities {
+  .dark-grain::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(rgba(255,255,255,0.045) 0.6px, transparent 0.6px),
+      radial-gradient(rgba(255,255,255,0.02) 0.7px, transparent 0.7px);
+    background-position: 0 0, 12px 12px;
+    background-size: 18px 18px, 24px 24px;
+    mix-blend-mode: soft-light;
+    opacity: 0.35;
+  }
+
+  .page-fade-in {
+    animation: clearpath-fade-up 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .submit-spinner {
+    display: inline-flex;
+    height: 1rem;
+    width: 1rem;
+    border-radius: 9999px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    animation: clearpath-spin 0.7s linear infinite;
+  }
+
+  .green-glow-hover {
+    transition:
+      box-shadow 180ms ease,
+      border-color 180ms ease,
+      transform 180ms ease;
+  }
+
+  .green-glow-hover:hover {
+    box-shadow: 0 0 0 1px rgba(170, 255, 69, 0.4), 0 18px 30px -22px rgba(170, 255, 69, 0.38);
+    border-color: rgba(170, 255, 69, 0.5);
+  }
+
+  .green-pulse {
+    animation: glow-pulse 1.8s ease-in-out infinite;
+  }
+
   .text-brand-neon {
     color: var(--brand-neon);
   }

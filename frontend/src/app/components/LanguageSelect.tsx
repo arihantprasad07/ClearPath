@@ -3,7 +3,7 @@ import { ChevronDown, Globe } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { INDIAN_LANGUAGES, getLanguageByCode } from '../constants/languages';
 
-type Variant = 'hero' | 'navbar' | 'inline' | 'contact';
+type Variant = 'hero' | 'navbar' | 'inline' | 'contact' | 'header';
 
 function DropdownChevron({ className }: { className?: string }) {
   return (
@@ -49,6 +49,8 @@ export function LanguageSelect({
           ? 'w-full min-w-[200px] max-w-full cursor-pointer appearance-none rounded-[16px] border border-black/15 bg-white py-3 pl-4 pr-10 text-left text-sm font-medium text-neutral-900 shadow-sm outline-none transition hover:border-black/30 focus:border-black focus:ring-2 focus:ring-[#DFFF00]/40 sm:w-auto'
           : variant === 'navbar'
             ? navbarSelectClass
+            : variant === 'header'
+              ? 'min-w-[104px] cursor-pointer appearance-none rounded-full border border-white/10 bg-[#141414] py-2 pl-9 pr-9 text-xs font-semibold tracking-[0.18em] text-white outline-none transition focus:border-[#AAFF45] focus:ring-2 focus:ring-[#AAFF45]/30'
             : variant === 'contact'
               ? 'w-full cursor-pointer appearance-none rounded-[16px] border border-black/15 bg-white py-3 pl-4 pr-10 text-sm text-neutral-900 outline-none focus:border-black focus:ring-2 focus:ring-[#DFFF00]/40'
               : 'w-full min-w-0 max-w-full cursor-pointer appearance-none rounded-[14px] border border-black/15 bg-white py-2.5 pl-3 pr-9 text-xs font-medium text-neutral-900 outline-none focus:border-black focus:ring-2 focus:ring-[#DFFF00]/40 sm:min-w-[200px] sm:max-w-md'
@@ -86,6 +88,16 @@ export function LanguageSelect({
             when available.
           </p>
         )}
+      </div>
+    );
+  }
+
+  if (variant === 'header') {
+    return (
+      <div className={`relative ${className}`}>
+        <Globe className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/55" aria-hidden />
+        <DropdownChevron className="right-3 text-white/55" />
+        {select}
       </div>
     );
   }

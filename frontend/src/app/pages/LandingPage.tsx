@@ -3,16 +3,25 @@ import { Link } from "react-router";
 import {
   ArrowRight,
   Brain,
+  Facebook,
+  Linkedin,
   MapPinned,
   MessageSquareText,
+  Phone,
   Route,
+  Send,
   ShieldCheck,
   Sparkles,
+  Star,
   TimerReset,
   TrafficCone,
   TriangleAlert,
+  Twitter,
 } from "lucide-react";
+import { toast } from "sonner";
+import { BrandMark } from "../components/BrandMark";
 import { LanguageSelect } from "../components/LanguageSelect";
+import { PoweredByGeminiBadge } from "../components/PoweredByGeminiBadge";
 import { Features, Roles } from "../components/RolesAndFeatures";
 import { cp } from "../lib/cpUi";
 
@@ -220,6 +229,202 @@ function ComparisonColumn({
         ))}
       </div>
     </div>
+  );
+}
+
+function ContactSparkArt() {
+  return (
+    <div className="relative flex min-h-[360px] items-center justify-center overflow-hidden rounded-[2rem] bg-[radial-gradient(circle_at_center,rgba(170,255,69,0.18),transparent_38%),linear-gradient(180deg,#fafaf6_0%,#f0f0ea_100%)]">
+      {Array.from({ length: 14 }).map((_, index) => {
+        const rotation = index * (180 / 14);
+        return (
+          <span
+            key={rotation}
+            className="absolute h-[1px] w-[240px] bg-black/10"
+            style={{ transform: `rotate(${rotation}deg)` }}
+          />
+        );
+      })}
+
+      <svg viewBox="0 0 240 240" className="relative h-[240px] w-[240px]" aria-hidden>
+        <path
+          d="M120 20 L145 95 L220 120 L145 145 L120 220 L95 145 L20 120 L95 95 Z"
+          fill="#111111"
+          opacity="0.95"
+        />
+        <path
+          d="M170 58 L182 95 L220 108 L182 121 L170 158 L157 121 L120 108 L157 95 Z"
+          fill="#AAFF45"
+        />
+      </svg>
+    </div>
+  );
+}
+
+function LandingContactBlock() {
+  const [contactMode, setContactMode] = React.useState<"hi" | "quote">("hi");
+  const [name, setName] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [message, setMessage] = React.useState("");
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+
+    window.setTimeout(() => {
+      setIsSubmitting(false);
+      setName("");
+      setEmail("");
+      setMessage("");
+      toast.success(contactMode === "quote" ? "Quote request sent" : "Message sent", {
+        description: "We’ll follow up shortly with the ClearPath team.",
+      });
+    }, 900);
+  };
+
+  return (
+    <>
+      <section className="px-4 py-10 sm:px-6 sm:py-12 lg:py-16">
+        <div className="mx-auto max-w-7xl">
+          <div className="rounded-[2.2rem] border border-black/10 bg-[#f4f4ef] p-6 shadow-[0_26px_70px_-34px_rgba(0,0,0,0.18)] sm:p-8 lg:p-10">
+            <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+              <div className="min-w-0">
+                <div className="inline-flex rounded-full bg-[#AAFF45] px-3 py-1 text-[11px] font-mono uppercase tracking-[0.2em] text-black">
+                  Contact Us
+                </div>
+
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {[
+                    { key: "hi", label: "Say Hi" },
+                    { key: "quote", label: "Get a Quote" },
+                  ].map((option) => {
+                    const active = contactMode === option.key;
+                    return (
+                      <button
+                        key={option.key}
+                        type="button"
+                        onClick={() => setContactMode(option.key as "hi" | "quote")}
+                        className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
+                          active
+                            ? "border-[#AAFF45] bg-[#AAFF45] text-black"
+                            : "border-black/10 bg-white text-neutral-700 hover:border-black/25"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+                  <div>
+                    <label htmlFor="landing-contact-name" className="mb-2 block text-sm font-medium text-neutral-700">
+                      Name
+                    </label>
+                    <input
+                      id="landing-contact-name"
+                      type="text"
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      placeholder="Priya Sharma"
+                      className="h-12 w-full rounded-2xl border border-transparent bg-[#e7e7e0] px-4 text-sm text-black placeholder:text-neutral-500 transition focus:border-black/20 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#AAFF45]/40"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="landing-contact-email" className="mb-2 block text-sm font-medium text-neutral-700">
+                      Email*
+                    </label>
+                    <input
+                      id="landing-contact-email"
+                      required
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      placeholder="name@company.com"
+                      className="h-12 w-full rounded-2xl border border-transparent bg-[#e7e7e0] px-4 text-sm text-black placeholder:text-neutral-500 transition focus:border-black/20 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#AAFF45]/40"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="landing-contact-message" className="mb-2 block text-sm font-medium text-neutral-700">
+                      Message*
+                    </label>
+                    <textarea
+                      id="landing-contact-message"
+                      required
+                      rows={5}
+                      value={message}
+                      onChange={(event) => setMessage(event.target.value)}
+                      placeholder={
+                        contactMode === "quote"
+                          ? "Tell us about your route volume, lanes, and pilot timeline."
+                          : "Tell us what you want to explore with ClearPath."
+                      }
+                      className="min-h-[140px] w-full rounded-2xl border border-transparent bg-[#e7e7e0] px-4 py-3 text-sm text-black placeholder:text-neutral-500 transition focus:border-black/20 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#AAFF45]/40"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="inline-flex h-12 w-full items-center justify-center gap-3 rounded-2xl bg-black px-4 text-sm font-semibold text-white transition hover:bg-[#151515] disabled:cursor-wait disabled:opacity-70"
+                  >
+                    {isSubmitting ? <span className="submit-spinner" /> : <Send className="h-4 w-4" />}
+                    Send Message
+                  </button>
+                </form>
+              </div>
+
+              <ContactSparkArt />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="bg-[#0A0A0A] px-4 pb-10 pt-8 text-white sm:px-6">
+        <div className="mx-auto max-w-7xl rounded-[2rem] border border-white/10 bg-[#101010] p-6 shadow-[0_22px_60px_-28px_rgba(0,0,0,0.75)] sm:p-8">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <BrandMark compact dark />
+            </div>
+
+            <nav className="flex flex-wrap items-center gap-5 text-sm text-white/70">
+              <a href="#overview" className="transition hover:text-[#AAFF45]">About us</a>
+              <a href="#stack" className="transition hover:text-[#AAFF45]">Services</a>
+              <a href="#journey" className="transition hover:text-[#AAFF45]">Use Cases</a>
+            </nav>
+
+            <div className="flex items-center gap-3">
+              {[Linkedin, Facebook, Twitter].map((Icon, index) => (
+                <a
+                  key={index}
+                  href="#"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/72 transition hover:border-[#AAFF45]/30 hover:text-[#AAFF45]"
+                  aria-label={`Social link ${index + 1}`}
+                >
+                  <Icon className="h-4 w-4" />
+                </a>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-col gap-6 border-t border-white/10 pt-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-2 text-sm text-white/64">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-[#AAFF45]">Contact us:</p>
+              <p className="inline-flex items-center gap-2"><Star className="h-4 w-4 text-[#AAFF45]" /> hello@clearpath.ai</p>
+              <p className="inline-flex items-center gap-2"><Phone className="h-4 w-4 text-[#AAFF45]" /> +91 98765 43210</p>
+              <p className="inline-flex items-center gap-2"><MapPinned className="h-4 w-4 text-[#AAFF45]" /> Bengaluru, India</p>
+            </div>
+
+            <p className="text-sm text-white/45">
+              Copyright 2026 ClearPath.{" "}
+              <a href="#" className="text-white/72 transition hover:text-[#AAFF45]">
+                Privacy Policy
+              </a>
+            </p>
+          </div>
+        </div>
+      </footer>
+    </>
   );
 }
 
@@ -462,6 +667,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <LandingContactBlock />
+      <PoweredByGeminiBadge dark={false} />
     </div>
   );
 }

@@ -1,61 +1,70 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
-import { motion } from 'motion/react';
-import { ArrowLeft, Lock, Mail, ShieldCheck, Sparkles } from 'lucide-react';
-import { useAppContext } from '../context/AppContext';
-import { LanguageSelect } from '../components/LanguageSelect';
-import { loginWithFirebaseEmail, loginWithGooglePopup } from '../lib/firebase';
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
+import { motion } from "motion/react";
+import { ArrowLeft, Lock, Mail } from "lucide-react";
+import { toast } from "sonner";
+import { useAppContext } from "../context/AppContext";
+import { loginWithFirebaseEmail, loginWithGooglePopup } from "../lib/firebase";
+import { BrandMark } from "../components/BrandMark";
 
-function TinyLabel({ children, dark = false }: { children: React.ReactNode; dark?: boolean }) {
-  return (
-    <p className={`text-[9px] font-mono uppercase tracking-[0.22em] ${dark ? 'text-white/60' : 'text-neutral-500'}`}>
-      {children}
-    </p>
-  );
+type RoleTab = "shipper" | "transporter" | "receiver";
+
+const roleTabs: RoleTab[] = ["shipper", "transporter", "receiver"];
+
+function authRoleForTab(tab: RoleTab) {
+  return tab === "transporter" ? "supplier" : "company";
 }
 
-function DecoCluster({ className = '' }: { className?: string }) {
-  return (
-    <div className={`pointer-events-none absolute ${className}`} aria-hidden>
-      <div className="absolute left-0 top-0 h-9 w-9 rounded-full border border-black/10 border-dashed" />
-      <div className="absolute left-6 top-6 h-2 w-2 rounded-full bg-[#DFFF00]" />
-      <div className="absolute left-9 top-0 text-lg leading-none text-black">*</div>
-      <div className="absolute left-10 top-7 h-6 w-6 rotate-45 border border-black/80 bg-black" />
-    </div>
-  );
+function statLabel(tab: RoleTab) {
+  return tab === "transporter"
+    ? "Transporter workspace"
+    : tab === "receiver"
+      ? "Receiver command view"
+      : "Shipper workspace";
 }
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, loginWithFirebaseIdToken, authLoading, authError, authUser, firebaseEnabled } = useAppContext();
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('');
+  const initialTab = location.state?.role === "supplier" ? "transporter" : "shipper";
+  const [selectedRole, setSelectedRole] = useState<RoleTab>(initialTab);
+  const [email, setEmail] = useState("admin");
+  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [firebaseMode, setFirebaseMode] = useState(import.meta.env.VITE_AUTH_MODE === 'firebase_primary' && firebaseEnabled);
+  const [firebaseMode, setFirebaseMode] = useState(import.meta.env.VITE_AUTH_MODE === "firebase_primary" && firebaseEnabled);
 
-  const role = location.state?.role === 'supplier' ? 'supplier' : 'company';
+  const authRole = useMemo(() => authRoleForTab(selectedRole), [selectedRole]);
 
   useEffect(() => {
-    if (authUser) navigate('/dashboard');
+    if (authUser) navigate("/dashboard");
   }, [authUser, navigate]);
 
   useEffect(() => {
-    document.title = 'Sign in - ClearPath';
+    document.title = "Sign in - ClearPath";
   }, []);
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsSubmitting(true);
+
     try {
       if (firebaseMode) {
-        const credential = await loginWithFirebaseEmail(username.trim(), password);
+        const credential = await loginWithFirebaseEmail(email.trim(), password);
         const idToken = await credential.user.getIdToken();
-        await loginWithFirebaseIdToken(idToken, role);
+        await loginWithFirebaseIdToken(idToken, authRole);
       } else {
-        await login(username.trim(), password, role);
+        await login(email.trim(), password, authRole);
       }
-      navigate('/dashboard');
+
+      toast.success("Signed in successfully", {
+        description: `Opening the ${statLabel(selectedRole).toLowerCase()}.`,
+      });
+      navigate("/dashboard");
+    } catch (error) {
+      toast.error("Sign in failed", {
+        description: error instanceof Error ? error.message : "Please check your credentials and try again.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -63,151 +72,185 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     setIsSubmitting(true);
+
     try {
       const credential = await loginWithGooglePopup();
       const idToken = await credential.user.getIdToken();
-      await loginWithFirebaseIdToken(idToken, role);
-      navigate('/dashboard');
+      await loginWithFirebaseIdToken(idToken, authRole);
+      toast.success("Google sign-in complete", {
+        description: "Your ClearPath workspace is ready.",
+      });
+      navigate("/dashboard");
+    } catch (error) {
+      toast.error("Google sign-in failed", {
+        description: error instanceof Error ? error.message : "We could not complete Google authentication.",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-10 pt-24 sm:px-6">
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        <Link to="/" className="mb-5 inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-neutral-600 transition-colors hover:text-black">
-          <ArrowLeft size={16} aria-hidden />
+    <div className="relative min-h-[100dvh] overflow-hidden bg-[#0A0A0A] text-white">
+      <div className="absolute inset-0 dark-grain" aria-hidden />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(170,255,69,0.16),transparent_20%),radial-gradient(circle_at_80%_20%,rgba(170,255,69,0.08),transparent_16%),linear-gradient(180deg,#090909_0%,#050505_100%)]" aria-hidden />
+
+      <div className="relative mx-auto flex min-h-[100dvh] max-w-[1600px] flex-col px-4 py-6 sm:px-6 lg:px-8">
+        <Link
+          to="/"
+          className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-white/72 transition hover:border-[#AAFF45]/30 hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" />
           Back to home
         </Link>
 
-        <div className="grid gap-6 xl:grid-cols-[390px_1fr] xl:items-start">
-          <div className="mx-auto w-full max-w-[360px] xl:mx-0">
-            <div className="space-y-3">
-              <section className="relative overflow-hidden rounded-[24px] border border-black/10 bg-white px-4 pb-4 pt-5 shadow-[0_20px_60px_-36px_rgba(0,0,0,0.35)]">
-                <DecoCluster className="right-4 top-5 h-12 w-12 opacity-80" />
-                <div className="relative z-10">
-                  <TinyLabel>Workspace access</TinyLabel>
-                  <h1 className="mt-2 text-[25px] font-semibold leading-[1.02] tracking-tight text-neutral-950">
-                    Sign in to
-                    <br />
-                    ClearPath
-                  </h1>
-                  <p className="mt-3 max-w-[230px] text-[11px] leading-5 text-neutral-500">
-                    Enter the same themed operator workflow you saw on the landing page, now tailored to your role and auth mode.
-                  </p>
-                </div>
-              </section>
+        <div className="mt-6 grid flex-1 gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <motion.section
+            initial={{ opacity: 0, x: -18 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="green-glow-hover relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(24,24,24,0.94),rgba(9,9,9,0.98))] p-7 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.72)] lg:p-10"
+          >
+            <div className="absolute -left-12 top-16 h-48 w-48 rounded-full bg-[#AAFF45]/10 blur-3xl" aria-hidden />
+            <div className="absolute bottom-0 right-0 h-56 w-56 rounded-full bg-[#AAFF45]/8 blur-3xl" aria-hidden />
 
-              <section className="rounded-[18px] border border-[#b6d400] bg-[#DFFF00] p-4">
-                <TinyLabel>Role</TinyLabel>
-                <p className="mt-3 text-sm font-semibold text-black">{role === 'company' ? 'Company workspace' : 'Transport workspace'}</p>
-              </section>
+            <BrandMark dark />
 
-              <section className="rounded-[18px] border border-black/10 bg-white p-4">
-                <TinyLabel>Auth mode</TinyLabel>
-                <p className="mt-3 text-sm font-semibold text-neutral-950">{firebaseMode ? 'Firebase primary' : 'Backend password fallback'}</p>
-              </section>
-
-              <section className="rounded-[18px] border border-black bg-[#181a23] p-4 text-white">
-                <TinyLabel dark>What this proves</TinyLabel>
-                <ul className="mt-3 space-y-2 text-sm leading-6 text-white/75">
-                  <li>Live disruption detection and route scoring.</li>
-                  <li>Role-aware workflows for company and transport teams.</li>
-                  <li>Multilingual alerts tied to real decisions.</li>
-                </ul>
-              </section>
-
-              <section className="rounded-[18px] border border-black/10 bg-white p-4">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-neutral-700" />
-                  <TinyLabel>How to sign in</TinyLabel>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-neutral-600">
-                  {firebaseMode
-                    ? 'Use your Firebase email login or Google sign-in when Firebase env values are configured.'
-                    : 'Use username admin and the admin password configured in your backend environment.'}
-                </p>
-              </section>
+            <div className="mt-12 max-w-lg">
+              <p className="text-[11px] uppercase tracking-[0.28em] text-[#AAFF45]">Clear visibility before chaos</p>
+              <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                Predict Disruptions Before They Happen
+              </h1>
+              <p className="mt-5 max-w-md text-base leading-8 text-white/68">
+                ClearPath gives Indian supply-chain teams a dark-room control surface for monitoring lanes, surfacing
+                risk early, and approving the next move with confidence.
+              </p>
             </div>
-          </div>
 
-          <section className="rounded-[28px] border border-black/10 bg-white p-5 shadow-sm sm:p-6">
-            <div className="space-y-5">
-              <div>
-                <TinyLabel>Authentication</TinyLabel>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-neutral-950">Welcome back</h2>
-                <p className="mt-2 text-sm leading-6 text-neutral-600">
-                  Sign in to your {role === 'company' ? 'shipper' : 'transporter'} workspace using the live {firebaseMode ? 'Firebase-authenticated' : 'backend'} session.
-                </p>
-              </div>
-
-              {firebaseEnabled ? (
-                <div className="rounded-[18px] border border-black/10 bg-[#f7f7f3] p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <TinyLabel>Auth mode</TinyLabel>
-                      <p className="mt-2 text-sm font-semibold text-neutral-950">{firebaseMode ? 'Firebase primary' : 'Backend password fallback'}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setFirebaseMode((current) => !current)}
-                      className="rounded-full border border-black bg-black px-4 py-2 text-[10px] font-mono uppercase tracking-[0.18em] text-white"
-                    >
-                      Switch
-                    </button>
-                  </div>
+            <div className="mt-10 space-y-4">
+              {[
+                "63M SMBs protected",
+                "18-24hr early warning",
+                "30-second rerouting",
+              ].map((item, index) => (
+                <div key={item} className="flex items-center gap-4 rounded-[22px] border border-white/10 bg-white/[0.04] px-5 py-4">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#AAFF45]/35 bg-[#AAFF45]/10 text-sm font-semibold text-[#AAFF45]">
+                    0{index + 1}
+                  </span>
+                  <span className="text-sm font-medium text-white/84">{item}</span>
                 </div>
-              ) : null}
+              ))}
+            </div>
 
-              <div>
-                <label htmlFor="login-language" className="mb-2 block text-[10px] font-mono font-semibold uppercase tracking-widest text-neutral-700">Dashboard language</label>
-                <LanguageSelect variant="inline" id="login-language" className="w-full" />
+            <div className="mt-10 inline-flex items-center gap-3 rounded-full border border-[#AAFF45]/22 bg-[#AAFF45]/8 px-4 py-2 text-sm text-white/82">
+              <span className="relative flex h-3 w-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#AAFF45]/55" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-[#AAFF45] green-pulse" />
+              </span>
+              Live AI monitoring active
+            </div>
+          </motion.section>
+
+          <motion.section
+            initial={{ opacity: 0, x: 18 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.45, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
+            className="flex items-center"
+          >
+            <div className="w-full rounded-[32px] border border-white/10 bg-[#1A1A1A] p-6 shadow-[0_30px_80px_-28px_rgba(0,0,0,0.82)] sm:p-8 lg:p-10">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.24em] text-white/42">Secure access</p>
+                  <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">Sign in to ClearPath</h2>
+                </div>
+
+                {firebaseEnabled ? (
+                  <button
+                    type="button"
+                    onClick={() => setFirebaseMode((current) => !current)}
+                    className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-white/70 transition hover:border-[#AAFF45]/30 hover:text-white"
+                  >
+                    {firebaseMode ? "Firebase mode" : "Backend mode"}
+                  </button>
+                ) : null}
               </div>
 
-              <form onSubmit={handleLogin} className="space-y-5">
+              <div className="mt-8 grid grid-cols-1 gap-2 rounded-full border border-white/10 bg-[#111111] p-1 sm:grid-cols-3">
+                {roleTabs.map((tab) => {
+                  const active = selectedRole === tab;
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setSelectedRole(tab)}
+                      className={`rounded-full px-4 py-3 text-sm font-medium capitalize transition ${
+                        active
+                          ? "bg-[#AAFF45] text-black shadow-[0_14px_30px_-18px_rgba(170,255,69,0.75)]"
+                          : "text-white/60 hover:text-white"
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-6 rounded-[24px] border border-white/8 bg-[#121212] px-5 py-4 text-sm text-white/68">
+                {statLabel(selectedRole)} with {firebaseMode ? "Firebase-authenticated" : "backend password"} access.
+              </div>
+
+              <form onSubmit={handleLogin} className="mt-8 space-y-5">
                 <div>
-                  <label htmlFor="login-username" className="mb-2 block text-[10px] font-mono font-semibold uppercase tracking-widest text-neutral-700">Username</label>
+                  <label htmlFor="login-email" className="mb-2 block text-[11px] uppercase tracking-[0.22em] text-white/48">
+                    Email
+                  </label>
                   <div className="relative">
-                    <Mail size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" aria-hidden />
+                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/34" />
                     <input
-                      id="login-username"
+                      id="login-email"
                       required
-                      type={firebaseMode ? 'email' : 'text'}
-                      value={username}
-                      onChange={(event) => setUsername(event.target.value)}
-                      placeholder={firebaseMode ? 'name@company.com' : 'admin'}
-                      autoComplete={firebaseMode ? 'email' : 'username'}
-                      className="h-12 w-full rounded-xl border border-black/15 bg-white pl-12 pr-4 text-sm text-neutral-900 placeholder:text-neutral-400 transition-all duration-200 focus:border-black focus:outline-none focus:ring-2 focus:ring-[#DFFF00]/40"
+                      type={firebaseMode ? "email" : "text"}
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      placeholder={firebaseMode ? "name@company.com" : "admin"}
+                      autoComplete={firebaseMode ? "email" : "username"}
+                      className="h-14 w-full rounded-2xl border border-white/10 bg-[#111111] pl-12 pr-4 text-base text-white placeholder:text-white/28 transition focus:border-[#AAFF45] focus:outline-none focus:ring-2 focus:ring-[#AAFF45]/25"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="login-password" className="mb-2 block text-[10px] font-mono font-semibold uppercase tracking-widest text-neutral-700">Password</label>
+                  <label htmlFor="login-password" className="mb-2 block text-[11px] uppercase tracking-[0.22em] text-white/48">
+                    Password
+                  </label>
                   <div className="relative">
-                    <Lock size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" aria-hidden />
+                    <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/34" />
                     <input
                       id="login-password"
                       required
                       type="password"
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
-                      placeholder={firebaseMode ? 'Enter your password' : 'Enter admin password'}
+                      placeholder={firebaseMode ? "Enter your password" : "Enter admin password"}
                       autoComplete="current-password"
-                      className="h-12 w-full rounded-xl border border-black/15 bg-white pl-12 pr-4 text-sm text-neutral-900 placeholder:text-neutral-400 transition-all duration-200 focus:border-black focus:outline-none focus:ring-2 focus:ring-[#DFFF00]/40"
+                      className="h-14 w-full rounded-2xl border border-white/10 bg-[#111111] pl-12 pr-4 text-base text-white placeholder:text-white/28 transition focus:border-[#AAFF45] focus:outline-none focus:ring-2 focus:ring-[#AAFF45]/25"
                     />
                   </div>
                 </div>
 
-                {authError ? <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{authError}</div> : null}
+                {authError ? (
+                  <div role="alert" className="rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                    {authError}
+                  </div>
+                ) : null}
 
                 <button
                   type="submit"
                   disabled={isSubmitting || authLoading}
-                  className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-black bg-[#DFFF00] px-5 py-3 text-xs font-semibold uppercase tracking-wide text-black transition-all duration-200 hover:bg-[#c8e800] hover:shadow-[0_8px_28px_-6px_rgba(223,255,0,0.45)] disabled:cursor-wait disabled:opacity-70"
+                  className="inline-flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#AAFF45] px-5 text-base font-semibold text-black transition hover:bg-[#95f12f] hover:shadow-[0_20px_36px_-20px_rgba(170,255,69,0.8)] disabled:cursor-wait disabled:opacity-70"
                 >
-                  {isSubmitting || authLoading ? 'Signing in...' : firebaseMode ? 'Sign in with Firebase' : 'Sign in'}
+                  {isSubmitting || authLoading ? <span className="submit-spinner" /> : null}
+                  {isSubmitting || authLoading ? "Signing In" : "Sign In"}
                 </button>
               </form>
 
@@ -216,23 +259,23 @@ export default function LoginPage() {
                   type="button"
                   onClick={handleGoogleSignIn}
                   disabled={isSubmitting || authLoading}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-black bg-[#181a23] px-5 py-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-black disabled:cursor-wait disabled:opacity-70"
+                  className="mt-4 inline-flex h-14 w-full items-center justify-center gap-3 rounded-2xl border border-white/14 bg-transparent px-5 text-base font-medium text-white transition hover:border-[#AAFF45]/35 hover:bg-white/[0.03] disabled:cursor-wait disabled:opacity-70"
                 >
-                  <Sparkles className="h-4 w-4" />
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-[11px] font-semibold text-black">G</span>
                   Continue with Google
                 </button>
               ) : null}
 
-              <p className="text-center text-xs text-neutral-500">
-                Need access for your team?{' '}
-                <Link to="/contact" className="font-medium text-neutral-950 underline-offset-4 hover:underline">
-                  Contact sales
+              <p className="mt-6 text-center text-sm text-white/52">
+                Don&apos;t have an account?{" "}
+                <Link to="/contact" className="font-medium text-[#AAFF45] hover:text-white">
+                  Register
                 </Link>
               </p>
             </div>
-          </section>
+          </motion.section>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

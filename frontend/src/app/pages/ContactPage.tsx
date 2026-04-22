@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { motion } from 'motion/react';
 import { ArrowLeft, Building2, Mail, MapPin, MessageSquare, Send, ShieldCheck, User } from 'lucide-react';
+import { toast } from 'sonner';
 
 function TinyLabel({ children, dark = false }: { children: React.ReactNode; dark?: boolean }) {
   return (
@@ -28,10 +29,18 @@ export default function ContactPage() {
   const [company, setCompany] = useState('');
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    setSubmitted(true);
+    setIsSubmitting(true);
+    window.setTimeout(() => {
+      setSubmitted(true);
+      setIsSubmitting(false);
+      toast.success('Message received', {
+        description: 'The ClearPath team will follow up with you shortly.',
+      });
+    }, 900);
   };
 
   useEffect(() => {
@@ -194,7 +203,12 @@ export default function ContactPage() {
                       </div>
                     </div>
 
-                    <button type="submit" className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-black bg-[#DFFF00] px-5 py-3 text-xs font-semibold uppercase tracking-wide text-black transition-all duration-200 hover:bg-[#c8e800] hover:shadow-[0_8px_28px_-6px_rgba(223,255,0,0.45)]">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-black bg-[#DFFF00] px-5 py-3 text-xs font-semibold uppercase tracking-wide text-black transition-all duration-200 hover:bg-[#c8e800] hover:shadow-[0_8px_28px_-6px_rgba(223,255,0,0.45)] disabled:cursor-wait disabled:opacity-70"
+                    >
+                      {isSubmitting ? <span className="submit-spinner" /> : null}
                       Send message
                       <Send size={16} strokeWidth={1.5} />
                     </button>
