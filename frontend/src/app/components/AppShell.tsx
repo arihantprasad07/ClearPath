@@ -28,6 +28,22 @@ const sidebarLinks = [
   { key: "settings", label: "Settings", icon: Settings, to: "/dashboard#settings" },
 ] as const;
 
+function roleBadge(stakeholderRole: "shipper" | "transporter" | "receiver" | null) {
+  if (stakeholderRole === "transporter") {
+    return "border-orange-400/25 bg-orange-400/10 text-orange-200";
+  }
+  if (stakeholderRole === "receiver") {
+    return "border-sky-400/25 bg-sky-400/10 text-sky-200";
+  }
+  return "border-[#AAFF45]/25 bg-[#AAFF45]/10 text-[#D9FF9B]";
+}
+
+function roleBadgeLabel(stakeholderRole: "shipper" | "transporter" | "receiver" | null) {
+  if (stakeholderRole === "transporter") return "TRK";
+  if (stakeholderRole === "receiver") return "RCV";
+  return "SHP";
+}
+
 export default function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -35,6 +51,7 @@ export default function AppShell() {
     authUser,
     logout,
     shipments,
+    stakeholderRole,
     highContrastEnabled,
     setHighContrastEnabled,
     voiceAlertsEnabled,
@@ -44,6 +61,15 @@ export default function AppShell() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const demoMode = useMemo(() => shipments.some((shipment) => shipment.backend.usedFallbackData), [shipments]);
+  const visibleSidebarLinks = useMemo(() => {
+    if (stakeholderRole === "transporter") {
+      return sidebarLinks.filter((link) => ["dashboard", "routes", "analytics", "settings"].includes(link.key));
+    }
+    if (stakeholderRole === "receiver") {
+      return sidebarLinks.filter((link) => ["dashboard", "analytics", "settings"].includes(link.key));
+    }
+    return sidebarLinks;
+  }, [stakeholderRole]);
 
   useEffect(() => {
     try {
@@ -97,10 +123,13 @@ export default function AppShell() {
             <button type="button" onClick={() => navigate("/dashboard")} className="flex items-center justify-center">
               <BrandMark compact dark />
             </button>
+            <span className={`rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] ${roleBadge(stakeholderRole)}`}>
+              {roleBadgeLabel(stakeholderRole)}
+            </span>
 
             <TooltipProvider>
               <nav className="flex flex-col gap-3">
-                {sidebarLinks.map(({ key, label, icon: Icon, to }) => {
+                {visibleSidebarLinks.map(({ key, label, icon: Icon, to }) => {
                   const active =
                     pathname === "/dashboard" &&
                     ((key === "dashboard" && !hash) ||
@@ -195,6 +224,9 @@ export default function AppShell() {
               <div className="absolute left-0 top-0 h-full w-[280px] border-r border-white/10 bg-[#0D0D0D] p-5">
                 <div className="flex items-center justify-between">
                   <BrandMark compact dark />
+                  <span className={`rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] ${roleBadge(stakeholderRole)}`}>
+                    {roleBadgeLabel(stakeholderRole)}
+                  </span>
                   <button
                     type="button"
                     onClick={() => setMobileSidebarOpen(false)}
@@ -206,7 +238,7 @@ export default function AppShell() {
                 </div>
 
                 <nav className="mt-8 space-y-3">
-                  {sidebarLinks.map(({ key, label, icon: Icon, to }) => (
+                  {visibleSidebarLinks.map(({ key, label, icon: Icon, to }) => (
                     <Link
                       key={key}
                       to={to}

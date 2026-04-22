@@ -23,10 +23,42 @@ function statLabel(tab: RoleTab) {
       : "Shipper workspace";
 }
 
+function roleAwareTagline(tab: RoleTab) {
+  if (tab === "transporter") {
+    return "Get live route instructions, disruption alerts, and updated delivery paths - directly on your phone.";
+  }
+  if (tab === "receiver") {
+    return "Track your incoming deliveries in real time. Know before delays happen, in your language.";
+  }
+  return "ClearPath gives Indian supply-chain teams a dark-room control surface for monitoring lanes, surfacing risk early, and approving the next move with confidence.";
+}
+
+function roleAwareStats(tab: RoleTab) {
+  if (tab === "transporter") {
+    return [
+      "Live route updates",
+      "Instant reroute notifications",
+      "22 Indian languages",
+    ];
+  }
+  if (tab === "receiver") {
+    return [
+      "Real-time delivery tracking",
+      "Proactive delay alerts",
+      "ETA updates in your language",
+    ];
+  }
+  return [
+    "63M SMBs protected",
+    "18-24hr early warning",
+    "30-second rerouting",
+  ];
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, loginWithFirebaseIdToken, authLoading, authError, authUser, firebaseEnabled } = useAppContext();
+  const { login, loginWithFirebaseIdToken, authLoading, authError, authUser, firebaseEnabled, setStakeholderRole } = useAppContext();
   const initialTab = location.state?.role === "supplier" ? "transporter" : "shipper";
   const [selectedRole, setSelectedRole] = useState<RoleTab>(initialTab);
   const [email, setEmail] = useState("admin");
@@ -37,8 +69,8 @@ export default function LoginPage() {
   const authRole = useMemo(() => authRoleForTab(selectedRole), [selectedRole]);
 
   useEffect(() => {
-    if (authUser) navigate("/dashboard");
-  }, [authUser, navigate]);
+    if (authUser && !isSubmitting) navigate("/dashboard");
+  }, [authUser, isSubmitting, navigate]);
 
   useEffect(() => {
     document.title = "Sign in - ClearPath";
@@ -49,13 +81,15 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
+      let user;
       if (firebaseMode) {
         const credential = await loginWithFirebaseEmail(email.trim(), password);
         const idToken = await credential.user.getIdToken();
-        await loginWithFirebaseIdToken(idToken, authRole);
+        user = await loginWithFirebaseIdToken(idToken, authRole);
       } else {
-        await login(email.trim(), password, authRole);
+        user = await login(email.trim(), password, authRole);
       }
+      setStakeholderRole((user.stakeholderRole as RoleTab | null | undefined) ?? selectedRole);
 
       toast.success("Signed in successfully", {
         description: `Opening the ${statLabel(selectedRole).toLowerCase()}.`,
@@ -76,7 +110,8 @@ export default function LoginPage() {
     try {
       const credential = await loginWithGooglePopup();
       const idToken = await credential.user.getIdToken();
-      await loginWithFirebaseIdToken(idToken, authRole);
+      const user = await loginWithFirebaseIdToken(idToken, authRole);
+      setStakeholderRole((user.stakeholderRole as RoleTab | null | undefined) ?? selectedRole);
       toast.success("Google sign-in complete", {
         description: "Your ClearPath workspace is ready.",
       });
@@ -122,17 +157,18 @@ export default function LoginPage() {
                 Predict Disruptions Before They Happen
               </h1>
               <p className="mt-5 max-w-md text-base leading-8 text-white/68">
-                ClearPath gives Indian supply-chain teams a dark-room control surface for monitoring lanes, surfacing
-                risk early, and approving the next move with confidence.
+                {roleAwareTagline(selectedRole)}
               </p>
             </div>
 
-            <div className="mt-10 space-y-4">
-              {[
-                "63M SMBs protected",
-                "18-24hr early warning",
-                "30-second rerouting",
-              ].map((item, index) => (
+            <motion.div
+              key={selectedRole}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
+              className="mt-10 space-y-4"
+            >
+              {roleAwareStats(selectedRole).map((item, index) => (
                 <div key={item} className="flex items-center gap-4 rounded-[22px] border border-white/10 bg-white/[0.04] px-5 py-4">
                   <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#AAFF45]/35 bg-[#AAFF45]/10 text-sm font-semibold text-[#AAFF45]">
                     0{index + 1}
@@ -140,7 +176,7 @@ export default function LoginPage() {
                   <span className="text-sm font-medium text-white/84">{item}</span>
                 </div>
               ))}
-            </div>
+            </motion.div>
 
             <div className="mt-10 inline-flex items-center gap-3 rounded-full border border-[#AAFF45]/22 bg-[#AAFF45]/8 px-4 py-2 text-sm text-white/82">
               <span className="relative flex h-3 w-3">

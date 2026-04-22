@@ -18,13 +18,18 @@ import { firebaseEnabled, logoutFirebase, subscribeToFirebaseAuth } from '../lib
 const LANG_STORAGE_KEY = 'clearpath-preferred-language';
 const AUTH_TOKEN_STORAGE_KEY = 'clearpath-auth-token';
 const USER_ROLE_STORAGE_KEY = 'clearpath-user-role';
+const STAKEHOLDER_ROLE_STORAGE_KEY = 'clearpath-stakeholder-role';
 const HIGH_CONTRAST_STORAGE_KEY = 'clearpath-high-contrast';
 const VOICE_ALERTS_STORAGE_KEY = 'clearpath-voice-alerts';
+
+export type StakeholderRoleView = 'shipper' | 'transporter' | 'receiver';
 
 interface AppContextType {
   authToken: string | null;
   userRole: UserRoleView | null;
   setUserRole: (role: UserRoleView | null) => void;
+  stakeholderRole: StakeholderRoleView | null;
+  setStakeholderRole: (role: StakeholderRoleView | null) => void;
   shipments: ShipmentViewModel[];
   updateShipmentRoute: (shipmentId: string, routeId: string) => Promise<void>;
   addShipment: (shipment: CreateShipmentPayload) => Promise<void>;
@@ -33,8 +38,8 @@ interface AppContextType {
   setPreferredLanguage: (code: string) => void;
   authUser: AuthUser | null;
   authLoading: boolean;
-  login: (username: string, password: string, role: UserRoleView) => Promise<void>;
-  loginWithFirebaseIdToken: (idToken: string, role: UserRoleView) => Promise<void>;
+  login: (username: string, password: string, role: UserRoleView) => Promise<AuthUser>;
+  loginWithFirebaseIdToken: (idToken: string, role: UserRoleView) => Promise<AuthUser>;
   logout: () => void;
   authError: string;
   shipmentsLoading: boolean;
@@ -68,6 +73,15 @@ function readStoredRole(): UserRoleView | null {
   }
 }
 
+function readStoredStakeholderRole(): StakeholderRoleView | null {
+  try {
+    const value = localStorage.getItem(STAKEHOLDER_ROLE_STORAGE_KEY);
+    return value === 'shipper' || value === 'transporter' || value === 'receiver' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 function readStoredToken() {
   try {
     return localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
@@ -89,6 +103,7 @@ function readStoredBoolean(key: string, fallback: boolean) {
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [userRole, setUserRoleState] = useState<UserRoleView | null>(readStoredRole);
+  const [stakeholderRole, setStakeholderRoleState] = useState<StakeholderRoleView | null>(readStoredStakeholderRole);
   const [shipments, setShipments] = useState<ShipmentViewModel[]>([]);
   const [preferredLanguage, setPreferredLanguageState] = useState<string>(readStoredLanguage);
   const [authToken, setAuthToken] = useState<string | null>(readStoredToken);
@@ -119,6 +134,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const setStakeholderRole = (role: StakeholderRoleView | null) => {
+    setStakeholderRoleState(role);
+    try {
+      if (role) {
+        localStorage.setItem(STAKEHOLDER_ROLE_STORAGE_KEY, role);
+      } else {
+        localStorage.removeItem(STAKEHOLDER_ROLE_STORAGE_KEY);
+      }
+    } catch {
+      // Ignore storage failures.
+    }
+  };
+
   const loadShipments = async (token: string) => {
     setShipmentsLoading(true);
     try {
@@ -136,6 +164,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Ignore storage failures.
     }
   }, [preferredLanguage]);
+
+  useEffect(() => {
+    try {
+      if (stakeholderRole) {
+        localStorage.setItem(STAKEHOLDER_ROLE_STORAGE_KEY, stakeholderRole);
+      } else {
+        localStorage.removeItem(STAKEHOLDER_ROLE_STORAGE_KEY);
+      }
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [stakeholderRole]);
 
   useEffect(() => {
     try {
@@ -172,6 +212,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (cancelled) return;
         setAuthToken(token);
         setAuthUser(user);
+        setStakeholderRole(user.stakeholderRole ?? readStoredStakeholderRole());
         await loadShipments(token);
       } catch (error) {
         if (cancelled) return;
@@ -182,6 +223,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         setAuthToken(null);
         setAuthUser(null);
+        setStakeholderRole(null);
         setShipments([]);
         setAuthError(error instanceof Error ? error.message : 'Session expired.');
       } finally {
@@ -202,6 +244,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (cancelled) return;
         setAuthToken(payload.accessToken);
         setAuthUser(payload.user);
+        setStakeholderRole(payload.user.stakeholderRole ?? readStoredStakeholderRole());
         try {
           localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, payload.accessToken);
         } catch {
@@ -233,12 +276,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setAuthToken(payload.accessToken);
       setAuthUser(payload.user);
       setUserRole(role);
+       setStakeholderRole(payload.user.stakeholderRole ?? null);
       try {
         localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, payload.accessToken);
       } catch {
         // Ignore storage failures.
       }
       await loadShipments(payload.accessToken);
+      return payload.user;
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : 'Sign in failed.');
       throw error;
@@ -253,6 +298,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setShipments([]);
     setAuthError('');
     setUserRole(null);
+    setStakeholderRole(null);
     try {
       localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
     } catch {
@@ -269,12 +315,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setAuthToken(payload.accessToken);
       setAuthUser(payload.user);
       setUserRole(role);
+      setStakeholderRole(payload.user.stakeholderRole ?? null);
       try {
         localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, payload.accessToken);
       } catch {
         // Ignore storage failures.
       }
       await loadShipments(payload.accessToken);
+      return payload.user;
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : 'Firebase sign in failed.');
       throw error;
@@ -334,6 +382,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       authToken,
       userRole,
       setUserRole,
+      stakeholderRole,
+      setStakeholderRole,
       shipments,
       updateShipmentRoute,
       addShipment,
@@ -355,7 +405,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       liveAnnouncement,
       demoMode,
     }),
-    [authToken, userRole, shipments, preferredLanguage, authUser, authLoading, authError, shipmentsLoading, highContrastEnabled, voiceAlertsEnabled, liveAnnouncement, demoMode],
+    [authToken, userRole, stakeholderRole, shipments, preferredLanguage, authUser, authLoading, authError, shipmentsLoading, highContrastEnabled, voiceAlertsEnabled, liveAnnouncement, demoMode],
   );
 
   return (
