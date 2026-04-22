@@ -235,27 +235,50 @@ function ComparisonColumn({
 function ContactSparkArt() {
   return (
     <div className="relative flex min-h-[360px] items-center justify-center overflow-hidden rounded-[2rem] bg-[radial-gradient(circle_at_center,rgba(170,255,69,0.18),transparent_38%),linear-gradient(180deg,#fafaf6_0%,#f0f0ea_100%)]">
-      {Array.from({ length: 14 }).map((_, index) => {
-        const rotation = index * (180 / 14);
-        return (
-          <span
-            key={rotation}
-            className="absolute h-[1px] w-[240px] bg-black/10"
-            style={{ transform: `rotate(${rotation}deg)` }}
-          />
-        );
-      })}
+      <svg viewBox="0 0 360 360" className="relative h-[260px] w-[260px]" aria-hidden>
+        <g strokeLinecap="round">
+          {[
+            [180, 24, 180, 82],
+            [180, 278, 180, 336],
+            [24, 180, 82, 180],
+            [278, 180, 336, 180],
+            [68, 68, 110, 110],
+            [250, 250, 292, 292],
+            [68, 292, 110, 250],
+            [250, 110, 292, 68],
+            [112, 38, 136, 92],
+            [224, 268, 248, 322],
+            [38, 112, 92, 136],
+            [268, 224, 322, 248],
+            [38, 248, 92, 224],
+            [268, 136, 322, 112],
+            [112, 322, 136, 268],
+            [224, 92, 248, 38],
+          ].map((line, index) => (
+            <line
+              key={index}
+              x1={line[0]}
+              y1={line[1]}
+              x2={line[2]}
+              y2={line[3]}
+              stroke={index % 3 === 0 ? "#AAFF45" : "#1A1A1A"}
+              strokeOpacity={index % 3 === 0 ? "0.55" : "0.16"}
+              strokeWidth={index % 4 === 0 ? "1.6" : "1.1"}
+            />
+          ))}
+        </g>
 
-      <svg viewBox="0 0 240 240" className="relative h-[240px] w-[240px]" aria-hidden>
         <path
-          d="M120 20 L145 95 L220 120 L145 145 L120 220 L95 145 L20 120 L95 95 Z"
-          fill="#111111"
-          opacity="0.95"
+          d="M180 58 L198 162 L302 180 L198 198 L180 302 L162 198 L58 180 L162 162 Z"
+          fill="#1A1A1A"
         />
         <path
-          d="M170 58 L182 95 L220 108 L182 121 L170 158 L157 121 L120 108 L157 95 Z"
+          d="M252 118 L262 170 L314 180 L262 190 L252 242 L242 190 L190 180 L242 170 Z"
           fill="#AAFF45"
         />
+
+        <circle cx="180" cy="180" r="5" fill="#F4F4EF" />
+        <circle cx="252" cy="180" r="3.5" fill="#F4F4EF" />
       </svg>
     </div>
   );
