@@ -23,6 +23,12 @@ const metrics = [
   { label: "Operator action time", value: "<30s" },
 ] as const;
 
+const painPointChips = [
+  "Late discovery: 6-18hr delay",
+  "Manual rerouting",
+  "Siloed stakeholders",
+] as const;
+
 const decisionSignals = [
   {
     title: "Weather",
@@ -64,6 +70,9 @@ const criteriaCards = [
   },
 ] as const;
 
+const existingTools = ["SAP SCM / Oracle", "FarEye / Locus", "WhatsApp groups"] as const;
+const clearPathWins = ["Predicts 18-24h ahead", "One-tap rerouting in 30s", "22 Indian languages, $0 cost"] as const;
+
 function LandingNav() {
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 sm:px-6">
@@ -102,6 +111,9 @@ function LandingNav() {
   );
 }
 
+/**
+ * Shows the India-scale impact metrics inside the live monitor card.
+ */
 function LiveMonitorCard() {
   return (
     <div className="relative overflow-hidden rounded-[2rem] border border-black/10 bg-black text-white shadow-[0_30px_90px_-36px_rgba(0,0,0,0.4)]">
@@ -126,16 +138,16 @@ function LiveMonitorCard() {
 
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-4">
-            <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-400">Delay probability</div>
-            <div className="mt-2 text-3xl font-semibold text-white">78%</div>
+            <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-400">SMBs in India</div>
+            <div className="mt-2 text-3xl font-semibold text-white">63M</div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-4">
-            <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-400">Best alternative</div>
-            <div className="mt-2 text-3xl font-semibold text-white">4C</div>
+            <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-400">Lost annually</div>
+            <div className="mt-2 text-3xl font-semibold text-white">₹15K Cr</div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-4">
-            <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-400">ETA protected</div>
-            <div className="mt-2 text-3xl font-semibold text-white">Yes</div>
+            <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-400">Action time</div>
+            <div className="mt-2 text-3xl font-semibold text-white">&lt;30s</div>
           </div>
         </div>
 
@@ -151,6 +163,61 @@ function LiveMonitorCard() {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Highlights Priya's problem story directly under the hero metrics.
+ */
+function PriyaStoryStrip() {
+  return (
+    <section className="mt-5 rounded-[1.6rem] border border-white/10 bg-[#181a23] p-6 text-white shadow-[0_22px_60px_-28px_rgba(0,0,0,0.35)]">
+      <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#DFFF00]">The problem we solve</div>
+      <p className="mt-4 font-['DM_Serif_Display'] text-2xl leading-tight text-white sm:text-[2rem]">
+        "Priya runs a textile business in Surat. On day 6, her shipment still hasn't arrived. She has 12 orders
+        pending. Nobody warned her. Nobody rerouted. Nobody even knew there was a problem."
+      </p>
+      <div className="mt-5 flex flex-wrap gap-2">
+        {painPointChips.map((chip) => (
+          <span
+            key={chip}
+            className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[10px] font-mono uppercase text-neutral-300"
+          >
+            {chip}
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Renders a comparison column without using table markup.
+ */
+function ComparisonColumn({
+  title,
+  items,
+  positive,
+}: {
+  title: string;
+  items: readonly string[];
+  positive: boolean;
+}) {
+  return (
+    <div className="rounded-[1.8rem] border border-black/10 bg-white p-6 shadow-sm">
+      <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">{title}</div>
+      <div className="mt-5 space-y-3">
+        {items.map((item) => (
+          <div key={item} className="flex items-center gap-3 rounded-full border border-black/10 bg-[#f7f7f3] px-4 py-3">
+            <span
+              className={`inline-flex h-2.5 w-2.5 rounded-full ${positive ? "bg-[#DFFF00]" : "bg-red-500"}`}
+              aria-hidden
+            />
+            <span className="text-sm text-neutral-700">{item}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -211,6 +278,8 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
+
+            <PriyaStoryStrip />
           </div>
 
           <div className="min-w-0">
@@ -243,6 +312,22 @@ export default function LandingPage() {
                 <p className="mt-4 text-sm leading-7 text-neutral-600">{card.body}</p>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-4 pb-8 sm:px-6 sm:pb-10 lg:pb-12">
+        <div className="mx-auto max-w-7xl rounded-[28px] border border-black/10 bg-[#f7f7f3] p-6 shadow-[0_22px_60px_-28px_rgba(0,0,0,0.12)] sm:p-8">
+          <div className="max-w-2xl">
+            <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Why teams switch</div>
+            <h2 className="mt-3 font-['DM_Serif_Display'] text-4xl tracking-tight text-neutral-950 sm:text-5xl">
+              ClearPath is built for Indian SMB operators, not heavyweight control towers.
+            </h2>
+          </div>
+
+          <div className="mt-8 grid gap-4 lg:grid-cols-2">
+            <ComparisonColumn title="Existing tools" items={existingTools} positive={false} />
+            <ComparisonColumn title="ClearPath" items={clearPathWins} positive />
           </div>
         </div>
       </section>

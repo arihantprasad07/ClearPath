@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 import confetti from 'canvas-confetti';
 import { motion } from 'motion/react';
 import {
@@ -33,6 +33,17 @@ const VOICE_LANGUAGE_CODES: Record<string, string> = {
   hi: 'hi-IN',
   gu: 'gu-IN',
   ta: 'ta-IN',
+};
+
+const APPROVAL_PREVIEW_TRANSLATIONS = {
+  hi: 'आपका शिपमेंट NH-44 पर खराब मौसम के कारण देरी का सामना कर सकता है। वैकल्पिक मार्ग NH-48 को मंजूरी दे दी गई है। कृपया नए मार्ग का पालन करें।',
+  gu: 'તમારો શિપમેન્ટ NH-44 પર ખરાબ હવામાનને કારણે વિલંબ થઈ શકે છે। વૈકલ્પિક માર્ગ NH-48 ને મંજૂરી આપવામાં આવી છે। કૃપા કરીને નવો માર્ગ અનુસરો.',
+  ta: 'NH-44 இல் மோசமான வானிலை காரணமாக உங்கள் ஏற்றுமதி தாமதமாகலாம். மாற்று வழி NH-48 அங்கீகரிக்கப்பட்டது. புதிய வழியைப் பின்பற்றவும்.',
+} as const;
+
+type ApprovalSummary = {
+  routeId: string;
+  approvedAt: string;
 };
 
 function ConfidenceBadge({ value }: { value: string }) {
@@ -74,13 +85,70 @@ function formatCurrency(value: number | null | undefined) {
   }).format(value);
 }
 
+/**
+ * Formats the approval timestamp in a local, human-readable way.
+ */
+function formatApprovalTimestamp(value: string) {
+  return new Intl.DateTimeFormat('en-IN', {
+    hour: 'numeric',
+    minute: '2-digit',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(value));
+}
+
+/**
+ * Returns the on-screen preview copy for the selected transporter language tab.
+ */
+function buildAlertPreviewMessage(
+  language: 'en' | 'hi' | 'gu' | 'ta',
+  fallbackMessage: string,
+  englishMessage: string,
+) {
+  if (language === 'en') return englishMessage;
+  return APPROVAL_PREVIEW_TRANSLATIONS[language] || fallbackMessage;
+}
+
+/**
+ * Shows the post-approval state used in the demo moment.
+ */
+function ApprovalConfirmationPanel({ approval }: { approval: ApprovalSummary }) {
+  return (
+    <section className="rounded-[1.8rem] border border-[#DFFF00]/40 bg-[#DFFF00]/10 p-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="rounded-full border border-black bg-[#DFFF00] px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-black">
+          ✓ Route approved
+        </span>
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/0 bg-white/70 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-700">
+          <span className="h-2.5 w-2.5 rounded-full bg-[#25D366]" aria-hidden />
+          Transporter notified via WhatsApp in Hindi
+        </span>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-[18px] border border-black/10 bg-white/70 p-4">
+          <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">New ETA</p>
+          <p className="mt-2 text-sm font-semibold text-neutral-950">Protected</p>
+        </div>
+        <div className="rounded-[18px] border border-black/10 bg-white/70 p-4">
+          <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Stakeholders</p>
+          <p className="mt-2 text-sm font-semibold text-neutral-950">All stakeholders updated</p>
+        </div>
+        <div className="rounded-[18px] border border-black/10 bg-white/70 p-4">
+          <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Approved at</p>
+          <p className="mt-2 text-sm font-semibold text-neutral-950">{formatApprovalTimestamp(approval.approvedAt)}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function ShipmentDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { authUser, preferredLanguage, shipments, userRole, updateShipmentRoute, voiceAlertsEnabled } = useAppContext();
 
   const shipment = shipments.find((candidate) => candidate.id === id);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [approval, setApproval] = useState<ApprovalSummary | null>(null);
   const [approvingRouteId, setApprovingRouteId] = useState<string | null>(null);
   const [routeError, setRouteError] = useState<string | null>(null);
   const [selectedAlertLanguage, setSelectedAlertLanguage] = useState<'en' | 'hi' | 'gu' | 'ta'>('en');
@@ -92,14 +160,26 @@ export default function ShipmentDetail() {
 
   useEffect(() => {
     if (!shipment) return;
-    const nextLanguage = (['en', 'hi', 'gu', 'ta'].includes(preferredLanguage) ? preferredLanguage : 'en') as 'en' | 'hi' | 'gu' | 'ta';
+    const nextLanguage = (['en', 'hi', 'gu', 'ta'].includes(preferredLanguage) ? preferredLanguage : 'en') as
+      | 'en'
+      | 'hi'
+      | 'gu'
+      | 'ta';
     setSelectedAlertLanguage(nextLanguage);
   }, [preferredLanguage, shipment?.id]);
 
+  /**
+   * Reads the active alert out loud when speech synthesis is available.
+   */
   const speakAlert = (languageCode?: string) => {
     if (!shipment || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
     const lang = languageCode || preferredLanguage || 'en';
-    const message = shipment.backend.alert?.translations?.[lang] || shipment.backend.alert?.translations?.en || shipment.backend.alert?.message || shipment.alert || '';
+    const message =
+      shipment.backend.alert?.translations?.[lang] ||
+      shipment.backend.alert?.translations?.en ||
+      shipment.backend.alert?.message ||
+      shipment.alert ||
+      '';
     if (!message) return;
     const utterance = new SpeechSynthesisUtterance(message);
     utterance.lang = VOICE_LANGUAGE_CODES[lang] || 'en-IN';
@@ -123,13 +203,20 @@ export default function ShipmentDetail() {
   }
 
   const explanation = shipment.backend.explanation;
-  const selectedTranslation =
-    shipment.backend.alert?.translations?.[selectedAlertLanguage] ||
+  const englishPreview =
     shipment.backend.alert?.translations?.en ||
     shipment.backend.alert?.message ||
     shipment.alert ||
     'Translation unavailable';
+  const selectedTranslation = buildAlertPreviewMessage(
+    selectedAlertLanguage,
+    shipment.backend.alert?.translations?.[selectedAlertLanguage] || englishPreview,
+    englishPreview,
+  );
 
+  /**
+   * Approves the chosen route and reveals the post-approval confirmation state.
+   */
   const handleApprove = async (routeId: string) => {
     try {
       setRouteError(null);
@@ -141,11 +228,10 @@ export default function ShipmentDetail() {
         origin: { y: 0.5 },
         colors: ['#DFFF00', '#000000', '#ffffff'],
       });
-      setShowSuccess(true);
-      window.setTimeout(() => {
-        setShowSuccess(false);
-        navigate('/dashboard');
-      }, 1600);
+      setApproval({
+        routeId,
+        approvedAt: new Date().toISOString(),
+      });
     } catch (error) {
       setRouteError(error instanceof Error ? error.message : 'Unable to apply the selected route.');
     } finally {
@@ -155,7 +241,10 @@ export default function ShipmentDetail() {
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 pb-10">
-      <Link to="/dashboard" className="inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-neutral-600 transition-colors hover:text-black">
+      <Link
+        to="/dashboard"
+        className="inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-neutral-600 transition-colors hover:text-black"
+      >
         <ArrowLeft size={16} className="shrink-0" aria-hidden />
         <span className="truncate">Back to dashboard</span>
       </Link>
@@ -190,7 +279,15 @@ export default function ShipmentDetail() {
               <div className="rounded-[20px] border border-black/10 bg-[#f7f7f3] p-5">
                 <div className="text-[10px] font-mono uppercase tracking-widest text-neutral-500">Risk score</div>
                 <div className="mt-3 flex items-center gap-3">
-                  <span className={`inline-flex h-3 w-3 rounded-full ${shipment.backend.risk.score >= 70 ? 'animate-pulse bg-red-500' : shipment.backend.risk.score >= 45 ? 'animate-pulse bg-amber-400' : 'animate-pulse bg-emerald-500'}`} />
+                  <span
+                    className={`inline-flex h-3 w-3 rounded-full ${
+                      shipment.backend.risk.score >= 70
+                        ? 'animate-pulse bg-red-500'
+                        : shipment.backend.risk.score >= 45
+                          ? 'animate-pulse bg-amber-400'
+                          : 'animate-pulse bg-emerald-500'
+                    }`}
+                  />
                   <span className="text-3xl font-semibold text-neutral-950">{shipment.backend.risk.score}%</span>
                 </div>
               </div>
@@ -209,6 +306,7 @@ export default function ShipmentDetail() {
       </section>
 
       {routeError ? <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{routeError}</div> : null}
+      {approval ? <ApprovalConfirmationPanel approval={approval} /> : null}
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-6">
@@ -297,7 +395,9 @@ export default function ShipmentDetail() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.08, duration: 0.35 }}
                   className={`rounded-[24px] border p-5 ${
-                    route.isRecommended ? 'border-[#b6d400] bg-[#faffd9] shadow-[0_20px_50px_-36px_rgba(223,255,0,0.85)]' : 'border-black/10 bg-[#181a23] text-white'
+                    route.isRecommended
+                      ? 'border-[#b6d400] bg-[#faffd9] shadow-[0_20px_50px_-36px_rgba(223,255,0,0.85)]'
+                      : 'border-black/10 bg-[#181a23] text-white'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -337,7 +437,11 @@ export default function ShipmentDetail() {
                     </div>
                   </div>
 
-                  <div className={`mt-5 rounded-[18px] border px-4 py-4 text-sm leading-6 ${route.isRecommended ? 'border-black/10 bg-white/60 text-neutral-700' : 'border-white/10 bg-white/5 text-white/75'}`}>
+                  <div
+                    className={`mt-5 rounded-[18px] border px-4 py-4 text-sm leading-6 ${
+                      route.isRecommended ? 'border-black/10 bg-white/60 text-neutral-700' : 'border-white/10 bg-white/5 text-white/75'
+                    }`}
+                  >
                     {route.tradeOff}
                   </div>
 
@@ -355,7 +459,11 @@ export default function ShipmentDetail() {
                       {approvingRouteId === route.id ? 'Applying route...' : route.isRecommended ? 'Approve route' : 'Approve alternate'}
                     </button>
                   ) : (
-                    <div className={`mt-5 rounded-xl border py-3 text-center text-[10px] font-mono uppercase tracking-[0.18em] ${route.isRecommended ? 'border-black/10 bg-white/70 text-black/70' : 'border-white/10 bg-white/5 text-white/60'}`}>
+                    <div
+                      className={`mt-5 rounded-xl border py-3 text-center text-[10px] font-mono uppercase tracking-[0.18em] ${
+                        route.isRecommended ? 'border-black/10 bg-white/70 text-black/70' : 'border-white/10 bg-white/5 text-white/60'
+                      }`}
+                    >
                       Awaiting company approval
                     </div>
                   )}
@@ -489,25 +597,6 @@ export default function ShipmentDetail() {
           </section>
         </div>
       </div>
-
-      {showSuccess ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <motion.div
-            initial={{ scale: 0.85, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-            className="max-w-md rounded-2xl border border-[#DFFF00]/45 bg-black p-8 text-center shadow-lg"
-          >
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#DFFF00] text-black shadow-md">
-              <CheckCircle size={32} aria-hidden />
-            </div>
-            <h3 className="text-2xl text-white">Route locked in.</h3>
-            <p className="mt-2 text-sm text-neutral-300">
-              {authUser?.role === 'admin' ? 'The live route selection has been saved to the backend.' : 'The live route selection has been saved.'}
-            </p>
-          </motion.div>
-        </div>
-      ) : null}
     </div>
   );
 }

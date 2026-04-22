@@ -4,6 +4,12 @@ import { ArrowLeft, Brain, MapPin, Send, ShieldCheck, Sparkles } from 'lucide-re
 import { useAppContext } from '../context/AppContext';
 import { geocodeLocation } from '../lib/api';
 
+const COMMON_ROUTE_PRESETS = [
+  { label: 'Mumbai → Delhi', source: 'Mumbai', destination: 'Delhi' },
+  { label: 'Surat → Chennai', source: 'Surat', destination: 'Chennai' },
+  { label: 'Pune → Kolkata', source: 'Pune', destination: 'Kolkata' },
+] as const;
+
 function TinyLabel({ children, dark = false }: { children: React.ReactNode; dark?: boolean }) {
   return (
     <p className={`text-[9px] font-mono uppercase tracking-[0.22em] ${dark ? 'text-white/60' : 'text-neutral-500'}`}>
@@ -73,6 +79,14 @@ function ResolvedLocation({
   return <p className="mt-2 text-xs text-neutral-600">{label}</p>;
 }
 
+/**
+ * Returns whether monsoon-season messaging should be shown.
+ */
+function isMonsoonSeasonActive() {
+  const month = new Date().getMonth() + 1;
+  return month >= 6 && month <= 9;
+}
+
 export default function AddShipment() {
   const navigate = useNavigate();
   const { addShipment, authToken, userRole } = useAppContext();
@@ -90,6 +104,7 @@ export default function AddShipment() {
   const [destinationLoading, setDestinationLoading] = useState(false);
 
   const isCompany = userRole === 'company';
+  const monsoonSeasonActive = isMonsoonSeasonActive();
 
   useEffect(() => {
     document.title = 'New Lane - ClearPath';
@@ -153,6 +168,14 @@ export default function AddShipment() {
     if (priority === 'express') return 'Express priority tightens the monitoring threshold for earlier intervention.';
     return 'Ready to create a live lane with geocoding, route ranking, and AI explanation.';
   }, [destination, priority, source]);
+
+  /**
+   * Applies one of the common Indian route presets for faster demo setup.
+   */
+  const applyRoutePreset = (preset: (typeof COMMON_ROUTE_PRESETS)[number]) => {
+    setSource(preset.source);
+    setDestination(preset.destination);
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -238,6 +261,30 @@ export default function AddShipment() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="mb-3 block text-[10px] font-mono font-semibold uppercase tracking-widest text-neutral-700">
+                  Common Indian routes
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {COMMON_ROUTE_PRESETS.map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => applyRoutePreset(preset)}
+                      className="rounded-full border border-black/10 bg-white px-4 py-2 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-700 transition hover:border-black hover:bg-neutral-50"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {monsoonSeasonActive ? (
+                <div className="rounded-[16px] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
+                  ⚠️ Monsoon season active. Risk scores on this route will include seasonal weather weighting.
+                </div>
+              ) : null}
+
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <label htmlFor="add-source" className="mb-2 block text-[10px] font-mono font-semibold uppercase tracking-widest text-neutral-700">
