@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Brain,
+  ChevronDown,
   Globe2,
   MapPinned,
   Package,
@@ -82,6 +83,43 @@ function StatTile({
   );
 }
 
+function RiskPulse({ score }: { score: number }) {
+  const tone =
+    score >= 70
+      ? 'bg-red-500 shadow-[0_0_0_6px_rgba(239,68,68,0.18)]'
+      : score >= 45
+        ? 'bg-amber-400 shadow-[0_0_0_6px_rgba(251,191,36,0.18)]'
+        : 'bg-emerald-500 shadow-[0_0_0_6px_rgba(34,197,94,0.16)]';
+
+  return <span className={`inline-flex h-2.5 w-2.5 animate-pulse rounded-full ${tone}`} aria-hidden />;
+}
+
+function ConfidenceBadge({ value }: { value: string }) {
+  const tone =
+    value === 'High'
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+      : value === 'Low'
+        ? 'border-red-200 bg-red-50 text-red-700'
+        : 'border-amber-200 bg-amber-50 text-amber-700';
+
+  return (
+    <span className={`rounded-full border px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] ${tone}`}>
+      {value}
+    </span>
+  );
+}
+
+function UrgencyBadge({ value }: { value: string }) {
+  const tone =
+    value === 'Act now'
+      ? 'text-red-600'
+      : value === 'Monitor'
+        ? 'text-amber-600'
+        : 'text-emerald-600';
+
+  return <span className={`text-[10px] font-mono uppercase tracking-[0.18em] ${tone}`}>{value}</span>;
+}
+
 function EmptyWorkspace({ isCompany }: { isCompany: boolean }) {
   return (
     <div className="rounded-[24px] border border-dashed border-black/15 bg-[#f7f7f3] p-6 sm:p-8">
@@ -129,6 +167,14 @@ function ShipmentListCard({
   refreshingId: string | null;
   onRefresh: (shipmentId: string) => void;
 }) {
+  const [openReasoningId, setOpenReasoningId] = useState<string | null>(shipments[0]?.id || null);
+
+  useEffect(() => {
+    if (!shipments.some((shipment) => shipment.id === openReasoningId)) {
+      setOpenReasoningId(shipments[0]?.id || null);
+    }
+  }, [openReasoningId, shipments]);
+
   return (
     <ShellCard>
       <div className="flex items-center justify-between gap-3">
@@ -144,18 +190,17 @@ function ShipmentListCard({
       <div className="mt-5 space-y-3">
         {shipments.length ? (
           shipments.map((shipment) => {
-            const riskTone =
-              shipment.riskLevel === 'high'
-                ? 'text-red-600'
-                : shipment.riskLevel === 'medium'
-                  ? 'text-amber-600'
-                  : 'text-emerald-600';
+            const explanation = shipment.backend.explanation;
+            const isOpen = openReasoningId === shipment.id;
 
             return (
               <div key={shipment.id} className="rounded-[20px] border border-black/10 bg-[#fafaf6] p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-neutral-950">{shipment.name}</p>
+                    <div className="flex items-center gap-2">
+                      <RiskPulse score={shipment.backend.risk.score} />
+                      <p className="truncate text-sm font-semibold text-neutral-950">{shipment.name}</p>
+                    </div>
                     <p className="mt-1 text-xs text-neutral-500">
                       {shipment.source} <span className="text-neutral-300">{'->'}</span> {shipment.destination}
                     </p>
@@ -171,21 +216,20 @@ function ShipmentListCard({
                   </button>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span className={`rounded-full border border-current/15 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] ${riskTone}`}>
-                    {shipment.riskLevel} risk
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-black/10 bg-white px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-700">
+                    Risk {shipment.backend.risk.score}
                   </span>
                   <span className="rounded-full border border-black/10 bg-white px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">
                     {shipment.currentRoute}
                   </span>
-                  <span className="rounded-full border border-black/10 bg-white px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">
-                    {shipment.eta}
-                  </span>
+                  <ConfidenceBadge value={explanation?.confidence || 'Medium'} />
+                  <UrgencyBadge value={explanation?.urgency || 'Monitor'} />
                 </div>
 
                 <div className="mt-4 flex items-center justify-between gap-3">
                   <p className="line-clamp-2 text-sm leading-6 text-neutral-600">
-                    {shipment.backend.explanation?.summary || shipment.backend.statusMessage}
+                    {explanation?.headline || explanation?.summary || shipment.backend.statusMessage}
                   </p>
                   <Link
                     to={`/shipment/${shipment.id}`}
@@ -195,6 +239,27 @@ function ShipmentListCard({
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setOpenReasoningId(isOpen ? null : shipment.id)}
+                  className="mt-4 inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-700"
+                >
+                  Gemini reasoning
+                  <ChevronDown className={`h-4 w-4 transition ${isOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {isOpen ? (
+                  <div className="mt-3 rounded-[18px] border border-black/10 bg-white p-4">
+                    <p className="text-sm font-semibold text-neutral-950">
+                      {explanation?.headline || 'Reasoning will appear after analysis completes.'}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-neutral-600">{explanation?.why || explanation?.summary || shipment.backend.statusMessage}</p>
+                    <p className="mt-3 text-[11px] font-mono uppercase tracking-[0.18em] text-neutral-500">
+                      {explanation?.recommendation || shipment.backend.decision.recommendedAction}
+                    </p>
+                  </div>
+                ) : null}
               </div>
             );
           })
@@ -249,7 +314,7 @@ export default function Dashboard() {
   const latestShipment = sorted[0] ?? null;
   const activeCount = sorted.length;
   const criticalCount = sorted.filter((shipment) => shipment.riskLevel === 'high').length;
-  const aiCount = sorted.filter((shipment) => shipment.backend.explanation?.summary).length;
+  const aiCount = sorted.filter((shipment) => shipment.backend.explanation?.headline || shipment.backend.explanation?.summary).length;
   const avgConfidence = activeCount
     ? Math.round(sorted.reduce((sum, shipment) => sum + (shipment.backend.decision.confidence || 0), 0) / activeCount)
     : 0;
@@ -349,7 +414,7 @@ export default function Dashboard() {
                 <div className="rounded-[22px] border border-black/10 bg-[#f7f7f3] p-4">
                   <TinyLabel>Primary action</TinyLabel>
                   <p className="mt-4 text-lg font-semibold leading-8 text-neutral-950">
-                    {latestShipment?.backend.decision.recommendedAction || 'Approve a safer alternate route before the current lane accumulates delay.'}
+                    {latestShipment?.backend.explanation?.recommendation || latestShipment?.backend.decision.recommendedAction || 'Approve a safer alternate route before the current lane accumulates delay.'}
                   </p>
                 </div>
                 <div className="rounded-[22px] border border-[#b6d400] bg-[#DFFF00] p-4">
@@ -361,6 +426,10 @@ export default function Dashboard() {
                 <div className="rounded-[22px] border border-black bg-[#181a23] p-4 text-white">
                   <TinyLabel dark>Live route</TinyLabel>
                   <p className="mt-4 text-3xl font-semibold">{latestShipment?.currentRoute || 'Pending'}</p>
+                  <div className="mt-4 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.18em] text-white/65">
+                    <RiskPulse score={latestShipment?.backend.risk.score || 0} />
+                    Risk pulse active
+                  </div>
                 </div>
               </div>
 
@@ -406,13 +475,19 @@ export default function Dashboard() {
                   <Brain className="h-4 w-4 text-[#DFFF00]" />
                 </div>
 
-                <p className="mt-5 rounded-[20px] border border-white/10 bg-white/5 px-4 py-4 text-sm leading-7 text-white/80">
-                  {latestShipment?.backend.explanation?.summary ||
-                    latestShipment?.backend.statusMessage ||
-                    'Create a lane to generate the first AI reasoning block.'}
-                </p>
+                <div className="mt-5 space-y-4 rounded-[20px] border border-white/10 bg-white/5 px-4 py-4">
+                  <p className="text-base font-semibold text-white">
+                    {latestShipment?.backend.explanation?.headline || 'Create a lane to generate the first AI reasoning block.'}
+                  </p>
+                  <p className="text-sm leading-7 text-white/80">
+                    {latestShipment?.backend.explanation?.why || latestShipment?.backend.statusMessage}
+                  </p>
+                  <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-[#DFFF00]">
+                    {latestShipment?.backend.explanation?.recommendation || latestShipment?.backend.decision.recommendedAction || 'Awaiting recommendation'}
+                  </p>
+                </div>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                <div className="mt-5 grid gap-3 sm:grid-cols-4">
                   <div className="rounded-[18px] bg-white/5 px-4 py-4">
                     <TinyLabel dark>Mode</TinyLabel>
                     <p className="mt-3 text-sm font-semibold text-white">
@@ -426,15 +501,16 @@ export default function Dashboard() {
                     </p>
                   </div>
                   <div className="rounded-[18px] bg-white/5 px-4 py-4">
-                    <TinyLabel dark>Detail</TinyLabel>
-                    {latestShipment ? (
-                      <Link to={`/shipment/${latestShipment.id}`} className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#DFFF00]">
-                        Open
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    ) : (
-                      <p className="mt-3 text-sm font-semibold text-white">n/a</p>
-                    )}
+                    <TinyLabel dark>Confidence</TinyLabel>
+                    <p className="mt-3 text-sm font-semibold text-white">
+                      {latestShipment?.backend.explanation?.confidence || 'Medium'}
+                    </p>
+                  </div>
+                  <div className="rounded-[18px] bg-white/5 px-4 py-4">
+                    <TinyLabel dark>Urgency</TinyLabel>
+                    <p className="mt-3 text-sm font-semibold text-[#DFFF00]">
+                      {latestShipment?.backend.explanation?.urgency || 'Monitor'}
+                    </p>
                   </div>
                 </div>
               </ShellCard>
@@ -501,11 +577,11 @@ export default function Dashboard() {
               <div className="mt-5 space-y-3 font-mono text-[11px] uppercase tracking-[0.18em]">
                 <div className="flex items-center justify-between rounded-[18px] border border-black/10 bg-[#fafaf6] px-4 py-4">
                   <span className="text-neutral-500">Confidence</span>
-                  <span className="text-neutral-950">{latestShipment?.backend.decision.confidence ?? 0}%</span>
+                  <span className="text-neutral-950">{latestShipment?.backend.explanation?.confidence || 'Medium'}</span>
                 </div>
                 <div className="flex items-center justify-between rounded-[18px] border border-black/10 bg-[#fafaf6] px-4 py-4">
-                  <span className="text-neutral-500">Role</span>
-                  <span className="text-neutral-950">{isCompany ? 'company' : 'transport'}</span>
+                  <span className="text-neutral-500">Urgency</span>
+                  <span className="text-neutral-950">{latestShipment?.backend.explanation?.urgency || 'Monitor'}</span>
                 </div>
                 <div className="flex items-center justify-between rounded-[18px] border border-black/10 bg-[#fafaf6] px-4 py-4">
                   <span className="text-neutral-500">Analysis</span>

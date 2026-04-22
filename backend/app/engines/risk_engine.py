@@ -1,7 +1,40 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 from ..schemas import DelayPayload, PredictionWindow, RiskPayload, RiskReason
 from ..utils import clamp, format_delay
+
+
+INDIA_OFFSET = timedelta(hours=5, minutes=30)
+
+
+def _indian_hour(reference_time: datetime | None = None) -> int:
+    """Return the current hour in India for time-of-day weighting."""
+    now = reference_time or datetime.now(UTC)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=UTC)
+    return (now.astimezone(UTC) + INDIA_OFFSET).hour
+
+
+def _is_peak_hour(reference_time: datetime | None = None) -> bool:
+    """Identify Indian logistics peak windows for route pressure."""
+    hour = _indian_hour(reference_time)
+    return 8 <= hour < 10 or 17 <= hour < 20
+
+
+def _is_monsoon_month(reference_time: datetime | None = None) -> bool:
+    """Flag Indian monsoon months that amplify weather-driven disruption."""
+    now = reference_time or datetime.now(UTC)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=UTC)
+    month = (now.astimezone(UTC) + INDIA_OFFSET).month
+    return 6 <= month <= 9
+
+
+def _negative_signal_count(*signals: float) -> int:
+    """Count how many signals are trending negatively enough to agree."""
+    return sum(1 for signal in signals if signal >= 0.55)
 
 
 def compute_risk(
@@ -13,6 +46,9 @@ def compute_risk(
     road_severity: float = 0.0,
     history_signal: float | None = None,
 ) -> tuple[RiskPayload, DelayPayload, PredictionWindow]:
+    monsoon_active = _is_monsoon_month()
+    peak_hour_active = _is_peak_hour()
+    weather_risk_bonus = 8 if monsoon_active else 0
     congestion_index = round(
         clamp((traffic * 0.58) + (weather_severity * 0.14) + (port_severity * 0.14) + (road_severity * 0.14), 0, 1),
         2,
@@ -38,7 +74,11 @@ def compute_risk(
         + historical_pattern_score * 0.11
         + clamp(route_length_km / 5000, 0, 1) * 0.07
     )
-    score = int(round(clamp(weighted, 0, 1) * 100))
+    base_score = clamp(weighted, 0, 1) * 100
+    negative_signal_count = _negative_signal_count(weather_severity, traffic, port_severity, road_severity, historical_pattern_score)
+    agreement_bonus = 12 if negative_signal_count >= 3 else 0
+    peak_bonus = 10 if peak_hour_active else 0
+    score = int(round(clamp(base_score + weather_risk_bonus + peak_bonus + agreement_bonus, 0, 100)))
     delay_hours = round(
         0.55
         + weather_severity * 1.4
@@ -48,14 +88,17 @@ def compute_risk(
         + congestion_index * 0.65,
         2,
     )
-    probability = round(clamp(0.22 + weighted * 0.73, 0, 0.99), 2)
+    probability = round(clamp(0.22 + (score / 100) * 0.73, 0, 0.99), 2)
 
     reasons = [
         RiskReason(
             type="weather",
             icon="WX",
             description=f"Weather signal is building: {weather_summary}",
-            impact=f"{int(round(weather_severity * 100))}% weather pressure on the corridor",
+            impact=(
+                f"{int(round(weather_severity * 100))}% weather pressure on the corridor"
+                + (" with monsoon uplift applied" if monsoon_active else "")
+            ),
         ),
         RiskReason(
             type="traffic",
@@ -82,6 +125,24 @@ def compute_risk(
             impact=f"{int(round(road_severity * 100))}% highway disruption pressure",
         ),
     ]
+    if peak_hour_active:
+        reasons.append(
+            RiskReason(
+                type="timing",
+                icon="TIME",
+                description="The lane is moving through a peak Indian dispatch window with higher congestion sensitivity",
+                impact="10-point peak-hour weighting applied to the final score",
+            )
+        )
+    if negative_signal_count >= 3:
+        reasons.append(
+            RiskReason(
+                type="agreement",
+                icon="SYNC",
+                description="Three or more signals are trending negative together, which raises confidence in the disruption pattern",
+                impact="12-point consecutive signal agreement bonus applied",
+            )
+        )
 
     if score >= 78:
         level = "critical"

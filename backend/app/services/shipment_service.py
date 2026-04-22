@@ -11,8 +11,18 @@ from .analyze_service import analyze_route_pair
 from .event_service import record_operational_event
 
 
-def _is_alert_active(risk_score: int) -> bool:
-    return risk_score >= settings.risk_alert_threshold
+def _priority_adjusted_threshold(priority: str) -> int:
+    """Lower the alert threshold for more urgent shipment priorities."""
+    if priority == "critical":
+        return max(1, settings.risk_alert_threshold - 15)
+    if priority == "express":
+        return max(1, settings.risk_alert_threshold - 8)
+    return settings.risk_alert_threshold
+
+
+def _is_alert_active(risk_score: int, priority: str) -> bool:
+    """Determine whether a shipment should raise an active alert."""
+    return risk_score >= _priority_adjusted_threshold(priority)
 
 
 def _build_shipment_alert(record: ShipmentRecord, timestamp: str) -> ShipmentAlert:
@@ -24,9 +34,13 @@ def _build_shipment_alert(record: ShipmentRecord, timestamp: str) -> ShipmentAle
 
 
 def _derive_status(record: ShipmentRecord, previous_record: ShipmentRecord | None = None) -> ShipmentRecord:
-    is_risky = _is_alert_active(record.risk.score)
+    is_risky = _is_alert_active(record.risk.score, record.priority)
     status = "risk_detected" if is_risky else "stable"
-    crossed_threshold = previous_record is not None and not _is_alert_active(previous_record.risk.score) and is_risky
+    crossed_threshold = (
+        previous_record is not None
+        and not _is_alert_active(previous_record.risk.score, previous_record.priority)
+        and is_risky
+    )
     alert_message = record.alert.message if is_risky else None
     timestamp = record.last_monitored_at or record.updated_at
     active_alert = _build_shipment_alert(record, timestamp) if is_risky else None
@@ -81,7 +95,15 @@ async def get_shipment(shipment_id: str, current_user: AuthUser | None = None) -
 async def create_shipment(request: ShipmentCreateRequest, current_user: AuthUser | None = None) -> ShipmentRecord:
     source = await geocode_location(request.source_query)
     destination = await geocode_location(request.destination_query)
-    analysis = await analyze_route_pair(AnalyzeRequest(source=source, destination=destination, active_route_id="primary"))
+    analysis = await analyze_route_pair(
+        AnalyzeRequest(
+            source=source,
+            destination=destination,
+            activeRouteId="primary",
+            priority=request.priority,
+            estimatedCargoValue=request.estimated_cargo_value,
+        )
+    )
     now = datetime.now(UTC).isoformat()
     org_id = current_user.org_id if current_user else "default-org"
 
@@ -92,6 +114,8 @@ async def create_shipment(request: ShipmentCreateRequest, current_user: AuthUser
         destinationQuery=request.destination_query,
         source=source,
         destination=destination,
+        priority=request.priority,
+        estimatedCargoValue=request.estimated_cargo_value,
         route=analysis.active_route_id,
         riskScore=analysis.risk.score,
         status="monitoring",
@@ -148,7 +172,13 @@ async def refresh_shipment(shipment_id: str, *, monitored: bool = False, current
     current = await get_shipment(shipment_id, current_user)
 
     analysis = await analyze_route_pair(
-        AnalyzeRequest(source=current.source, destination=current.destination, active_route_id=current.active_route_id)
+        AnalyzeRequest(
+            source=current.source,
+            destination=current.destination,
+            activeRouteId=current.active_route_id,
+            priority=current.priority,
+            estimatedCargoValue=current.estimated_cargo_value,
+        )
     )
     monitored_at = datetime.now(UTC).isoformat()
     updated = current.model_copy(
@@ -199,6 +229,7 @@ async def refresh_shipment(shipment_id: str, *, monitored: bool = False, current
             update={
                 "status_message": (
                     f"Monitoring detected risk above the alert threshold ({settings.risk_alert_threshold}). "
+                    f"Priority-adjusted threshold is {_priority_adjusted_threshold(updated.priority)}. "
                     "Shipment status and alert flag were updated automatically."
                 )
             }

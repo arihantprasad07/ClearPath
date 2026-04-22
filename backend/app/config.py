@@ -1,4 +1,4 @@
-from pydantic import Field, field_validator, model_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     monitoring_interval_seconds: int = Field(default=15, ge=5, le=3600)
     risk_alert_threshold: int = Field(default=70, ge=1, le=100)
     # REQUIRED: Set in .env - no default is baked into the app.
-    jwt_secret_key: str = ""
+    jwt_secret_key: str = Field(default="", validation_alias=AliasChoices("JWT_SECRET_KEY", "SECRET_KEY"))
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = Field(default=720, ge=15, le=10080)
     admin_username: str = "admin"
@@ -76,8 +76,10 @@ class Settings(BaseSettings):
     @classmethod
     def validate_auth_mode(cls, value: str) -> str:
         normalized = value.strip().lower()
+        if normalized == "password":
+            return "app_jwt"
         if normalized not in {"app_jwt", "firebase_bridge", "firebase_primary"}:
-            raise ValueError("AUTH_MODE must be one of: app_jwt, firebase_bridge, firebase_primary.")
+            raise ValueError("AUTH_MODE must be one of: app_jwt, firebase_bridge, firebase_primary, password.")
         return normalized
 
     @model_validator(mode="after")

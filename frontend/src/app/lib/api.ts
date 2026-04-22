@@ -38,6 +38,9 @@ export interface BackendRouteOption {
   waypoints: Array<{ lat: number; lng: number; label?: string | null }>;
   timeSavedMinutes: number;
   decisionFit: string;
+  valueScore: number;
+  recommendedFlag: boolean;
+  tradeOff: string;
 }
 
 export interface BackendShipmentRecord {
@@ -46,6 +49,10 @@ export interface BackendShipmentRecord {
   destinationQuery: string;
   source: { lat: number; lng: number; label?: string | null };
   destination: { lat: number; lng: number; label?: string | null };
+  priority?: 'standard' | 'express' | 'critical';
+  estimatedCargoValue?: number | null;
+  cargoType?: string | null;
+  weightKg?: number | null;
   route: string;
   riskScore: number;
   status: 'monitoring' | 'stable' | 'risk_detected';
@@ -79,12 +86,15 @@ export interface BackendShipmentRecord {
     summary: string;
   };
   explanation?: {
+    headline: string;
+    why: string;
+    recommendation: string;
+    confidence: 'High' | 'Medium' | 'Low' | string;
+    urgency: 'Act now' | 'Monitor' | 'Low priority' | string;
     title: string;
     summary: string;
     cause: string;
     delayEstimate: string;
-    recommendation: string;
-    confidence: string;
     reasoning: string[];
   };
   decision: {
@@ -138,9 +148,14 @@ export interface RouteCardModel {
   id: string;
   name: string;
   eta: string;
+  etaHours: number;
   cost: string;
+  costValue: number;
   reliability: string;
+  reliabilityValue: number;
   riskScore: number;
+  valueScore: number;
+  tradeOff: string;
   isRecommended: boolean;
 }
 
@@ -154,6 +169,7 @@ export interface ShipmentViewModel {
   currentRoute: string;
   transporter: string;
   company: string;
+  priority: 'standard' | 'express' | 'critical';
   routes: RouteCardModel[];
   alert: string | null;
   backend: BackendShipmentRecord;
@@ -170,6 +186,13 @@ export interface AuditEventRecord {
     status?: string;
     reason?: string;
   } | null;
+}
+
+export interface CreateShipmentPayload {
+  source: string;
+  destination: string;
+  priority: 'standard' | 'express' | 'critical';
+  estimatedCargoValue?: number | null;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -212,8 +235,11 @@ function formatEta(delayText: string, hours: number) {
 }
 
 function formatCurrency(value: number) {
-  const rounded = Math.round(value);
-  return `${rounded > 0 ? '+' : ''}\u20b9${rounded}`;
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 function mapRiskLevel(level: BackendShipmentRecord['risk']['level']): ShipmentViewModel['riskLevel'] {
@@ -229,7 +255,12 @@ function buildShipmentName(record: BackendShipmentRecord) {
 }
 
 export function mapShipmentRecord(record: BackendShipmentRecord): ShipmentViewModel {
-  const routeOptions = Object.values(record.routes.options);
+  const routeOptions = Object.values(record.routes.options).sort((left, right) => {
+    if (left.recommendedFlag && !right.recommendedFlag) return -1;
+    if (!left.recommendedFlag && right.recommendedFlag) return 1;
+    return left.riskScore - right.riskScore || left.eta - right.eta;
+  });
+
   return {
     id: record.id,
     name: buildShipmentName(record),
@@ -240,14 +271,20 @@ export function mapShipmentRecord(record: BackendShipmentRecord): ShipmentViewMo
     currentRoute: record.routes.options[record.activeRouteId]?.name || record.recommendedRoute || record.activeRouteId,
     transporter: record.dispatchStatus?.status === 'queued' ? 'WhatsApp alert queued' : 'Awaiting dispatch channel',
     company: 'ClearPath Network',
+    priority: record.priority || 'standard',
     routes: routeOptions.map((route) => ({
       id: route.id,
       name: route.name,
       eta: `${route.eta.toFixed(1)}h`,
+      etaHours: route.eta,
       cost: formatCurrency(route.cost),
+      costValue: route.cost,
       reliability: `${Math.round(route.reliability)}%`,
+      reliabilityValue: route.reliability,
       riskScore: route.riskScore,
-      isRecommended: route.id === record.routes.recommendedRouteId,
+      valueScore: route.valueScore || 0,
+      tradeOff: route.tradeOff || route.decisionFit,
+      isRecommended: route.recommendedFlag || route.id === record.routes.recommendedRouteId,
     })),
     alert: record.activeAlert?.message || record.alertMessage || record.alert?.message || null,
     backend: record,
@@ -277,12 +314,29 @@ export async function fetchShipments(token: string) {
   return payload.shipments.map(mapShipmentRecord);
 }
 
-export async function createShipment(token: string, sourceQuery: string, destinationQuery: string) {
+export async function geocodeLocation(token: string, query: string) {
+  const payload = await request<{ location: { lat: number; lng: number; label?: string | null } }>(
+    '/geocode',
+    {
+      method: 'POST',
+      body: JSON.stringify({ query }),
+    },
+    token,
+  );
+  return payload.location;
+}
+
+export async function createShipment(token: string, shipment: CreateShipmentPayload) {
   const payload = await request<BackendShipmentRecord>(
     '/shipments',
     {
       method: 'POST',
-      body: JSON.stringify({ sourceQuery, destinationQuery }),
+      body: JSON.stringify({
+        sourceQuery: shipment.source,
+        destinationQuery: shipment.destination,
+        priority: shipment.priority,
+        estimatedCargoValue: shipment.estimatedCargoValue ?? null,
+      }),
     },
     token,
   );

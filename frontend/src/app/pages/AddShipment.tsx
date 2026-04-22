@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { ArrowLeft, Brain, MapPin, Send, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { geocodeLocation } from '../lib/api';
 
 function TinyLabel({ children, dark = false }: { children: React.ReactNode; dark?: boolean }) {
   return (
@@ -51,13 +52,42 @@ function InfoCard({
   );
 }
 
+function ResolvedLocation({
+  label,
+  loading,
+  error,
+}: {
+  label: string;
+  loading: boolean;
+  error: string;
+}) {
+  if (loading) {
+    return <p className="mt-2 text-xs text-neutral-500">Resolving location...</p>;
+  }
+  if (error) {
+    return <p className="mt-2 text-xs text-red-600">{error}</p>;
+  }
+  if (!label) {
+    return <p className="mt-2 text-xs text-neutral-400">Resolved place will appear here.</p>;
+  }
+  return <p className="mt-2 text-xs text-neutral-600">{label}</p>;
+}
+
 export default function AddShipment() {
   const navigate = useNavigate();
-  const { addShipment, userRole } = useAppContext();
+  const { addShipment, authToken, userRole } = useAppContext();
   const [source, setSource] = useState('');
   const [destination, setDestination] = useState('');
+  const [priority, setPriority] = useState<'standard' | 'express' | 'critical'>('standard');
+  const [estimatedCargoValue, setEstimatedCargoValue] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resolvedSource, setResolvedSource] = useState('');
+  const [resolvedDestination, setResolvedDestination] = useState('');
+  const [sourceError, setSourceError] = useState('');
+  const [destinationError, setDestinationError] = useState('');
+  const [sourceLoading, setSourceLoading] = useState(false);
+  const [destinationLoading, setDestinationLoading] = useState(false);
 
   const isCompany = userRole === 'company';
 
@@ -65,19 +95,76 @@ export default function AddShipment() {
     document.title = 'New Lane - ClearPath';
   }, []);
 
+  useEffect(() => {
+    if (!authToken) return;
+    if (source.trim().length < 2) {
+      setResolvedSource('');
+      setSourceError('');
+      return;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        setSourceLoading(true);
+        setSourceError('');
+        const location = await geocodeLocation(authToken, source);
+        setResolvedSource(location.label || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`);
+      } catch (lookupError) {
+        setResolvedSource('');
+        setSourceError(lookupError instanceof Error ? lookupError.message : 'Could not resolve origin.');
+      } finally {
+        setSourceLoading(false);
+      }
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [authToken, source]);
+
+  useEffect(() => {
+    if (!authToken) return;
+    if (destination.trim().length < 2) {
+      setResolvedDestination('');
+      setDestinationError('');
+      return;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        setDestinationLoading(true);
+        setDestinationError('');
+        const location = await geocodeLocation(authToken, destination);
+        setResolvedDestination(location.label || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`);
+      } catch (lookupError) {
+        setResolvedDestination('');
+        setDestinationError(lookupError instanceof Error ? lookupError.message : 'Could not resolve destination.');
+      } finally {
+        setDestinationLoading(false);
+      }
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [authToken, destination]);
+
   const readiness = useMemo(() => {
     if (!source && !destination) return 'Start with a real route pair to generate a live decision lane.';
     if (source && !destination) return 'Destination is still missing before ClearPath can analyze alternatives.';
     if (!source && destination) return 'Origin is still missing before the backend can create a route graph.';
+    if (priority === 'critical') return 'Critical priority lowers the alert threshold and escalates operator urgency.';
+    if (priority === 'express') return 'Express priority tightens the monitoring threshold for earlier intervention.';
     return 'Ready to create a live lane with geocoding, route ranking, and AI explanation.';
-  }, [destination, source]);
+  }, [destination, priority, source]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
     setIsSubmitting(true);
     try {
-      await addShipment({ source, destination });
+      await addShipment({
+        source,
+        destination,
+        priority,
+        estimatedCargoValue: estimatedCargoValue ? Number(estimatedCargoValue) : null,
+      });
       navigate('/dashboard');
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : 'Unable to create shipment lane.');
@@ -115,10 +202,12 @@ export default function AddShipment() {
               <div className="rounded-[16px] border border-black/10 bg-white p-3">
                 <TinyLabel>Origin</TinyLabel>
                 <p className="mt-6 text-sm font-semibold text-black">{source || 'Pending'}</p>
+                <p className="mt-1 text-xs text-neutral-500">{resolvedSource || 'Waiting for geocode'}</p>
               </div>
               <div className="rounded-[16px] border border-[#b6d400] bg-[#DFFF00] p-3">
                 <TinyLabel>Destination</TinyLabel>
                 <p className="mt-6 text-sm font-semibold text-black">{destination || 'Pending'}</p>
+                <p className="mt-1 text-xs text-black/70">{resolvedDestination || 'Waiting for geocode'}</p>
               </div>
             </section>
 
@@ -136,7 +225,7 @@ export default function AddShipment() {
             </InfoCard>
 
             <InfoCard eyebrow="Demo hint" title="Strong route pairs" icon={<Sparkles className="h-4 w-4" />} dark>
-              <p><code>Mumbai{' -> '}Delhi</code>, <code>Surat{' -> '}Ahmedabad</code>, <code>Bengaluru{' -> '}Mumbai</code>.</p>
+              <p><code>Mumbai{' -> '}Delhi</code>, <code>Surat{' -> '}Chennai</code>, <code>Pune{' -> '}Kolkata</code>.</p>
             </InfoCard>
           </div>
         </div>
@@ -166,6 +255,7 @@ export default function AddShipment() {
                       className="h-12 w-full rounded-xl border border-black/15 bg-white pl-12 pr-4 text-sm text-neutral-900 placeholder:text-neutral-400 transition-all duration-200 focus:border-black focus:outline-none focus:ring-2 focus:ring-[#DFFF00]/40"
                     />
                   </div>
+                  <ResolvedLocation label={resolvedSource} loading={sourceLoading} error={sourceError} />
                 </div>
 
                 <div>
@@ -184,6 +274,49 @@ export default function AddShipment() {
                       className="h-12 w-full rounded-xl border border-black/15 bg-white pl-12 pr-4 text-sm text-neutral-900 placeholder:text-neutral-400 transition-all duration-200 focus:border-black focus:outline-none focus:ring-2 focus:ring-[#DFFF00]/40"
                     />
                   </div>
+                  <ResolvedLocation label={resolvedDestination} loading={destinationLoading} error={destinationError} />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-[10px] font-mono font-semibold uppercase tracking-widest text-neutral-700">
+                    Shipment priority
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['standard', 'express', 'critical'] as const).map((option) => {
+                      const active = priority === option;
+                      return (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => setPriority(option)}
+                          className={`rounded-xl border px-3 py-3 text-[10px] font-mono uppercase tracking-[0.18em] transition ${
+                            active ? 'border-black bg-[#DFFF00] text-black' : 'border-black/10 bg-white text-neutral-600 hover:border-black'
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="cargo-value" className="mb-2 block text-[10px] font-mono font-semibold uppercase tracking-widest text-neutral-700">
+                    Estimated cargo value
+                  </label>
+                  <input
+                    id="cargo-value"
+                    min="0"
+                    step="1000"
+                    type="number"
+                    value={estimatedCargoValue}
+                    onChange={(event) => setEstimatedCargoValue(event.target.value)}
+                    placeholder="750000"
+                    className="h-12 w-full rounded-xl border border-black/15 bg-white px-4 text-sm text-neutral-900 placeholder:text-neutral-400 transition-all duration-200 focus:border-black focus:outline-none focus:ring-2 focus:ring-[#DFFF00]/40"
+                  />
+                  <p className="mt-2 text-xs text-neutral-500">Used to estimate downstream cascade impact in the operator view.</p>
                 </div>
               </div>
 
@@ -214,7 +347,7 @@ export default function AddShipment() {
             </InfoCard>
 
             <InfoCard eyebrow="System style" title="Same visual language" icon={<Sparkles className="h-4 w-4" />} dark>
-              <p>This page now uses the same compact white/lime/dark composition as the landing page and dashboard.</p>
+              <p>This page keeps the same white, lime, and dark composition used across the dashboard and route views.</p>
             </InfoCard>
           </div>
         </div>

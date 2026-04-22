@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  CreateShipmentPayload,
   ShipmentViewModel,
   UserRoleView,
   AuthUser,
@@ -26,7 +27,7 @@ interface AppContextType {
   setUserRole: (role: UserRoleView | null) => void;
   shipments: ShipmentViewModel[];
   updateShipmentRoute: (shipmentId: string, routeId: string) => Promise<void>;
-  addShipment: (shipment: { source: string; destination: string }) => Promise<void>;
+  addShipment: (shipment: CreateShipmentPayload) => Promise<void>;
   refreshShipment: (shipmentId: string) => Promise<void>;
   preferredLanguage: string;
   setPreferredLanguage: (code: string) => void;
@@ -308,9 +309,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setVoiceAlertsEnabledState(enabled);
   };
 
-  const addShipment = async (shipment: { source: string; destination: string }) => {
+  const addShipment = async (shipment: CreateShipmentPayload) => {
     if (!authToken) throw new Error('Authentication required.');
-    const nextShipment = await createShipment(authToken, shipment.source, shipment.destination);
+    const nextShipment = await createShipment(authToken, shipment);
     addShipmentToState(nextShipment);
   };
 

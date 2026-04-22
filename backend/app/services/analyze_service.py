@@ -12,9 +12,9 @@ from ..clients.routes_client import fetch_routes
 from ..clients.road_status_client import fetch_road_status_signal
 from ..clients.translation_client import translate_text
 from ..clients.vertex_agent_client import orchestrate_disruption_workflow
+from ..clients.weather_client import fetch_weather_summary
 from ..clients.whatsapp_client import send_whatsapp_alert
 from ..config import settings
-from ..clients.weather_client import fetch_weather_summary
 from ..engines.ranking_engine import rank_routes
 from ..engines.risk_engine import compute_risk
 from ..schemas import (
@@ -56,6 +56,34 @@ ALERT_LANGUAGES = {
 }
 
 
+def _confidence_label(probability: float) -> str:
+    """Map a probability to a user-facing confidence label."""
+    if probability >= 0.75:
+        return "High"
+    if probability >= 0.5:
+        return "Medium"
+    return "Low"
+
+
+def _urgency_label(risk_score: int, priority: str) -> str:
+    """Map the risk state and shipment priority to a short urgency label."""
+    if risk_score >= 72 or priority == "critical":
+        return "Act now"
+    if risk_score >= 45 or priority == "express":
+        return "Monitor"
+    return "Low priority"
+
+
+def _decision_urgency(urgency_label: str) -> str:
+    """Convert explanation urgency copy into the legacy decision enum."""
+    mapping = {
+        "Act now": "act_now",
+        "Monitor": "review",
+        "Low priority": "monitor",
+    }
+    return mapping.get(urgency_label, "review")
+
+
 def _build_prediction(risk_score: int, delay_hours: float) -> str:
     if risk_score >= 70:
         return f"High probability of delay in next 6-8 hours. Estimated delay: {delay_hours:.1f} hours."
@@ -64,8 +92,10 @@ def _build_prediction(risk_score: int, delay_hours: float) -> str:
     return f"Low probability of delay in next 12-24 hours. Estimated delay: {delay_hours:.1f} hours."
 
 
-def _build_cascade_impact(risk_score: int, probability: float, route_count: int) -> CascadeImpact:
-    affected_orders = max(2, int(round(2 + (risk_score / 22) + route_count)))
+def _build_cascade_impact(risk_score: int, probability: float, route_count: int, cargo_value: float | None) -> CascadeImpact:
+    """Estimate downstream business impact from the current disruption score."""
+    cargo_multiplier = 0 if cargo_value is None else min(cargo_value / 250000, 4)
+    affected_orders = max(2, int(round(2 + (risk_score / 22) + route_count + cargo_multiplier)))
     if risk_score >= 78:
         severity = "high"
         sla_risk = "Miss likely without reroute"
@@ -87,7 +117,8 @@ def _build_cascade_impact(risk_score: int, probability: float, route_count: int)
     )
 
 
-def _build_decision(best, risk_score: int, prediction: str, probability: float) -> DecisionPayload:
+def _build_decision(best, risk_score: int, prediction: str, probability: float, urgency_label: str, delay_text: str) -> DecisionPayload:
+    """Build the operator action block while preserving the current API shape."""
     reason = (
         f"Risk is high because weather and congestion are stacking on the active route. "
         f"{best.name} is better because it lowers route risk and protects ETA."
@@ -97,7 +128,11 @@ def _build_decision(best, risk_score: int, prediction: str, probability: float) 
         prediction=prediction,
         recommendedRouteId=best.id,
         recommendedRoute=best.name,
+        delayEstimate=delay_text,
+        timeSavedMinutes=best.time_saved_minutes,
         reason=reason,
+        whyNow=f"{best.trade_off}. A quick approval keeps the lane ahead of the disruption window.",
+        urgency=_decision_urgency(urgency_label),
         confidence=int(round(probability * 100)),
         recommendedAction=f"Switch to {best.name} now",
         canReroute=True,
@@ -111,6 +146,7 @@ async def _build_alert(
     decision: DecisionPayload,
     delay_text: str,
 ) -> AlertPayload:
+    """Create the multilingual transporter alert payload."""
     english = (
         f"Risk detected on {source_label} to {destination_label}. {decision.recommended_action}. "
         f"Potential delay: {delay_text}. Tap to approve."
@@ -140,6 +176,7 @@ async def _build_alert(
 
 
 def _build_ai_explanation(source_label: str, destination_label: str, weather_summary: str, best_route_name: str, delay_text: str) -> str:
+    """Create a compact natural-language explanation for legacy UI surfaces."""
     return (
         f"Your shipment may be delayed due to {weather_summary.lower()} and congestion. "
         f"Switching to {best_route_name} can reduce the delay risk and protect the delivery window by about {delay_text}."
@@ -147,6 +184,7 @@ def _build_ai_explanation(source_label: str, destination_label: str, weather_sum
 
 
 def _build_architecture_status(agent_summary: dict, dispatch_status: dict[str, str]) -> ArchitectureStatusPayload:
+    """Summarize the active runtime architecture for transparency panels."""
     return ArchitectureStatusPayload(
         authMode=settings.auth_mode,
         persistenceMode="firestore" if settings.firebase_project_id or settings.firebase_credentials_path else "sqlite",
@@ -162,7 +200,114 @@ def _build_architecture_status(agent_summary: dict, dispatch_status: dict[str, s
     )
 
 
+def _build_explanation_fallback(
+    *,
+    risk_score: int,
+    prediction: str,
+    weather_summary: str,
+    traffic: float,
+    road_summary: str,
+    history_summary: str,
+    best_route_name: str,
+    best_trade_off: str,
+    delay_text: str,
+    priority: str,
+    probability: float,
+) -> dict:
+    """Build a heuristic explanation when Gemini is unavailable or malformed."""
+    confidence = _confidence_label(probability)
+    urgency = _urgency_label(risk_score, priority)
+    headline = (
+        f"Delay risk is building on the active lane because multiple disruption signals are turning negative."
+        if risk_score >= 60
+        else "The lane is still moving, but pressure signals suggest it should be watched closely."
+    )
+    why = (
+        f"Weather conditions show {weather_summary.lower()}, while live traffic is already at "
+        f"{int(round(traffic * 100))}% corridor load. Road and history signals add pressure as well: "
+        f"{road_summary.lower()} and {history_summary.lower()}."
+    )
+    recommendation = f"Approve {best_route_name} now to reduce exposure; it is {best_trade_off.lower()}."
+    return {
+        "headline": headline,
+        "why": why,
+        "recommendation": recommendation,
+        "confidence": confidence,
+        "urgency": urgency,
+        "title": headline,
+        "summary": why,
+        "cause": prediction,
+        "delayEstimate": delay_text,
+        "reasoning": [headline, why, recommendation],
+    }
+
+
+def _build_gemini_prompt(
+    *,
+    source_label: str,
+    destination_label: str,
+    risk_score: int,
+    prediction: str,
+    delay_text: str,
+    priority: str,
+    weather_summary: str,
+    traffic: float,
+    port_summary: str,
+    road_summary: str,
+    history_summary: str,
+    recommended_route: str,
+    trade_off: str,
+    reliability: float,
+) -> dict:
+    """Create the Gemini request payload with Indian logistics-specific guidance."""
+    return {
+        "system_instruction": {
+            "parts": [
+                {
+                    "text": (
+                        "You are ClearPath, an expert Indian logistics AI for SMB operators. "
+                        "Explain route disruption risk like an experienced control tower specialist working on Indian corridors. "
+                        "Be precise, practical, and easy to act on. Return only valid JSON."
+                    )
+                }
+            ]
+        },
+        "contents": [
+            {
+                "parts": [
+                    {
+                        "text": (
+                            "Return strict JSON with keys headline, why, recommendation, confidence, urgency. "
+                            "headline must be one sharp sentence describing the risk. "
+                            "why must be 2-3 sentences that break down the weather, traffic, road, port, and history signals. "
+                            "recommendation must be one sentence telling the operator what to do right now. "
+                            'confidence must be exactly one of "High", "Medium", or "Low". '
+                            'urgency must be exactly one of "Act now", "Monitor", or "Low priority". '
+                            "Do not wrap the JSON in markdown fences.\n"
+                            f"Lane: {source_label} to {destination_label}.\n"
+                            f"Shipment priority: {priority}.\n"
+                            f"Risk score: {risk_score}/100.\n"
+                            f"Prediction: {prediction}.\n"
+                            f"Estimated delay: {delay_text}.\n"
+                            f"Weather signal: {weather_summary}.\n"
+                            f"Traffic congestion load: {int(round(traffic * 100))}%.\n"
+                            f"Port signal: {port_summary}.\n"
+                            f"Road signal: {road_summary}.\n"
+                            f"History signal: {history_summary}.\n"
+                            f"Recommended route: {recommended_route}.\n"
+                            f"Recommended route reliability: {int(round(reliability))}%.\n"
+                            f"Route trade-off: {trade_off}."
+                        )
+                    }
+                ]
+            }
+        ],
+        "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
+    }
+
+
 async def analyze_route_pair(request: AnalyzeRequest) -> AnalyzeResponse:
+    """Analyze a route pair and return risk, ranking, explanation, and alert payloads."""
     started_at = time.perf_counter()
     raw_routes = await fetch_routes(request.source, request.destination)
     corridor_key = f"{request.source.label or request.source.lat}:{request.destination.label or request.destination.lat}".strip().lower()
@@ -206,8 +351,14 @@ async def analyze_route_pair(request: AnalyzeRequest) -> AnalyzeResponse:
     prediction = _build_prediction(risk.score, delay.hours)
     ranked_routes = rank_routes(enriched_routes, delay.hours, primary["id"])
     best = ranked_routes.options[ranked_routes.recommended_route_id]
-    cascade_impact = _build_cascade_impact(risk.score, delay.probability, len(ranked_routes.options))
-    decision = _build_decision(best, risk.score, prediction, delay.probability)
+    urgency_label = _urgency_label(risk.score, request.priority)
+    cascade_impact = _build_cascade_impact(
+        risk.score,
+        delay.probability,
+        len(ranked_routes.options),
+        request.estimated_cargo_value,
+    )
+    decision = _build_decision(best, risk.score, prediction, delay.probability, urgency_label, delay.text)
     source_label = request.source.label or f"{request.source.lat:.2f}, {request.source.lng:.2f}"
     destination_label = request.destination.label or f"{request.destination.lat:.2f}, {request.destination.lng:.2f}"
     alert = await _build_alert(source_label, destination_label, decision, delay.text)
@@ -253,43 +404,39 @@ async def analyze_route_pair(request: AnalyzeRequest) -> AnalyzeResponse:
         best.name,
         delay.text,
     )
-    fallback = {
-        "title": "Predicted disruption needs action",
-        "summary": fallback_ai_explanation,
-        "cause": f"Combined signal: {primary['weather_summary']} with rising traffic pressure.",
-        "delayEstimate": delay.text,
-        "recommendation": decision.recommended_action,
-        "confidence": f"{decision.confidence}%",
-        "reasoning": [
-            f"Risk is {risk.score}% because bad weather and congestion are building together.",
-            f"{best.name} is safer because it has lower route risk and better ETA protection.",
-            "Priya should approve the route change now to avoid a later delay.",
-        ],
-    }
-    prompt = {
-        "contents": [
-            {
-                "parts": [
-                    {
-                        "text": (
-                            "Return plain JSON with keys title, summary, cause, delayEstimate, recommendation, confidence, reasoning. "
-                            "Write a simple explanation for Priya, a small business owner. "
-                            "Explain why the risk is high, why the recommended route is better, and what action she should take now. "
-                            f"Source: {source_label}. Destination: {destination_label}. "
-                            f"Risk score: {risk.score}. Prediction: {prediction}. Delay estimate: {delay.text}. "
-                            f"Weather cause: {primary['weather_summary']}. Recommended route: {best.name}. "
-                            f"Route reliability: {int(round(best.reliability))} percent. "
-                            "Keep the summary in one or two short sentences."
-                        )
-                    }
-                ]
-            }
-        ],
-        "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
-    }
+    fallback = _build_explanation_fallback(
+        risk_score=risk.score,
+        prediction=prediction,
+        weather_summary=primary["weather_summary"],
+        traffic=primary["traffic"],
+        road_summary=road_signal["summary"],
+        history_summary=history_signal["summary"],
+        best_route_name=best.name,
+        best_trade_off=best.trade_off,
+        delay_text=delay.text,
+        priority=request.priority,
+        probability=delay.probability,
+    )
+    prompt = _build_gemini_prompt(
+        source_label=source_label,
+        destination_label=destination_label,
+        risk_score=risk.score,
+        prediction=prediction,
+        delay_text=delay.text,
+        priority=request.priority,
+        weather_summary=primary["weather_summary"],
+        traffic=primary["traffic"],
+        port_summary=port_signal["summary"],
+        road_summary=road_signal["summary"],
+        history_summary=history_signal["summary"],
+        recommended_route=best.name,
+        trade_off=best.trade_off,
+        reliability=best.reliability,
+    )
     explanation_dict = await generate_explanation(prompt, fallback)
     explanation = ExplanationPayload(**explanation_dict)
-    ai_explanation = explanation.summary or fallback_ai_explanation
+    decision = decision.model_copy(update={"urgency": _decision_urgency(explanation.urgency)})
+    ai_explanation = explanation.why or explanation.summary or fallback_ai_explanation
     response_time_ms = int((time.perf_counter() - started_at) * 1000)
     signal_stack = [
         SignalSourcePayload(

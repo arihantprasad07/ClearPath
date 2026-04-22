@@ -42,6 +42,8 @@ class AnalyzeRequest(BaseModel):
     source: Location
     destination: Location
     active_route_id: str | None = Field(default=None, alias="activeRouteId")
+    priority: Literal["standard", "express", "critical"] = "standard"
+    estimated_cargo_value: float | None = Field(default=None, alias="estimatedCargoValue")
 
 
 class GeocodeRequest(BaseModel):
@@ -94,6 +96,9 @@ class RouteOption(BaseModel):
     waypoints: list[Location]
     time_saved_minutes: int = Field(alias="timeSavedMinutes")
     decision_fit: str = Field(alias="decisionFit")
+    value_score: int = Field(default=0, alias="valueScore")
+    recommended_flag: bool = Field(default=False, alias="recommendedFlag")
+    trade_off: str = Field(default="", alias="tradeOff")
 
 
 class RoutesPayload(BaseModel):
@@ -158,13 +163,40 @@ class ShipmentAlert(BaseModel):
 
 
 class ExplanationPayload(BaseModel):
-    title: str
-    summary: str
-    cause: str
-    delay_estimate: str = Field(alias="delayEstimate")
-    recommendation: str
-    confidence: str
+    headline: str = ""
+    why: str = ""
+    recommendation: str = ""
+    confidence: str = "Medium"
+    urgency: Literal["Act now", "Monitor", "Low priority"] = "Monitor"
+    title: str = ""
+    summary: str = ""
+    cause: str = ""
+    delay_estimate: str = Field(default="", alias="delayEstimate")
     reasoning: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def populate_legacy_and_structured_fields(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            return value
+        payload = dict(value)
+        headline = str(payload.get("headline") or payload.get("title") or "").strip()
+        why = str(payload.get("why") or payload.get("summary") or payload.get("cause") or "").strip()
+        recommendation = str(payload.get("recommendation") or "").strip()
+        confidence = str(payload.get("confidence") or "Medium").strip() or "Medium"
+        urgency = str(payload.get("urgency") or "Monitor").strip() or "Monitor"
+        payload["headline"] = headline
+        payload["why"] = why
+        payload["recommendation"] = recommendation
+        payload["confidence"] = confidence
+        payload["urgency"] = urgency
+        payload["title"] = str(payload.get("title") or headline).strip()
+        payload["summary"] = str(payload.get("summary") or why).strip()
+        payload["cause"] = str(payload.get("cause") or why).strip()
+        if not payload.get("reasoning"):
+            reasoning = [segment.strip() for segment in [headline, why, recommendation] if segment and segment.strip()]
+            payload["reasoning"] = reasoning
+        return payload
 
 
 class ShipmentSummaryPayload(BaseModel):
@@ -202,6 +234,8 @@ class AnalyzeResponse(BaseModel):
 class ShipmentCreateRequest(BaseModel):
     source_query: str = Field(alias="sourceQuery", min_length=2)
     destination_query: str = Field(alias="destinationQuery", min_length=2)
+    priority: Literal["standard", "express", "critical"] = "standard"
+    estimated_cargo_value: float | None = Field(default=None, alias="estimatedCargoValue", ge=0)
 
     model_config = {"populate_by_name": True}
 
@@ -241,6 +275,10 @@ class ShipmentRecord(BaseModel):
     destination_query: str = Field(alias="destinationQuery")
     source: Location
     destination: Location
+    priority: Literal["standard", "express", "critical"] = "standard"
+    estimated_cargo_value: float | None = Field(default=None, alias="estimatedCargoValue")
+    cargo_type: str | None = Field(default=None, alias="cargoType")
+    weight_kg: float | None = Field(default=None, alias="weightKg")
     route: str
     risk_score: int = Field(alias="riskScore")
     status: Literal["monitoring", "stable", "risk_detected"]
