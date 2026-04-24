@@ -1,15 +1,12 @@
 # ClearPath Frontend
 
-This frontend is the live ClearPath web client built with React, Vite, TypeScript, Tailwind CSS, React Router, and optional Firebase Authentication.
+This frontend is the live ClearPath web client built with React, Vite, TypeScript, Tailwind CSS, React Router, optional Firebase Authentication, and direct Gemini API calls.
 
-It now talks directly to the backend for:
+It now runs as a Firebase Hosting prototype with:
 
-- JWT login
-- Firebase token exchange
-- shipment listing
-- shipment creation
-- shipment refresh
-- route approval
+- direct Gemini-powered shipment reasoning
+- browser-local shipment storage
+- optional Firebase Authentication for sign-in
 
 ## Local Run
 
@@ -19,6 +16,6 @@ copy .env.example .env
 npm run dev
 ```
 
-Set `VITE_API_URL` to the backend origin when it differs from `http://localhost:8000`.
+Set `VITE_GEMINI_API_KEY` to a valid Gemini API key.
 
 Set `VITE_AUTH_MODE=firebase_primary` and the `VITE_FIREBASE_*` values from [frontend/.env.example](/d:/Arihant/Data/Code/clearpath_full_project/frontend/.env.example) when you want the existing login screen to use Firebase Authentication without changing the current theme.

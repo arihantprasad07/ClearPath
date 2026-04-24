@@ -2,19 +2,9 @@
 
 ## Deployment Target
 
-ClearPath is now configured for Firebase Hosting + Firebase Cloud Functions + Firestore.
+ClearPath is configured as a Firebase Hosting prototype with direct Gemini API calls from the frontend.
 
-## Local Smoke Run
-
-### Functions
-
-```powershell
-cd firebase\functions
-copy .env.example .env
-npm install
-```
-
-### Frontend
+## Local Run
 
 ```powershell
 cd frontend
@@ -23,24 +13,9 @@ npm install
 npm run dev
 ```
 
-## Required Production Variables
+## Required Frontend Variables
 
-### Functions
-
-- `GEMINI_API_KEY`
-- `GOOGLE_MAPS_API_KEY`
-- `WEATHER_API_KEY`
-- `JWT_SECRET_KEY`
-- `ADMIN_USERNAME`
-- `ADMIN_PASSWORD`
-- `FIREBASE_PROJECT_ID`
-- `GOOGLE_TRANSLATE_API_KEY`
-- `WHATSAPP_TOKEN`
-- `WHATSAPP_PHONE_NUMBER_ID`
-
-### Frontend
-
-- `VITE_API_URL`
+- `VITE_GEMINI_API_KEY`
 - `VITE_AUTH_MODE`
 - `VITE_FIREBASE_API_KEY`
 - `VITE_FIREBASE_AUTH_DOMAIN`
@@ -49,29 +24,26 @@ npm run dev
 - `VITE_FIREBASE_MESSAGING_SENDER_ID`
 - `VITE_FIREBASE_APP_ID`
 
-## Firebase Deployment (Current)
+## Firebase Deployment (Spark Ready)
 
 ### Prerequisites
 1. Install Firebase CLI: `npm install -g firebase-tools`
 2. Login: `firebase login`
-3. Set project: `firebase use --add` (select your Firebase project)
+3. Set project: `firebase use --add`
 
 ### Environment Setup
-1. Copy `firebase/functions/.env.example` to `firebase/functions/.env` and fill in all keys
-2. Copy `frontend/.env.production` and fill in your Firebase project values
+1. Copy `frontend/.env.example` to `frontend/.env`
+2. Add your Gemini API key to `VITE_GEMINI_API_KEY`
+3. Fill the optional Firebase Auth variables if you want Firebase sign-in enabled
 
 ### Deploy
 From the `firebase/` directory:
-`firebase deploy`
+`firebase deploy --only hosting`
 
 Or use the root deploy script:
 `chmod +x deploy.sh && ./deploy.sh`
 
-### URLs after deployment
-- Frontend: `https://YOUR_PROJECT_ID.web.app`
-- API: `https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/api/`
-
 ### Verify
-1. Visit `/health` endpoint to confirm: `{ status: "ok", database: "firestore" }`
-2. Sign in and create a shipment
-3. Confirm risk scoring, route options, and AI explanation appear
+1. Open the app from Firebase Hosting
+2. Sign in using Firebase Auth or prototype mode
+3. Create a shipment and confirm Gemini generates the route reasoning in the UI

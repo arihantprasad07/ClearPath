@@ -164,10 +164,10 @@ export default function AddShipment() {
   const readiness = useMemo(() => {
     if (!source && !destination) return 'Start with a real route pair to generate a live decision lane.';
     if (source && !destination) return 'Destination is still missing before ClearPath can analyze alternatives.';
-    if (!source && destination) return 'Origin is still missing before the backend can create a route graph.';
+    if (!source && destination) return 'Origin is still missing before the prototype can create a route graph.';
     if (priority === 'critical') return 'Critical priority lowers the alert threshold and escalates operator urgency.';
     if (priority === 'express') return 'Express priority tightens the monitoring threshold for earlier intervention.';
-    return 'Ready to create a live lane with geocoding, route ranking, and AI explanation.';
+    return 'Ready to create a live lane with local route modeling and Gemini explanation.';
   }, [destination, priority, source]);
 
   /**
@@ -251,7 +251,7 @@ export default function AddShipment() {
               <ol className="space-y-2">
                 <li>1. Geocode the route pair into real lane points.</li>
                 <li>2. Score route options against signals and risk.</li>
-                <li>3. Save a backend-backed lane with explanation and actions.</li>
+                <li>3. Save a prototype lane with explanation and actions right in the browser.</li>
               </ol>
             </InfoCard>
 

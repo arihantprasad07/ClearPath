@@ -212,7 +212,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (cancelled) return;
         setAuthToken(token);
         setAuthUser(user);
-        setStakeholderRole(user.stakeholderRole ?? readStoredStakeholderRole());
+        setStakeholderRole(readStoredStakeholderRole() ?? user.stakeholderRole ?? null);
         await loadShipments(token);
       } catch (error) {
         if (cancelled) return;
@@ -244,7 +244,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (cancelled) return;
         setAuthToken(payload.accessToken);
         setAuthUser(payload.user);
-        setStakeholderRole(payload.user.stakeholderRole ?? readStoredStakeholderRole());
+        setStakeholderRole(readStoredStakeholderRole() ?? payload.user.stakeholderRole ?? null);
         try {
           localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, payload.accessToken);
         } catch {
@@ -276,7 +276,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setAuthToken(payload.accessToken);
       setAuthUser(payload.user);
       setUserRole(role);
-       setStakeholderRole(payload.user.stakeholderRole ?? null);
+       setStakeholderRole(readStoredStakeholderRole() ?? payload.user.stakeholderRole ?? null);
       try {
         localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, payload.accessToken);
       } catch {
@@ -315,7 +315,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setAuthToken(payload.accessToken);
       setAuthUser(payload.user);
       setUserRole(role);
-      setStakeholderRole(payload.user.stakeholderRole ?? null);
+      setStakeholderRole(readStoredStakeholderRole() ?? payload.user.stakeholderRole ?? null);
       try {
         localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, payload.accessToken);
       } catch {

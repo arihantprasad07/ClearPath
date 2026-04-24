@@ -89,7 +89,7 @@ export default function LoginPage() {
       } else {
         user = await login(email.trim(), password, authRole);
       }
-      setStakeholderRole((user.stakeholderRole as RoleTab | null | undefined) ?? selectedRole);
+      setStakeholderRole(selectedRole);
 
       toast.success("Signed in successfully", {
         description: `Opening the ${statLabel(selectedRole).toLowerCase()}.`,
@@ -111,7 +111,7 @@ export default function LoginPage() {
       const credential = await loginWithGooglePopup();
       const idToken = await credential.user.getIdToken();
       const user = await loginWithFirebaseIdToken(idToken, authRole);
-      setStakeholderRole((user.stakeholderRole as RoleTab | null | undefined) ?? selectedRole);
+      setStakeholderRole(selectedRole);
       toast.success("Google sign-in complete", {
         description: "Your ClearPath workspace is ready.",
       });
@@ -206,7 +206,7 @@ export default function LoginPage() {
                     onClick={() => setFirebaseMode((current) => !current)}
                     className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-white/70 transition hover:border-[#AAFF45]/30 hover:text-white"
                   >
-                    {firebaseMode ? "Firebase mode" : "Backend mode"}
+                    {firebaseMode ? "Firebase mode" : "Prototype mode"}
                   </button>
                 ) : null}
               </div>
@@ -232,7 +232,7 @@ export default function LoginPage() {
               </div>
 
               <div className="mt-6 rounded-[24px] border border-white/8 bg-[#121212] px-5 py-4 text-sm text-white/68">
-                {statLabel(selectedRole)} with {firebaseMode ? "Firebase-authenticated" : "backend password"} access.
+                {statLabel(selectedRole)} with {firebaseMode ? "Firebase-authenticated" : "local prototype"} access.
               </div>
 
               <form onSubmit={handleLogin} className="mt-8 space-y-5">

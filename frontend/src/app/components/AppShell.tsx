@@ -105,7 +105,7 @@ export default function AppShell() {
 
       {demoMode && !bannerDismissed && (
         <div className="flex items-center justify-between gap-3 bg-[#AAFF45] px-4 py-2 text-[10px] font-mono uppercase tracking-[0.2em] text-black">
-          <span>Demo mode active - add API keys to Render to enable live Google Maps, Gemini, and weather signals</span>
+          <span>Demo mode active - add your Gemini API key to enable live AI route reasoning on Firebase Hosting</span>
           <button
             type="button"
             onClick={dismissBanner}
