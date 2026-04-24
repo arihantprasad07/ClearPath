@@ -148,7 +148,7 @@ export default function ContactPage() {
                           type="text"
                           value={name}
                           onChange={(event) => setName(event.target.value)}
-                          placeholder="Priya Sharma"
+                          placeholder="Anya Sharma"
                           className="h-12 w-full rounded-xl border border-black/15 bg-white pl-12 pr-4 text-sm text-neutral-900 placeholder:text-neutral-400 transition-all duration-200 focus:border-black focus:outline-none focus:ring-2 focus:ring-[#DFFF00]/40"
                         />
                       </div>

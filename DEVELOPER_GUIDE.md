@@ -6,11 +6,11 @@ ClearPath is a predictive decision engine for supply chain disruption prevention
 
 Do not build features as passive dashboards. Every meaningful output should answer:
 
-`What should Priya do right now?`
+`What should Anya do right now?`
 
 ## Primary User
 
-Priya is a small business owner in India who:
+Anya is a small business owner in India who:
 
 - does not have logistics expertise
 - needs instant clarity

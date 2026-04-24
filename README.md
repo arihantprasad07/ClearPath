@@ -4,7 +4,7 @@ ClearPath is our Google Solution Challenge 2026 submission for the Smart Supply 
 
 It is an AI supply chain co-pilot for Indian SMBs focused on resilient logistics and dynamic supply chain optimization.
 
-It is not a shipment tracker. It predicts disruption 18-24 hours before it happens, explains the risk with Gemini, ranks 3 route alternatives, and gives Priya a one-tap action she can approve in under 30 seconds.
+It is not a shipment tracker. It predicts disruption 18-24 hours before it happens, explains the risk with Gemini, ranks 3 route alternatives, and gives Anya a one-tap action she can approve in under 30 seconds.
 
 ## Solution Challenge 2026
 
@@ -25,7 +25,7 @@ Current architecture direction:
 
 - Predict before disruption, not after delay
 - Turn live signals into a decision, not a dashboard
-- Show Priya what to do right now
+- Show Anya what to do right now
 - Use WhatsApp-style alerts and multilingual action copy
 
 ## Quick Demo
@@ -77,7 +77,7 @@ npm run dev
 - Produces a prediction window for the next 18-24 hours
 - Computes delay probability and cascade impact
 - Ranks 3 route options by ETA, risk, reliability, cost, and value
-- Generates a recommendation and approval message for Priya
+- Generates a recommendation and approval message for Anya
 - Continuously monitors saved shipments in the background every 15 seconds
 
 ## Phase 1 Enhancements
@@ -93,8 +93,8 @@ npm run dev
 
 ## Phase 2 Enhancements
 
-- Landing page now includes Priya's story strip, India-scale impact metrics, and a competitive positioning card
-- Dashboard now includes the Priya persona banner and a frontend-only disruption simulator for reliable live demos
+- Landing page now includes Anya's story strip, India-scale impact metrics, and a competitive positioning card
+- Dashboard now includes the Anya persona banner and a frontend-only disruption simulator for reliable live demos
 - Shipment detail now includes a strategy-aligned post-approval confirmation panel and improved Indian-language transporter previews
 - Add shipment now includes common Indian route presets and conditional monsoon-season messaging
 - Submission docs and README now reflect the judge scorecard, demo script, roadmap, and updated product story
@@ -119,7 +119,7 @@ npm run dev
 - Decision lanes instead of passive shipment cards
 - Gemini reasoning panel instead of generic AI summary
 - One-tap approval panel for rerouting
-- Decision feed that explains what happened and what Priya should do next
+- Decision feed that explains what happened and what Anya should do next
 - Firebase Authentication capable login flow while keeping the current theme and backend fallback path for local development
 - Demo-safe risk simulation button for live judging reliability
 

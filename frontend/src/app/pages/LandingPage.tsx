@@ -178,14 +178,14 @@ function LiveMonitorCard() {
 }
 
 /**
- * Highlights Priya's problem story directly under the hero metrics.
+ * Highlights Anya's problem story directly under the hero metrics.
  */
-function PriyaStoryStrip() {
+function AnyaStoryStrip() {
   return (
     <section className="mt-5 rounded-[1.6rem] border border-white/10 bg-[#181a23] p-6 text-white shadow-[0_22px_60px_-28px_rgba(0,0,0,0.35)]">
       <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#DFFF00]">The problem we solve</div>
       <p className="mt-4 font-['DM_Serif_Display'] text-2xl leading-tight text-white sm:text-[2rem]">
-        "Priya runs a textile business in Surat. On day 6, her shipment still hasn't arrived. She has 12 orders
+        "Anya runs a textile business in Surat. On day 6, her shipment still hasn't arrived. She has 12 orders
         pending. Nobody warned her. Nobody rerouted. Nobody even knew there was a problem."
       </p>
       <div className="mt-5 flex flex-wrap gap-2">
@@ -350,7 +350,7 @@ function LandingContactBlock() {
                       type="text"
                       value={name}
                       onChange={(event) => setName(event.target.value)}
-                      placeholder="Priya Sharma"
+                      placeholder="Anya Sharma"
                       className="h-12 w-full rounded-2xl border border-transparent bg-[#e7e7e0] px-4 text-sm text-black placeholder:text-neutral-500 transition focus:border-black/20 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#AAFF45]/40"
                     />
                   </div>
@@ -507,7 +507,7 @@ export default function LandingPage() {
               ))}
             </div>
 
-            <PriyaStoryStrip />
+            <AnyaStoryStrip />
           </div>
 
           <div className="min-w-0">

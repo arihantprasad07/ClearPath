@@ -9,11 +9,11 @@
 
 **Innovation (25%)**: The novelty is not just prediction. ClearPath turns fragmented signals into a single approval-ready decision with multilingual downstream communication. Judges do not see isolated AI, maps, or alerts; they see an end-to-end co-pilot that predicts, explains, ranks, and helps act before a delay becomes a business loss.
 
-**User Experience (10%)**: Every screen is organized around one question: what should Priya do right now? The dashboard foregrounds the next move, the shipment detail page shows three ranked alternatives and one-tap approval, and the product supports WhatsApp-style, India-ready communication. The live demo moment is intentionally reliable: save a shipment, simulate a disruption, approve the safer route.
+**User Experience (10%)**: Every screen is organized around one question: what should Anya do right now? The dashboard foregrounds the next move, the shipment detail page shows three ranked alternatives and one-tap approval, and the product supports WhatsApp-style, India-ready communication. The live demo moment is intentionally reliable: save a shipment, simulate a disruption, approve the safer route.
 
 ### Problem statement
 
-"Priya runs a textile business in Surat. On day 6, her shipment still hasn't arrived. She has 12 orders pending. Nobody warned her. Nobody rerouted. Nobody even knew there was a problem."
+"Anya runs a textile business in Surat. On day 6, her shipment still hasn't arrived. She has 12 orders pending. Nobody warned her. Nobody rerouted. Nobody even knew there was a problem."
 
 That is the failure ClearPath is designed to prevent. Indian SMBs often operate across fragmented carriers, manual updates, and siloed stakeholders. By the time a delay becomes visible, it is already expensive.
 
@@ -55,12 +55,12 @@ That is the failure ClearPath is designed to prevent. Indian SMBs often operate 
 | Phase | Focus |
 |---|---|
 | Phase 1 | Core predictive MVP: risk engine, route ranking, Gemini reasoning, shipment creation, dashboard, route approval |
-| Phase 2 | Demo-strength UX: Priya story framing, simulation trigger, richer approval confirmation, India-specific quick routes, stronger submission narrative |
+| Phase 2 | Demo-strength UX: Anya story framing, simulation trigger, richer approval confirmation, India-specific quick routes, stronger submission narrative |
 | Phase 3 | Production scale: learned scoring with BigQuery, deeper Firebase deployment, expanded stakeholder workflows, broader language and delivery automation |
 
 ### Live demo flow
 
-1. The judge opens ClearPath and sees that this is built for Priya, an Indian SMB operator.
+1. The judge opens ClearPath and sees that this is built for Anya, an Indian SMB operator.
 2. A new shipment is created using a common Indian route such as Surat to Chennai.
 3. The dashboard immediately shows the lane, AI reasoning, and ranked alternatives.
 4. The judge clicks **Demo: Simulate Risk** and the shipment is flagged HIGH RISK 18 hours ahead.
@@ -79,4 +79,4 @@ That is the failure ClearPath is designed to prevent. Indian SMBs often operate 
 
 ### Why we will win
 
-ClearPath scores well because it is technically real, tightly aligned with the challenge, meaningfully innovative, and easy to understand in a live demo. Judges can watch a shipment get created in under 30 seconds, see a disruption predicted before failure, approve a better route in one tap, and understand why that matters for Priya and millions of Indian SMBs. This is not a concept deck. It is a working co-pilot for resilient logistics.
+ClearPath scores well because it is technically real, tightly aligned with the challenge, meaningfully innovative, and easy to understand in a live demo. Judges can watch a shipment get created in under 30 seconds, see a disruption predicted before failure, approve a better route in one tap, and understand why that matters for Anya and millions of Indian SMBs. This is not a concept deck. It is a working co-pilot for resilient logistics.
