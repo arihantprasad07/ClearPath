@@ -1,30 +1,20 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function userRole() {
-      return request.auth.token.role;
-    }
-
-    function userOrg() {
-      return request.auth.token.orgId;
-    }
-
-    function isAdmin() {
-      return isSignedIn() && userRole() == 'admin';
-    }
-
-    function sameOrg(resourceOrg) {
-      return isSignedIn() && resourceOrg == userOrg();
-    }
+    function isSignedIn() { return request.auth != null; }
+    function userRole() { return request.auth.token.role; }
+    function userOrg() { return request.auth.token.orgId; }
+    function stakeholderRole() { return request.auth.token.stakeholderRole; }
+    function isAdmin() { return isSignedIn() && userRole() == 'admin'; }
+    function sameOrg(resourceOrg) { return isSignedIn() && resourceOrg == userOrg(); }
+    function isTransporter() { return isSignedIn() && stakeholderRole() == 'transporter'; }
 
     match /shipments/{shipmentId} {
       allow read: if sameOrg(resource.data.orgId) || isAdmin();
-      allow create: if isSignedIn() && sameOrg(request.resource.data.orgId);
-      allow update, delete: if isAdmin() || sameOrg(resource.data.orgId);
+      allow create: if isSignedIn() && sameOrg(request.resource.data.orgId) && !isTransporter();
+      allow update: if (isAdmin() || sameOrg(resource.data.orgId))
+        && !(isTransporter() && request.resource.data.activeRouteId != resource.data.activeRouteId);
+      allow delete: if isAdmin();
     }
 
     match /alerts/{alertId} {

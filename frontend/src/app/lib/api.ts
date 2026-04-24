@@ -202,6 +202,7 @@ async function parseError(response: Response, fallbackMessage: string) {
     const payload = await response.json();
     if (typeof payload?.detail === 'string') return payload.detail;
     if (typeof payload?.message === 'string') return payload.message;
+    if (typeof payload?.error === 'string') return payload.error;
   } catch {
     // Ignore parse failures and fall through to the fallback message.
   }
