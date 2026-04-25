@@ -1,16 +1,16 @@
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi import Body, Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from .auth_service import create_user, ensure_admin_user, exchange_firebase_login, list_users, login_user, update_device_token, update_user_password
 from .clients.geocoding_client import geocode_location
+from .clients.gemini_client import generate_plain_text_recommendation
 from .config import settings
 from .dependencies import get_current_user, require_admin
 from .errors import RequestLoggingMiddleware, SecurityHeadersMiddleware, register_exception_handlers
 from .logging_config import configure_logging
 from .schemas import (
-    AnalyzeRequest,
     AuditTrailResponse,
     AuthLoginRequest,
     AuthUser,
@@ -26,7 +26,6 @@ from .schemas import (
     UserCreateRequest,
     UserListResponse,
 )
-from .services.analyze_service import analyze_route_pair
 from .services.event_service import list_operational_events
 from .services.shipment_service import apply_route, create_shipment, list_shipments, refresh_shipment
 from .services.shipment_service import get_shipment
@@ -34,6 +33,25 @@ from .services.monitoring_service import shipment_monitor
 from .storage import shipment_store
 
 configure_logging()
+
+DEMO_ANALYZE_PROMPT = (
+    "You are ClearPath, an AI supply chain assistant for Indian SMBs. "
+    "A textile shipment from Coimbatore to Surat via NH-44 is flagged HIGH RISK. "
+    "Reason: Heavy rainfall forecast on NH-44 for next 18 hours, 85% probability of 6+ hour delay. "
+    "Freight terminal congestion at Surat adding 4 hour wait. "
+    "Available alternates: NH-48 (saves 11hrs, costs ₹800 extra, 94% reliability), "
+    "NH-27 (saves 6hrs, costs ₹400 extra, 78% reliability). "
+    "Give a clear 3-4 sentence recommendation for SMB owner Priya. "
+    "Be specific, mention route names and time saved. "
+    "Simple helpful tone. Do not use bullet points or headers — plain paragraph only."
+)
+
+DEMO_ANALYZE_FALLBACK = (
+    "ClearPath recommends rerouting Priya's shipment via NH-48 immediately. "
+    "This alternate route avoids the NH-44 rainfall zone entirely, saving approximately 11 hours of delay. "
+    "The additional cost of ₹800 is significantly lower than the estimated ₹4,200 loss from missing customer deadlines. "
+    "NH-48 currently shows 94% on-time reliability — the strongest option available right now."
+)
 
 
 @asynccontextmanager
@@ -138,9 +156,12 @@ async def geocode_endpoint(request: GeocodeRequest, _: AuthUser = Depends(get_cu
 
 
 @app.post("/analyze")
-async def analyze_endpoint(request: AnalyzeRequest, _: AuthUser = Depends(get_current_user)) -> dict:
-    response = await analyze_route_pair(request)
-    return response.model_dump(by_alias=True)
+async def analyze_endpoint(_: dict | None = Body(default=None)) -> dict:
+    recommendation = await generate_plain_text_recommendation(
+        prompt=DEMO_ANALYZE_PROMPT,
+        fallback_text=DEMO_ANALYZE_FALLBACK,
+    )
+    return {"recommendation": recommendation}
 
 
 @app.get("/shipments")

@@ -42,3 +42,32 @@ async def generate_explanation(prompt_payload: dict, fallback: dict) -> dict:
         return parsed
     except Exception:
         return fallback
+
+
+async def generate_plain_text_recommendation(prompt: str, fallback_text: str) -> str:
+    """Generate a plain-text Gemini recommendation with a resilient fallback."""
+    if not settings.gemini_api_key:
+        return fallback_text
+
+    url = f"{settings.gemini_base_url}/{settings.gemini_model}:generateContent?key={settings.gemini_api_key}"
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {
+                        "text": prompt,
+                    }
+                ]
+            }
+        ]
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=settings.request_timeout_seconds) as client:
+            response = await with_retries(lambda: client.post(url, json=payload))
+            data = response.json()
+        text = data["candidates"][0]["content"]["parts"][0]["text"]  # type: ignore[index]
+        cleaned = str(text).strip()
+        return cleaned or fallback_text
+    except Exception:
+        return fallback_text
