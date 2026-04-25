@@ -1,5 +1,25 @@
 # ClearPath
 
+## Prototype vs Production Stack
+
+ClearPath is built for zero-cost prototyping so any student, judge, or SMB can run and verify it without a billing account or credit card.
+
+| Feature | Prototype (This Build) | Production (Phase 2) |
+|---|---|---|
+| Maps & Routing | Leaflet.js + OpenStreetMap | Google Maps Routes API + Distance Matrix API |
+| AI Analysis | Gemini API via AI Studio free tier | Gemini 2.0 Flash via Vertex AI + Agent Builder |
+| Auth + Database | Firebase Spark (free tier — no CC) | Firebase Blaze (pay-as-you-go) |
+| Backend | FastAPI on Render free tier | FastAPI on Cloud Run |
+| Serverless Triggers | Not used (prototype) | Firebase Cloud Functions |
+| Analytics | Local SQLite audit log | BigQuery historical pattern learning at scale |
+| Transporter Alerts | UI preview only (prototype) | WhatsApp Business API via approved BSP |
+| Weather Data | Hardcoded scenario (prototype) | Live IMD Weather API + OpenWeatherMap |
+| Road Data | Hardcoded scenario (prototype) | Live NHAI Road Status API |
+
+The architecture is intentionally designed so every prototype component maps 1:1 to its production equivalent. Swapping Leaflet for Google Maps Routes API or AI Studio for Vertex AI requires changing API endpoints and keys — not rebuilding the system. This is a deliberate engineering decision, not a limitation.
+
+---
+
 ClearPath is our Google Solution Challenge 2026 submission for the Smart Supply Chains track.
 
 It is an AI supply chain co-pilot for Indian SMBs focused on resilient logistics and dynamic supply chain optimization.

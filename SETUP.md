@@ -1,84 +1,155 @@
-# ClearPath Setup Guide
+# ClearPath — Setup Guide
 
-## Local Development
+Everything here is **free**. No credit card required at any step.
 
-### Backend
+---
+
+## What You Need Before Starting
+
+| Tool | Where to get it | Cost |
+|---|---|---|
+| Node.js 18+ | https://nodejs.org | Free |
+| Python 3.11+ | https://python.org | Free |
+| Gemini API key | https://aistudio.google.com/apikey | Free |
+| Firebase project | https://console.firebase.google.com | Free (Spark tier) |
+
+---
+
+## Step 1 — Get a Free Gemini API Key
+
+1. Go to https://aistudio.google.com/apikey
+2. Sign in with your Google account
+3. Click **Create API Key**
+4. Copy the key — you will paste it into `backend/.env`
+
+---
+
+## Step 2 — Set Up Firebase (Spark tier — free, no CC)
+
+1. Go to https://console.firebase.google.com
+2. Create a new project
+3. Go to **Authentication** → **Sign-in method** → Enable **Email/Password**
+4. Go to **Firestore Database** → Create database → Start in **test mode**
+5. Go to **Project Settings** → **Your apps** → Add a **Web app**
+6. Copy the config values — you will paste them into `frontend/.env`
+
+---
+
+## Step 3 — Backend Setup
 
 ```bash
 cd backend
+
+# Create virtual environment
 python -m venv .venv
+
+# Activate (Windows)
 .venv\Scripts\activate
+
+# Activate (Mac/Linux)
+source .venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
-copy .env.example .env
+
+# Create your .env file
+cp .env.example .env
+```
+
+Open `backend/.env` and set:
+
+```env
+JWT_SECRET_KEY=any-long-random-string-at-least-32-chars
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=your-chosen-password
+GEMINI_API_KEY=paste-your-gemini-key-here
+CORS_ORIGINS=http://localhost:5173
+```
+
+Start the backend:
+
+```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Required backend env vars:
-- `JWT_SECRET_KEY` must be set in `backend/.env` or the backend will fail at startup.
-- `ADMIN_PASSWORD` must be set in `backend/.env` or the backend will fail at startup.
+Test: open http://localhost:8000/health — should show status ok.
 
-Optional integrations:
-- `GOOGLE_TRANSLATE_API_KEY` enables multilingual alert translations. Without it, ClearPath falls back to the original alert text.
-- `VERTEX_AI_PROJECT_ID`, `VERTEX_AI_LOCATION`, and `VERTEX_AI_MODEL` enable Vertex-backed workflow summarization. Without them, ClearPath uses the local orchestration fallback.
-- `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, and `WHATSAPP_DEMO_RECIPIENT` enable live WhatsApp alert dispatch. Without them, alerts are still built and logged for demo fallback mode.
-- `FCM_PROJECT_ID` and `FCM_DEMO_TOKEN` enable FCM HTTP v1 push delivery when Google credentials are available. `FCM_SERVER_KEY` remains supported as a legacy fallback.
-- `FIREBASE_AUTH_ENABLED=true` enables Firebase ID token verification so Firebase-authenticated clients can exchange into the app JWT flow.
-- `AUTH_MODE=firebase_primary` makes Firebase Authentication the required runtime auth mode for protected APIs. In local dev you can keep `ALLOW_PASSWORD_LOGIN=true` while migrating.
-- `REQUIRE_ADMIN_MFA=true` blocks admin-only routes unless the authenticated admin session carries MFA state.
-- `ENFORCE_FIRESTORE_IN_PRODUCTION=true` degrades health and startup validation if production is not using Firestore.
-- `FIREBASE_FUNCTIONS_ENABLED=true` and `FIREBASE_FUNCTIONS_BASE_URL` let the backend trigger deployed Firebase Functions for serverless workflow steps.
-- `DATABASE_URL` lets you point ClearPath at a different SQLite file for local or staging environments. By default it uses `backend/data/clearpath.db`.
-- `FIREBASE_PROJECT_ID` and `FIREBASE_CREDENTIALS_PATH` enable Firestore persistence and Firebase Admin features.
-- `BIGQUERY_PROJECT_ID`, `BIGQUERY_DATASET`, and `BIGQUERY_TABLE` enable operational event export for disruption and reroute logs. Without them, audit events stay in SQLite or Firestore.
-- `PORT_FEEDS_BASE_URL` and `NHAI_ROADS_BASE_URL` let you connect live port and road-status signals. Without them, the backend uses graceful fallbacks so the demo remains functional.
+---
 
-### Frontend
+## Step 4 — Frontend Setup
 
 ```bash
 cd frontend
 npm install
-copy .env.example .env
+cp .env.example .env
+```
+
+Open `frontend/.env` and set:
+
+```env
+VITE_BACKEND_URL=http://localhost:8000
+VITE_FIREBASE_API_KEY=paste-here
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=paste-here
+VITE_FIREBASE_APP_ID=paste-here
+VITE_AUTH_MODE=firebase_primary
+```
+
+**No Firebase yet?** Set `VITE_AUTH_MODE=app_jwt` and leave Firebase vars empty.
+Log in with username `admin` and the password from `backend/.env`.
+
+Start the frontend:
+
+```bash
 npm run dev
 ```
 
-Optional frontend integrations:
-- `VITE_API_URL` points the frontend to the backend when it is not running on `http://localhost:8000`.
-- `VITE_AUTH_MODE=firebase_primary` switches the login screen to Firebase Authentication behavior while preserving the current UI theme.
-- `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, and `VITE_FIREBASE_APP_ID` enable the frontend Firebase SDK.
+Open http://localhost:5173.
 
-## Production Notes
+---
 
-- SQLite is the default persistent database for shipments, alerts, users, and audit events in local and staging runs.
-- Firestore becomes the primary persistent database when configured.
-- JWT auth protects shipment APIs, and Firebase token verification can be enabled as a bridge for Firebase-based sign-in flows.
-- Firebase Admin provisioning is used when configured so created users can also receive Firebase custom claims.
-- Firebase-first deployments should use `AUTH_MODE=firebase_primary`, `FIREBASE_AUTH_ENABLED=true`, Firestore, and deployed Firebase rules/functions together.
-- The frontend can run in backend-password mode or Firebase-primary mode without changing the theme.
-- Monitoring runs automatically every `MONITORING_INTERVAL_SECONDS`.
-- `JWT_SECRET_KEY` and `ADMIN_PASSWORD` are required env vars and must be set before the backend starts.
-- `GET /users`, `POST /users`, and `PUT /users/{user_id}/password` are available for admin-managed user operations.
-- Set optional API keys only when you want live integrations; ClearPath still works in fallback mode without them.
-- Audit events can be exported to BigQuery when configured, while SQLite-backed audit logging remains available in fallback mode.
-- External AI and analytics payloads are anonymized before leaving the app.
-- Restrict `CORS_ORIGINS` to your frontend domains in production.
+## Step 5 — Create a Firebase Login User
 
-## API Surface
+Go to Firebase Console → Authentication → Users → Add user.
+Enter an email and password, then use those to log in at /login.
 
-- `GET /health`
-- `POST /auth/login`
-- `POST /auth/firebase`
-- `GET /auth/me`
-- `GET /users`
-- `POST /users`
-- `PUT /users/{user_id}/password`
-- `PUT /users/{user_id}/device-token`
-- `GET /audit-events`
-- `POST /shipments`
-- `GET /shipments`
-- `GET /shipments/{shipment_id}`
-- `PATCH /shipments/{shipment_id}`
-- `POST /shipments/{shipment_id}/refresh`
+---
+
+## Step 6 — Run the Demo
+
+1. Open http://localhost:5173 → click Get Started → log in
+2. Dashboard loads with Leaflet map showing Coimbatore → Surat
+3. See the HIGH RISK red pulsing marker on Surat
+4. Click **Run AI Analysis** — Gemini responds in 2-3 seconds
+5. Click **Approve Best Route**:
+   - Marker turns green
+   - NH-48 alternate polyline appears on map
+   - Success toast with new ETA
+   - Event logged to Firestore disruptions collection
+6. Toggle **हिंदी में देखें** for Hindi alert
+
+Total demo time: under 60 seconds.
+
+---
 
 ## Deployment
 
-See [DEPLOYMENT.md](/d:/Arihant/Data/Code/clearpath_full_project/DEPLOYMENT.md).
+See DEPLOYMENT.md for Vercel + Render instructions.
+
+---
+
+## Troubleshooting
+
+**Backend won't start** — JWT_SECRET_KEY and ADMIN_PASSWORD must be set in backend/.env
+
+**AI Analysis returns fallback text** — check GEMINI_API_KEY in backend/.env. The fallback is intentional, demo still works.
+
+**Map does not load** — Leaflet uses OpenStreetMap, needs internet. No API key needed.
+
+**Login fails in firebase_primary mode** — create the user in Firebase Console → Authentication first.
+
+**Login fails in app_jwt mode** — use username `admin` and your ADMIN_PASSWORD.
+
+**Firestore write silent fail** — expected if Firebase vars not set. Check browser console for: Disruption logged to Firestore: DEMO-001

@@ -120,11 +120,18 @@ async function logDisruptionApproval(userId: string | undefined) {
   const app = getApps().length ? getApp() : initializeApp(firebaseOptions);
   const db = getFirestore(app);
   await addDoc(collection(db, "disruptions"), {
-    shipmentId: "shipment-coimbatore-surat-demo",
+    shipmentId: "DEMO-001",
+    origin: "Coimbatore",
+    destination: "Surat",
+    riskRoute: "NH-44",
     approvedRoute: "NH-48",
-    timestamp: serverTimestamp(),
+    timeSaved: "11 hours",
+    extraCost: "₹800",
+    reliability: "94%",
+    approvedAt: serverTimestamp(),
     userId: userId ?? "demo-user",
   });
+  console.log("Disruption logged to Firestore: DEMO-001");
 }
 
 export default function Dashboard() {

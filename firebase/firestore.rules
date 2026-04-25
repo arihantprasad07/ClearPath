@@ -34,3 +34,6 @@ service cloud.firestore {
     }
   }
 }
+
+// Note: disruptions collection rule is appended below in production deployment.
+// For prototype/test mode, use Firebase Console to set rules to test mode.
