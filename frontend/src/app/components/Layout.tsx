@@ -11,10 +11,10 @@ export default function Layout() {
   const { authUser, highContrastEnabled, userRole } = useAppContext();
   const isLandingRoute = pathname === "/";
 
+  // /dashboard has its own self-contained layout — no AppShell sidebar
   const isAppRoute =
     (!!authUser || !!userRole) &&
-    (pathname === '/dashboard' ||
-      pathname === '/add-shipment' ||
+    (pathname === '/add-shipment' ||
       /^\/shipment\/[^/]+$/.test(pathname));
 
   return (
