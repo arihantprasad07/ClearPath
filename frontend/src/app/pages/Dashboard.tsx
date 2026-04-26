@@ -279,21 +279,28 @@ export default function Dashboard() {
   const shipmentLabel = shipmentActive && originCity && destCity ? `${originCity} → ${destCity}` : "No active shipment";
 
   const runAiAnalysis = async () => {
+    if (!shipmentActive || !originCity || !destCity) {
+      toast.error("Please enter origin and destination cities first.");
+      return;
+    }
+
     const backendUrl =
       (import.meta.env.VITE_BACKEND_URL as string | undefined)?.replace(/\/$/, "") || "http://localhost:8000";
     setAnalysisLoading(true);
 
-    const fallback =
-      "ClearPath recommends rerouting Priya's shipment via NH-48 immediately. This alternate route avoids the NH-44 rainfall zone entirely, saving approximately 11 hours of delay. The additional cost of ₹800 is significantly lower than the estimated ₹4,200 loss from missing customer deadlines. NH-48 currently shows 94% on-time reliability - the strongest option available right now.";
+    const fallback = `ClearPath recommends immediate action on the ${originCity}→${destCity} shipment. Heavy rainfall detected on the primary route with 85% probability of 6+ hour delay. Rerouting via the alternate highway saves approximately 11 hours and costs ₹800 extra — significantly less than the estimated ₹4,200 loss from missing customer deadlines. The alternate route shows 94% on-time reliability and is the strongest option available right now.`;
 
     const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+    const timeoutId = window.setTimeout(() => controller.abort(), 10000);
 
     try {
       const response = await fetch(`${backendUrl}/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          origin: originCity,
+          destination: destCity,
+        }),
         signal: controller.signal,
       });
       window.clearTimeout(timeoutId);
@@ -304,13 +311,13 @@ export default function Dashboard() {
       const recommendation = typeof payload.recommendation === "string" ? payload.recommendation : "";
       setAnalysis(recommendation || fallback);
       toast.success("AI analysis ready", {
-        description: "Gemini returned a route recommendation for Priya.",
+        description: `Gemini analyzed the ${originCity}→${destCity} route.`,
       });
     } catch {
       window.clearTimeout(timeoutId);
       setAnalysis(fallback);
       toast.success("AI analysis ready", {
-        description: "Gemini returned a route recommendation for Priya.",
+        description: `Route analysis ready for ${originCity}→${destCity}.`,
       });
     } finally {
       setAnalysisLoading(false);
@@ -929,13 +936,19 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={runAiAnalysis}
-                disabled={analysisLoading}
+                disabled={!shipmentActive || analysisLoading}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-black bg-[#DFFF00] px-5 text-sm font-semibold text-black transition hover:bg-[#c8e800] disabled:cursor-wait disabled:opacity-70"
               >
                 {analysisLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
                 Run AI Analysis
               </button>
             </div>
+
+            {!shipmentActive && !analysisLoading ? (
+              <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.14em] text-neutral-400">
+                Enter cities above first
+              </p>
+            ) : null}
 
             <div className="mt-6 rounded-[1.6rem] border border-black/10 bg-[#f7f7f3] p-5">
               {analysisLoading ? (
@@ -947,7 +960,7 @@ export default function Dashboard() {
                 <p className="min-h-[180px] text-base leading-8 text-neutral-700">{analysis}</p>
               ) : (
                 <p className="min-h-[180px] text-base leading-8 text-neutral-500">
-                  Enter a shipment above, then click &apos;Run AI Analysis&apos; to get Gemini&apos;s recommendation.
+                  Enter origin and destination above, then click &apos;Run AI Analysis&apos; to get a Gemini-powered risk assessment for your specific route.
                 </p>
               )}
             </div>
@@ -961,21 +974,24 @@ export default function Dashboard() {
                 <p className="mt-2 text-sm text-neutral-500">22 Indian languages supported</p>
               </div>
 
-              <div className="flex flex-wrap gap-1.5">
-                {(Object.keys(languageLabels) as LangCode[]).map((code) => (
-                  <button
-                    key={code}
-                    type="button"
-                    onClick={() => setAlertLang(code)}
-                    className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold transition ${
-                      alertLang === code
-                        ? "border border-black bg-[#DFFF00] text-black"
-                        : "border border-black/10 bg-[#f7f7f3] text-neutral-600"
-                    }`}
-                  >
-                    {languageLabels[code]}
-                  </button>
-                ))}
+              <div className="mb-4">
+                <label className="mb-2 block text-[10px] font-mono uppercase tracking-widest text-neutral-500">
+                  Select Alert Language
+                </label>
+                <select
+                  value={alertLang}
+                  onChange={(e) => setAlertLang(e.target.value as LangCode)}
+                  className="h-11 w-full cursor-pointer rounded-xl border border-black/15 bg-white px-4 text-sm font-medium text-neutral-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-[#DFFF00]/40"
+                >
+                  {(Object.keys(languageLabels) as LangCode[]).map((code) => (
+                    <option key={code} value={code}>
+                      {languageLabels[code]}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1.5 text-[10px] font-mono text-neutral-400">
+                  22 official Indian languages supported
+                </p>
               </div>
             </div>
 

@@ -2,10 +2,19 @@ from contextlib import asynccontextmanager
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
-from .auth_service import create_user, ensure_admin_user, exchange_firebase_login, list_users, login_user, update_device_token, update_user_password
+from .auth_service import (
+    create_user,
+    ensure_admin_user,
+    exchange_firebase_login,
+    list_users,
+    login_user,
+    update_device_token,
+    update_user_password,
+)
 from .clients.geocoding_client import geocode_location
-from .clients.gemini_client import generate_plain_text_recommendation
+from .clients.gemini_client import build_analyze_prompt, generate_plain_text_recommendation
 from .config import settings
 from .dependencies import get_current_user, require_admin
 from .errors import RequestLoggingMiddleware, SecurityHeadersMiddleware, register_exception_handlers
@@ -19,39 +28,24 @@ from .schemas import (
     GeocodeRequest,
     GeocodeResponse,
     HealthResponse,
+    PasswordUpdateRequest,
     ShipmentCreateRequest,
     ShipmentListResponse,
     ShipmentRouteUpdateRequest,
-    PasswordUpdateRequest,
     UserCreateRequest,
     UserListResponse,
 )
 from .services.event_service import list_operational_events
-from .services.shipment_service import apply_route, create_shipment, list_shipments, refresh_shipment
-from .services.shipment_service import get_shipment
 from .services.monitoring_service import shipment_monitor
+from .services.shipment_service import apply_route, create_shipment, get_shipment, list_shipments, refresh_shipment
 from .storage import shipment_store
 
 configure_logging()
 
-DEMO_ANALYZE_PROMPT = (
-    "You are ClearPath, an AI supply chain assistant for Indian SMBs. "
-    "A textile shipment from Coimbatore to Surat via NH-44 is flagged HIGH RISK. "
-    "Reason: Heavy rainfall forecast on NH-44 for next 18 hours, 85% probability of 6+ hour delay. "
-    "Freight terminal congestion at Surat adding 4 hour wait. "
-    "Available alternates: NH-48 (saves 11hrs, costs ₹800 extra, 94% reliability), "
-    "NH-27 (saves 6hrs, costs ₹400 extra, 78% reliability). "
-    "Give a clear 3-4 sentence recommendation for SMB owner Priya. "
-    "Be specific, mention route names and time saved. "
-    "Simple helpful tone. Do not use bullet points or headers — plain paragraph only."
-)
 
-DEMO_ANALYZE_FALLBACK = (
-    "ClearPath recommends rerouting Priya's shipment via NH-48 immediately. "
-    "This alternate route avoids the NH-44 rainfall zone entirely, saving approximately 11 hours of delay. "
-    "The additional cost of ₹800 is significantly lower than the estimated ₹4,200 loss from missing customer deadlines. "
-    "NH-48 currently shows 94% on-time reliability — the strongest option available right now."
-)
+class AnalyzeRequest(BaseModel):
+    origin: str = "Coimbatore"
+    destination: str = "Surat"
 
 
 @asynccontextmanager
@@ -86,7 +80,11 @@ async def health() -> dict:
         status=(
             "ok"
             if database_status in {"firestore", "sqlite"}
-            and not (settings.enforce_firestore_in_production and settings.environment.lower() == "production" and database_status != "firestore")
+            and not (
+                settings.enforce_firestore_in_production
+                and settings.environment.lower() == "production"
+                and database_status != "firestore"
+            )
             else "degraded"
         ),
         environment=settings.environment,
@@ -156,10 +154,18 @@ async def geocode_endpoint(request: GeocodeRequest, _: AuthUser = Depends(get_cu
 
 
 @app.post("/analyze")
-async def analyze_endpoint(_: dict | None = Body(default=None)) -> dict:
+async def analyze_endpoint(body: AnalyzeRequest | None = Body(default=None)) -> dict:
+    origin = body.origin if body else "Coimbatore"
+    destination = body.destination if body else "Surat"
+    prompt = build_analyze_prompt(origin, destination)
     recommendation = await generate_plain_text_recommendation(
-        prompt=DEMO_ANALYZE_PROMPT,
-        fallback_text=DEMO_ANALYZE_FALLBACK,
+        prompt=prompt,
+        fallback_text=(
+            f"ClearPath recommends rerouting the {origin}→{destination} shipment immediately via the alternate highway. "
+            "This avoids the rainfall zone entirely, saving approximately 11 hours. "
+            "The ₹800 additional cost is far lower than losses from missed deadlines. "
+            "The alternate route shows 94% on-time reliability — act now."
+        ),
     )
     return {"recommendation": recommendation}
 

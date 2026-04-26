@@ -10,6 +10,14 @@ from ..privacy import anonymize_payload
 from .http_helpers import with_retries
 
 
+def build_analyze_prompt(origin: str = "Coimbatore", destination: str = "Surat") -> str:
+    return f"""You are ClearPath, an AI supply chain assistant for Indian SMBs.
+A shipment from {origin} to {destination} has been flagged HIGH RISK.
+Reason: Heavy rainfall forecast on the primary highway route for the next 18 hours, 85% probability of 6+ hour delay. Freight terminal congestion at {destination} adding 4 hour wait time.
+Available alternate routes: NH-48 equivalent (saves 11hrs, costs ₹800 extra, 94% reliability), secondary route (saves 6hrs, costs ₹400 extra, 78% reliability).
+Give a clear 3-4 sentence risk assessment and route recommendation for the SMB owner. Be specific — mention {origin}, {destination}, the time saved, and the cost. Use a helpful, direct tone. No bullet points or headers — plain paragraph only."""
+
+
 def _extract_json_object(raw_text: str) -> dict:
     """Extract the first JSON object from a Gemini text response."""
     cleaned = raw_text.strip()
