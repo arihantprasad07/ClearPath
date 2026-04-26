@@ -5,9 +5,12 @@ import {
   ArrowLeft,
   Brain,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   LoaderCircle,
   MapPinned,
   MessageSquareText,
+  RefreshCw,
   Route,
   ShieldAlert,
   Sparkles,
@@ -140,6 +143,13 @@ const alertMessages: Record<LangCode, string> = {
   ne: "🚨 ClearPath सूचना: कोयम्बत्तूर→सुरत ढुवानी उच्च जोखिममा छ।\nसुझाव: NH-48 बाट बाटो बदल्नुस्। ११ घण्टा बच्छ, ₹800 थप।\nस्वीकृतिका लागि तल ट्याप गर्नुस्।",
 };
 
+const demoSteps = [
+  { title: "👁 See HIGH RISK", description: "Red pulsing marker on Surat" },
+  { title: "🤖 Run AI Analysis", description: "Click the lime button → Gemini responds" },
+  { title: "✅ Approve Route", description: "One tap → map updates instantly" },
+  { title: "🌐 Switch Language", description: "Pick any of 22 Indian languages" },
+] as const;
+
 function createSignalIcon(color: string, pulse: boolean) {
   return L.divIcon({
     className: "",
@@ -156,9 +166,7 @@ function createSignalIcon(color: string, pulse: boolean) {
 function createWaypointIcon() {
   return L.divIcon({
     className: "",
-    html: `
-      <div style="width:10px;height:10px;border-radius:999px;background:#2563eb;border:2px solid white;box-shadow:0 0 0 1px rgba(37,99,235,0.28);"></div>
-    `,
+    html: '<div style="width:10px;height:10px;border-radius:999px;background:#2563eb;border:2px solid white;box-shadow:0 0 0 1px rgba(37,99,235,0.28);"></div>',
     iconSize: [10, 10],
     iconAnchor: [5, 5],
   });
@@ -170,7 +178,6 @@ function MapClickHandler({ onMapClick }: { onMapClick: (latlng: LatLngTuple) => 
       onMapClick([e.latlng.lat, e.latlng.lng]);
     },
   });
-
   return null;
 }
 
@@ -235,14 +242,21 @@ export default function Dashboard() {
   const [drawingTarget, setDrawingTarget] = useState<"current" | "alternate" | null>(null);
   const [savedCurrentRoute, setSavedCurrentRoute] = useState<LatLngTuple[]>(currentRoute);
   const [savedAlternateRoute, setSavedAlternateRoute] = useState<LatLngTuple[]>(alternateRoute);
+  const [isGuideExpanded, setIsGuideExpanded] = useState(true);
+  const [showConfidence, setShowConfidence] = useState(false);
 
   useEffect(() => {
-    document.title = "Dashboard - ClearPath";
+    document.title = "ClearPath Dashboard — Live Shipment Intelligence";
   }, []);
 
   useEffect(() => {
     if (!authLoading && !authUser) navigate("/login");
   }, [authLoading, authUser, navigate]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setShowConfidence(true), 300);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   const originIcon = useMemo(() => createSignalIcon("#22c55e", false), []);
   const highRiskIcon = useMemo(
@@ -251,18 +265,16 @@ export default function Dashboard() {
   );
   const waypointIcon = useMemo(() => createWaypointIcon(), []);
 
-  if (authLoading || !authUser) return null;
-
   const runAiAnalysis = async () => {
     const backendUrl =
       (import.meta.env.VITE_BACKEND_URL as string | undefined)?.replace(/\/$/, "") || "http://localhost:8000";
     setAnalysisLoading(true);
 
-    const FALLBACK =
+    const fallback =
       "ClearPath recommends rerouting Priya's shipment via NH-48 immediately. This alternate route avoids the NH-44 rainfall zone entirely, saving approximately 11 hours of delay. The additional cost of ₹800 is significantly lower than the estimated ₹4,200 loss from missing customer deadlines. NH-48 currently shows 94% on-time reliability - the strongest option available right now.";
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = window.setTimeout(() => controller.abort(), 8000);
 
     try {
       const response = await fetch(`${backendUrl}/analyze`, {
@@ -271,19 +283,19 @@ export default function Dashboard() {
         body: JSON.stringify({}),
         signal: controller.signal,
       });
-      clearTimeout(timeoutId);
+      window.clearTimeout(timeoutId);
 
       if (!response.ok) throw new Error("Backend error");
 
       const payload = (await response.json()) as Record<string, unknown>;
       const recommendation = typeof payload.recommendation === "string" ? payload.recommendation : "";
-      setAnalysis(recommendation || FALLBACK);
+      setAnalysis(recommendation || fallback);
       toast.success("AI analysis ready", {
         description: "Gemini returned a route recommendation for Priya.",
       });
     } catch {
-      clearTimeout(timeoutId);
-      setAnalysis(FALLBACK);
+      window.clearTimeout(timeoutId);
+      setAnalysis(fallback);
       toast.success("AI analysis ready", {
         description: "Gemini returned a route recommendation for Priya.",
       });
@@ -303,7 +315,7 @@ export default function Dashboard() {
     setRouteApproved(true);
 
     try {
-      await logDisruptionApproval(authUser.id);
+      await logDisruptionApproval(authUser?.id);
     } catch (error) {
       console.warn("Unable to log disruption approval to Firestore.", error);
     }
@@ -333,15 +345,55 @@ export default function Dashboard() {
     setDrawnRoute([]);
   };
 
-  const clearDrawnPoints = () => {
-    setDrawnRoute([]);
-  };
+  const clearDrawnPoints = () => setDrawnRoute([]);
 
   const cancelDrawing = () => {
     setIsDrawingMode(false);
     setDrawingTarget(null);
     setDrawnRoute([]);
   };
+
+  const resetDemo = () => {
+    setRouteApproved(false);
+    setAnalysis("");
+    setAlertLang("en");
+    setDrawnRoute([]);
+    setSavedCurrentRoute(currentRoute);
+    setSavedAlternateRoute(alternateRoute);
+    setIsDrawingMode(false);
+    setDrawingTarget(null);
+    toast.message("Demo reset", {
+      description: "Ready to present again.",
+    });
+  };
+
+  if (authLoading) {
+    return (
+      <div className="relative min-h-[100dvh] bg-white px-4 pt-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl animate-pulse space-y-6">
+          <div className="h-8 w-48 rounded-full bg-neutral-100" />
+          <div className="h-64 rounded-[2rem] bg-neutral-100" />
+          <div className="grid gap-6 xl:grid-cols-[1.22fr_0.78fr]">
+            <div className="h-[500px] rounded-[2rem] bg-neutral-100" />
+            <div className="h-[500px] rounded-[2rem] bg-neutral-100" />
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="h-64 rounded-[2rem] bg-neutral-100" />
+            <div className="h-64 rounded-[2rem] bg-neutral-100" />
+          </div>
+          <div className="flex justify-center pt-4">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-300">
+              Loading ClearPath...
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authUser) {
+    return null;
+  }
 
   return (
     <div className="relative min-h-[100dvh] overflow-hidden bg-white text-black">
@@ -415,6 +467,35 @@ export default function Dashboard() {
           </div>
         </div>
 
+        <section className="mt-6 rounded-[1.6rem] border border-[#DFFF00]/40 bg-[#DFFF00]/8 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="text-[10px] font-mono uppercase tracking-widest text-[#667300]">🎯 Judge Demo Guide</div>
+            <button
+              type="button"
+              onClick={() => setIsGuideExpanded((current) => !current)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/10 bg-white text-neutral-700 transition hover:border-black/20"
+              aria-label={isGuideExpanded ? "Collapse judge demo guide" : "Expand judge demo guide"}
+            >
+              {isGuideExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+          </div>
+
+          {isGuideExpanded ? (
+            <div className="mt-4 flex flex-wrap gap-3">
+              {demoSteps.map((step, index) => (
+                <div key={step.title} className="min-w-[220px] flex-1 rounded-xl border border-black/10 bg-white p-3 shadow-sm">
+                  <div className="text-[10px] font-mono text-neutral-400">Step {index + 1}</div>
+                  <div className="mt-2 text-sm font-semibold text-neutral-900">{step.title}</div>
+                  <div className="mt-1 text-xs text-neutral-500">{step.description}</div>
+                </div>
+              ))}
+              <div className="inline-flex items-center justify-center rounded-full border border-[#DFFF00]/50 bg-[#DFFF00] px-4 py-2 text-[11px] font-semibold text-black">
+                ⏱ Total demo time: under 60 seconds
+              </div>
+            </div>
+          ) : null}
+        </section>
+
         <section className="mt-8 rounded-[2.2rem] border border-black/10 bg-white/88 p-6 shadow-[0_28px_80px_-36px_rgba(0,0,0,0.18)] backdrop-blur sm:p-8 lg:p-10">
           <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
@@ -432,7 +513,7 @@ export default function Dashboard() {
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {[
                 { label: "Shipment lane", value: "Coimbatore → Surat" },
                 { label: "Delay probability", value: "85%" },
@@ -529,7 +610,7 @@ export default function Dashboard() {
             </div>
 
             <div className="mt-5 overflow-hidden rounded-[1.8rem] border border-black/10">
-              <div className={`h-[450px] bg-[#eef0e8] ${isDrawingMode ? "map-drawing-mode" : ""}`}>
+              <div className={`h-[300px] bg-[#eef0e8] sm:h-[450px] ${isDrawingMode ? "map-drawing-mode" : ""}`}>
                 <MapContainer center={INDIA_CENTER} zoom={5} scrollWheelZoom className="z-0">
                   <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -537,11 +618,7 @@ export default function Dashboard() {
                   />
 
                   {isDrawingMode ? (
-                    <MapClickHandler
-                      onMapClick={(latlng) => {
-                        setDrawnRoute((current) => [...current, latlng]);
-                      }}
-                    />
+                    <MapClickHandler onMapClick={(latlng) => setDrawnRoute((existing) => [...existing, latlng])} />
                   ) : null}
 
                   <Marker position={COIMBATORE} icon={originIcon}>
@@ -560,7 +637,6 @@ export default function Dashboard() {
                     positions={savedCurrentRoute}
                     pathOptions={{ color: "#ef6a3c", weight: 5, dashArray: "12 12", lineCap: "round" }}
                   />
-
                   <Polyline positions={savedAlternateRoute} pathOptions={{ color: "#87b800", weight: 6, lineCap: "round" }} />
 
                   {isDrawingMode && drawnRoute.length > 0 ? (
@@ -618,6 +694,22 @@ export default function Dashboard() {
                   Freight terminal congestion at Surat - +4 hrs wait
                 </p>
               </div>
+
+              <div className="mt-3 rounded-[1.2rem] border border-black/10 bg-white p-4">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-neutral-700">AI Confidence Score</span>
+                  <span className="font-semibold text-[#7c8b00]">85%</span>
+                </div>
+                <div className="mt-3 h-3 w-full rounded-full bg-neutral-100">
+                  <div
+                    className="h-3 rounded-full bg-[#DFFF00] transition-all duration-[1400ms] ease-out"
+                    style={{ width: showConfidence ? "85%" : "0%" }}
+                  />
+                </div>
+                <div className="mt-2 text-[10px] text-neutral-400">
+                  Based on IMD rainfall data + historical NH-44 patterns
+                </div>
+              </div>
             </div>
 
             <div className="mt-5 space-y-3">
@@ -656,6 +748,17 @@ export default function Dashboard() {
               <CheckCircle2 className="h-5 w-5" />
               ✅ Approve Best Route
             </button>
+
+            {routeApproved ? (
+              <button
+                type="button"
+                onClick={resetDemo}
+                className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-black/10 bg-white text-sm text-neutral-700 transition hover:border-black/20 hover:bg-neutral-50"
+              >
+                <RefreshCw className="h-4 w-4" />
+                ↺ Reset Demo
+              </button>
+            ) : null}
           </article>
         </section>
 
@@ -701,13 +804,13 @@ export default function Dashboard() {
                 <p className="mt-2 text-sm text-neutral-500">22 Indian languages supported</p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {(Object.keys(languageLabels) as LangCode[]).map((code) => (
                   <button
                     key={code}
                     type="button"
                     onClick={() => setAlertLang(code)}
-                    className={`rounded-full px-3 py-1 text-[11px] font-semibold transition ${
+                    className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold transition ${
                       alertLang === code
                         ? "border border-black bg-[#DFFF00] text-black"
                         : "border border-black/10 bg-[#f7f7f3] text-neutral-600"

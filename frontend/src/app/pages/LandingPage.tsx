@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router";
 import {
   ArrowRight,
@@ -452,6 +452,10 @@ function LandingContactBlock() {
 }
 
 export default function LandingPage() {
+  useEffect(() => {
+    document.title = "ClearPath — AI Supply Chain Co-pilot for India's 63M SMBs";
+  }, []);
+
   return (
     <div className="relative overflow-hidden bg-white text-black">
       <LandingNav />

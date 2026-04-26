@@ -27,7 +27,7 @@ export default function LoginPage() {
   }, [authUser, isSubmitting, navigate]);
 
   useEffect(() => {
-    document.title = "Sign in - ClearPath";
+    document.title = "Login — ClearPath";
   }, []);
 
   const handleLogin = async (event: React.FormEvent) => {
