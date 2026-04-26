@@ -13,7 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
-import { MapContainer, Marker, Polyline, TileLayer, Tooltip } from "react-leaflet";
+import { MapContainer, Marker, Polyline, TileLayer, Tooltip, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { getApp, getApps, initializeApp } from "firebase/app";
 import { addDoc, collection, getFirestore, serverTimestamp } from "firebase/firestore";
@@ -22,6 +22,29 @@ import { BrandMark } from "../components/BrandMark";
 import { useAppContext } from "../context/AppContext";
 
 type LatLngTuple = [number, number];
+type LangCode =
+  | "en"
+  | "hi"
+  | "gu"
+  | "ta"
+  | "mr"
+  | "bn"
+  | "te"
+  | "kn"
+  | "ml"
+  | "pa"
+  | "or"
+  | "as"
+  | "ur"
+  | "sa"
+  | "ks"
+  | "sd"
+  | "mai"
+  | "kok"
+  | "doi"
+  | "mni"
+  | "sat"
+  | "ne";
 
 const INDIA_CENTER: LatLngTuple = [22.5937, 78.9629];
 const COIMBATORE: LatLngTuple = [11.0168, 76.9558];
@@ -67,10 +90,55 @@ const routeOptions = [
   },
 ] as const;
 
-const englishAlert =
-  "🚨 ClearPath Alert: Coimbatore→Surat shipment is HIGH RISK. Recommended: Reroute via NH-48. Saves 11hrs, costs ₹800 extra. Tap below to approve.";
-const hindiAlert =
-  "🚨 ClearPath अलर्ट: कोयंबटूर→सूरत शिपमेंट उच्च जोखिम में है। सुझाव: NH-48 से रास्ता बदलें। 11 घंटे बचेंगे, ₹800 अतिरिक्त। अनुमोदन के लिए नीचे टैप करें।";
+const languageLabels: Record<LangCode, string> = {
+  en: "English",
+  hi: "हिंदी",
+  gu: "ગુજરાતી",
+  ta: "தமிழ்",
+  mr: "मराठी",
+  bn: "বাংলা",
+  te: "తెలుగు",
+  kn: "ಕನ್ನಡ",
+  ml: "മലയാളം",
+  pa: "ਪੰਜਾਬੀ",
+  or: "ଓଡ଼ିଆ",
+  as: "অসমীয়া",
+  ur: "اردو",
+  sa: "संस्कृत",
+  ks: "کٲشُر",
+  sd: "سنڌي",
+  mai: "मैथिली",
+  kok: "कोंकणी",
+  doi: "डोगरी",
+  mni: "মণিপুরী",
+  sat: "ᱥᱟᱱᱛᱟᱲᱤ",
+  ne: "नेपाली",
+};
+
+const alertMessages: Record<LangCode, string> = {
+  en: "🚨 ClearPath Alert: Coimbatore→Surat shipment is HIGH RISK.\nRecommended: Reroute via NH-48. Saves 11hrs, costs ₹800 extra.\nTap below to approve.",
+  hi: "🚨 ClearPath अलर्ट: कोयंबटूर→सूरत शिपमेंट उच्च जोखिम में है।\nसुझाव: NH-48 से रास्ता बदलें। 11 घंटे बचेंगे, ₹800 अतिरिक्त।\nअनुमोदन के लिए नीचे टैप करें।",
+  gu: "🚨 ClearPath એલર્ટ: કોઈમ્બતૂર→સુરત શિપમેન્ટ ઉચ્ચ જોખમમાં છે।\nભલામણ: NH-48 થી માર્ગ બદલો। 11 કલાક બચશે, ₹800 વધારાના।\nમંજૂરી માટે નીચે ટેપ કરો।",
+  ta: "🚨 ClearPath எச்சரிக்கை: கோயம்புத்தூர்→சூரத் ஏற்றுமதி அதிக ஆபத்தில் உள்ளது.\nபரிந்துரை: NH-48 வழியாக திசை மாற்றவும். 11 மணி நேரம் மிச்சம், ₹800 கூடுதல்.\nஒப்புதலுக்கு கீழே தட்டவும்.",
+  mr: "🚨 ClearPath सूचना: कोइम्बतूर→सुरत शिपमेंट उच्च धोक्यात आहे.\nशिफारस: NH-48 मार्गे वळवा. 11 तास वाचतील, ₹800 अतिरिक्त.\nमंजुरीसाठी खाली टॅप करा.",
+  bn: "🚨 ClearPath সতর্কতা: কোয়েম্বাটোর→সুরাট শিপমেন্ট উচ্চ ঝুঁকিতে আছে।\nপরামর্শ: NH-48 দিয়ে পথ পরিবর্তন করুন। ১১ ঘণ্টা বাঁচবে, ₹৮০০ অতিরিক্ত।\nঅনুমোদনের জন্য নিচে ট্যাপ করুন।",
+  te: "🚨 ClearPath హెచ్చరిక: కోయంబత్తూర్→సూరత్ షిప్‌మెంట్ అధిక ప్రమాదంలో ఉంది.\nసిఫార్సు: NH-48 ద్వారా మళ్లించండి. 11 గంటలు ఆదా, ₹800 అదనంగా.\nఆమోదానికి క్రింద నొక్కండి.",
+  kn: "🚨 ClearPath ಎಚ್ಚರಿಕೆ: ಕೊಯಮತ್ತೂರು→ಸೂರತ್ ಶಿಪ್‌ಮೆಂಟ್ ಹೆಚ್ಚಿನ ಅಪಾಯದಲ್ಲಿದೆ.\nಶಿಫಾರಸು: NH-48 ಮೂಲಕ ತಿರುಗಿಸಿ. 11 ಗಂಟೆ ಉಳಿತಾಯ, ₹800 ಹೆಚ್ಚುವರಿ.\nಅನುಮೋದನೆಗೆ ಕೆಳಗೆ ಟ್ಯಾಪ್ ಮಾಡಿ.",
+  ml: "🚨 ClearPath മുന്നറിയിപ്പ്: കോയമ്പത്തൂർ→സൂറത്ത് ഷിപ്പ്‌മെന്റ് ഉയർന്ന അപകടത്തിലാണ്.\nശുപാർശ: NH-48 വഴി തിരിച്ചുവിടുക. 11 മണിക്കൂർ ലാഭം, ₹800 അധികം.\nഅംഗീകാരത്തിന് താഴെ ടാപ്പ് ചെയ്യുക.",
+  pa: "🚨 ClearPath ਚੇਤਾਵਨੀ: ਕੋਇੰਬਟੂਰ→ਸੂਰਤ ਸ਼ਿਪਮੈਂਟ ਉੱਚ ਜੋਖਮ ਵਿੱਚ ਹੈ।\nਸਿਫਾਰਸ਼: NH-48 ਰਾਹੀਂ ਰੂਟ ਬਦਲੋ। 11 ਘੰਟੇ ਬਚਣਗੇ, ₹800 ਵਾਧੂ।\nਪ੍ਰਵਾਨਗੀ ਲਈ ਹੇਠਾਂ ਟੈਪ ਕਰੋ।",
+  or: "🚨 ClearPath ସତର୍କତା: କୋଇମ୍ବାଟୋର→ସୁରାଟ ଶିପମେଣ୍ଟ ଉଚ୍ଚ ଜୋଖିମରେ ଅଛି।\nସୁପାରିଶ: NH-48 ମାଧ୍ୟମରେ ରୁଟ ବଦଳାନ୍ତୁ। 11 ଘଣ୍ଟା ସଞ୍ଚୟ, ₹800 ଅତିରିକ୍ତ।\nଅନୁମୋଦନ ପାଇଁ ତଳୁ ଟ୍ୟାପ କରନ୍ତୁ।",
+  as: "🚨 ClearPath সতৰ্কবাৰ্তা: কোইম্বাটোৰ→ছুৰাট শিপমেণ্ট উচ্চ বিপদত আছে।\nপৰামৰ্শ: NH-48 ৰ মাজেৰে পথ সলনি কৰক। ১১ ঘণ্টা ৰাহি, ₹৮০০ অতিৰিক্ত।\nঅনুমোদনৰ বাবে তললৈ টেপ কৰক।",
+  ur: "🚨 ClearPath انتباہ: کوئمبٹور→سورت شپمنٹ اعلی خطرے میں ہے۔\nتجویز: NH-48 سے راستہ بدلیں۔ 11 گھنٹے بچیں گے، ₹800 اضافی۔\nمنظوری کے لیے نیچے ٹیپ کریں۔",
+  sa: "🚨 ClearPath सूचना: कोयम्बत्तूर→सूरत प्रेषणम् उच्च जोखिमे अस्ति।\nअनुशंसा: NH-48 मार्गेण परिवर्तयतु। 11 घण्टाः रक्ष्यन्ते, ₹800 अधिकम्।\nअनुमोदनाय अधः स्पृशतु।",
+  ks: "🚨 ClearPath خبردار: کوئمبٹور→سورت شپمنٹ ہیوو خطرہ چھ۔\nصلاہ: NH-48 راستہ تبدیل کرو۔ 11 گھنٹہ بچہ، ₹800 زیادہ۔\nمنظوری دِتھ تلہ ٹیپ کرو۔",
+  sd: "🚨 ClearPath خبردار: ڪوئمبٽور→سورت شپمينٽ تي وڏو خطرو آهي.\nصلاح: NH-48 ذريعي رستو بدلايو. 11 ڪلاڪ بچندا، ₹800 وڌيڪ.\nمنظوري لاءِ هيٺ ٽيپ ڪريو.",
+  mai: "🚨 ClearPath चेतावनी: कोयम्बत्तूर→सूरत शिपमेंट उच्च जोखिम मे अछि।\nसुझाव: NH-48 सँ रस्ता बदलू। 11 घंटा बचत, ₹800 अतिरिक्त।\nस्वीकृतिक लेल नीचाँ टैप करू।",
+  kok: "🚨 ClearPath इशारो: कोइम्बतूर→सुरत शिपमेंट उच्च धोक्यात आसा.\nशिफारस: NH-48 मार्गान वळोवचें. 11 वरां वाचतलीं, ₹800 अधिक.\nमान्यताक खाल टॅप करचें.",
+  doi: "🚨 ClearPath चेतावनी: कोयम्बत्तूर→सूरत शिपमेंट उच्च जोखिम च है।\nसुझाव: NH-48 थमां रस्ता बदलो। 11 घैंटे बचणे, ₹800 अतिरिक्त।\nपरवानगी आस्तै थल्ले टैप करो।",
+  mni: "🚨 ClearPath লাইরিক্কী: কোইমবাটোর→সুরাট শিপমেন্ট হেন্না খঙদনবা ফবদা লৈ।\nচাউখৎলকপা: NH-48 গী মফম্দা ফেরাউ। মতম ১১ চহী ঙাকথোকপা, ₹৮০০ চপ্পা।\nসম্মতি পীবা দাইরেক্ট তাক্লি।",
+  sat: "🚨 ClearPath ᱥᱮᱛᱟᱜ: ᱠᱚᱭᱢᱵᱟᱴᱩᱨ→ᱥᱩᱨᱟᱴ ᱥᱤᱯᱢᱮᱱᱴ ᱦᱟᱹᱴᱤᱛ ᱮᱢ ᱟᱠᱟᱱ ᱠᱟᱱᱟ.\nᱵᱟᱹᱭᱞᱟᱹ: NH-48 ᱨᱟᱥᱛᱟ ᱵᱚᱫᱚᱞ. 11 ᱸᱥᱚᱠ ᱵᱟᱹᱪᱟᱣ, ₹800 ᱡᱟᱹᱰᱤ.\nᱢᱟᱱ ᱫᱮᱵᱟᱜ ᱛᱮᱞᱮ ᱴᱮᱯ ᱢᱮ.",
+  ne: "🚨 ClearPath सूचना: कोयम्बत्तूर→सुरत ढुवानी उच्च जोखिममा छ।\nसुझाव: NH-48 बाट बाटो बदल्नुस्। ११ घण्टा बच्छ, ₹800 थप।\nस्वीकृतिका लागि तल ट्याप गर्नुस्।",
+};
 
 function createSignalIcon(color: string, pulse: boolean) {
   return L.divIcon({
@@ -83,6 +151,27 @@ function createSignalIcon(color: string, pulse: boolean) {
     iconSize: [26, 26],
     iconAnchor: [13, 13],
   });
+}
+
+function createWaypointIcon() {
+  return L.divIcon({
+    className: "",
+    html: `
+      <div style="width:10px;height:10px;border-radius:999px;background:#2563eb;border:2px solid white;box-shadow:0 0 0 1px rgba(37,99,235,0.28);"></div>
+    `,
+    iconSize: [10, 10],
+    iconAnchor: [5, 5],
+  });
+}
+
+function MapClickHandler({ onMapClick }: { onMapClick: (latlng: LatLngTuple) => void }) {
+  useMapEvents({
+    click(e) {
+      onMapClick([e.latlng.lat, e.latlng.lng]);
+    },
+  });
+
+  return null;
 }
 
 function formatEtaAfterApproval() {
@@ -140,7 +229,12 @@ export default function Dashboard() {
   const [routeApproved, setRouteApproved] = useState(false);
   const [analysis, setAnalysis] = useState("");
   const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [isHindi, setIsHindi] = useState(false);
+  const [alertLang, setAlertLang] = useState<LangCode>("en");
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  const [drawnRoute, setDrawnRoute] = useState<LatLngTuple[]>([]);
+  const [drawingTarget, setDrawingTarget] = useState<"current" | "alternate" | null>(null);
+  const [savedCurrentRoute, setSavedCurrentRoute] = useState<LatLngTuple[]>(currentRoute);
+  const [savedAlternateRoute, setSavedAlternateRoute] = useState<LatLngTuple[]>(alternateRoute);
 
   useEffect(() => {
     document.title = "Dashboard - ClearPath";
@@ -151,15 +245,21 @@ export default function Dashboard() {
   }, [authLoading, authUser, navigate]);
 
   const originIcon = useMemo(() => createSignalIcon("#22c55e", false), []);
-  const highRiskIcon = useMemo(() => createSignalIcon(routeApproved ? "#22c55e" : "#ef4444", !routeApproved), [routeApproved]);
+  const highRiskIcon = useMemo(
+    () => createSignalIcon(routeApproved ? "#22c55e" : "#ef4444", !routeApproved),
+    [routeApproved],
+  );
+  const waypointIcon = useMemo(() => createWaypointIcon(), []);
 
   if (authLoading || !authUser) return null;
 
   const runAiAnalysis = async () => {
-    const backendUrl = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.replace(/\/$/, "") || "http://localhost:8000";
+    const backendUrl =
+      (import.meta.env.VITE_BACKEND_URL as string | undefined)?.replace(/\/$/, "") || "http://localhost:8000";
     setAnalysisLoading(true);
 
-    const FALLBACK = "ClearPath recommends rerouting Priya's shipment via NH-48 immediately. This alternate route avoids the NH-44 rainfall zone entirely, saving approximately 11 hours of delay. The additional cost of \u20b9800 is significantly lower than the estimated \u20b94,200 loss from missing customer deadlines. NH-48 currently shows 94% on-time reliability \u2014 the strongest option available right now.";
+    const FALLBACK =
+      "ClearPath recommends rerouting Priya's shipment via NH-48 immediately. This alternate route avoids the NH-44 rainfall zone entirely, saving approximately 11 hours of delay. The additional cost of ₹800 is significantly lower than the estimated ₹4,200 loss from missing customer deadlines. NH-48 currently shows 94% on-time reliability - the strongest option available right now.";
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -183,7 +283,6 @@ export default function Dashboard() {
       });
     } catch {
       clearTimeout(timeoutId);
-      // Render cold start or network issue — show fallback silently so demo never breaks
       setAnalysis(FALLBACK);
       toast.success("AI analysis ready", {
         description: "Gemini returned a route recommendation for Priya.",
@@ -212,6 +311,36 @@ export default function Dashboard() {
     toast.success("✅ Route approved. Transporter notified.", {
       description: `New ETA: ${formatEtaAfterApproval()}`,
     });
+  };
+
+  const startDrawingRoute = (target: "current" | "alternate") => {
+    setDrawingTarget(target);
+    setDrawnRoute([]);
+    setIsDrawingMode(true);
+  };
+
+  const saveDrawnRoute = () => {
+    if (!drawingTarget || drawnRoute.length === 0) return;
+
+    if (drawingTarget === "current") {
+      setSavedCurrentRoute(drawnRoute);
+    } else {
+      setSavedAlternateRoute(drawnRoute);
+    }
+
+    setIsDrawingMode(false);
+    setDrawingTarget(null);
+    setDrawnRoute([]);
+  };
+
+  const clearDrawnPoints = () => {
+    setDrawnRoute([]);
+  };
+
+  const cancelDrawing = () => {
+    setIsDrawingMode(false);
+    setDrawingTarget(null);
+    setDrawnRoute([]);
   };
 
   return (
@@ -257,6 +386,9 @@ export default function Dashboard() {
           0% { transform: scale(0.8); opacity: 0.95; }
           70% { transform: scale(1.9); opacity: 0; }
           100% { transform: scale(1.9); opacity: 0; }
+        }
+        .map-drawing-mode .leaflet-container {
+          cursor: crosshair !important;
         }
       `}</style>
 
@@ -334,13 +466,83 @@ export default function Dashboard() {
               </div>
             </div>
 
+            <div className="mt-5 rounded-[1.6rem] border border-black/10 bg-[#f7f7f3] p-4 shadow-sm">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Route Editor</div>
+                  <h3 className="mt-2 font-mono text-sm uppercase tracking-[0.2em] text-neutral-800">Route Editor</h3>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => startDrawingRoute("current")}
+                    className="inline-flex items-center justify-center rounded-full border border-black bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-black transition hover:bg-[#f1f4e4]"
+                  >
+                    Draw NH-44 Route
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => startDrawingRoute("alternate")}
+                    className="inline-flex items-center justify-center rounded-full border border-black bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-black transition hover:bg-[#f1f4e4]"
+                  >
+                    Draw NH-48 Route
+                  </button>
+                </div>
+              </div>
+
+              {isDrawingMode ? (
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-[1.2rem] border border-[#DFFF00]/60 bg-[#F6FFD5] px-4 py-3 text-sm font-medium text-neutral-800">
+                    Click on the map to add waypoints. {drawnRoute.length} points added.
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={saveDrawnRoute}
+                      disabled={drawnRoute.length === 0}
+                      className="inline-flex items-center justify-center rounded-full border border-black bg-[#DFFF00] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-black transition hover:bg-[#c8e800] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Save Route
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearDrawnPoints}
+                      className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-700 transition hover:border-black/20"
+                    >
+                      Clear Points
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelDrawing}
+                      className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-700 transition hover:border-black/20"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-1 text-[11px] font-mono uppercase tracking-[0.14em] text-neutral-500">
+                  <div>NH-44 route: {savedCurrentRoute.length} waypoints</div>
+                  <div>NH-48 route: {savedAlternateRoute.length} waypoints</div>
+                </div>
+              )}
+            </div>
+
             <div className="mt-5 overflow-hidden rounded-[1.8rem] border border-black/10">
-              <div className="h-[450px] bg-[#eef0e8]">
+              <div className={`h-[450px] bg-[#eef0e8] ${isDrawingMode ? "map-drawing-mode" : ""}`}>
                 <MapContainer center={INDIA_CENTER} zoom={5} scrollWheelZoom className="z-0">
                   <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
+
+                  {isDrawingMode ? (
+                    <MapClickHandler
+                      onMapClick={(latlng) => {
+                        setDrawnRoute((current) => [...current, latlng]);
+                      }}
+                    />
+                  ) : null}
 
                   <Marker position={COIMBATORE} icon={originIcon}>
                     <Tooltip direction="top" offset={[0, -14]} permanent>
@@ -355,12 +557,22 @@ export default function Dashboard() {
                   </Marker>
 
                   <Polyline
-                    positions={currentRoute}
+                    positions={savedCurrentRoute}
                     pathOptions={{ color: "#ef6a3c", weight: 5, dashArray: "12 12", lineCap: "round" }}
                   />
 
-                  {routeApproved ? (
-                    <Polyline positions={alternateRoute} pathOptions={{ color: "#87b800", weight: 6, lineCap: "round" }} />
+                  <Polyline positions={savedAlternateRoute} pathOptions={{ color: "#87b800", weight: 6, lineCap: "round" }} />
+
+                  {isDrawingMode && drawnRoute.length > 0 ? (
+                    <>
+                      <Polyline
+                        positions={drawnRoute}
+                        pathOptions={{ color: "#2563eb", weight: 4, dashArray: "8 8", lineCap: "round" }}
+                      />
+                      {drawnRoute.map((point, index) => (
+                        <Marker key={`${point[0]}-${point[1]}-${index}`} position={point} icon={waypointIcon} />
+                      ))}
+                    </>
                   ) : null}
                 </MapContainer>
               </div>
@@ -400,10 +612,10 @@ export default function Dashboard() {
               <div className="mt-2 text-xl font-semibold text-neutral-950">Coimbatore → Surat</div>
               <div className="mt-4 space-y-3 text-sm leading-7 text-neutral-700">
                 <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
-                  Heavy rainfall on NH-44 — 85% delay probability
+                  Heavy rainfall on NH-44 - 85% delay probability
                 </p>
                 <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
-                  Freight terminal congestion at Surat — +4 hrs wait
+                  Freight terminal congestion at Surat - +4 hrs wait
                 </p>
               </div>
             </div>
@@ -413,9 +625,7 @@ export default function Dashboard() {
                 <div
                   key={option.name}
                   className={`rounded-[1.5rem] border p-4 shadow-sm ${
-                    option.recommended
-                      ? "border-[#DFFF00]/55 bg-[#F6FFD5]"
-                      : "border-black/10 bg-white"
+                    option.recommended ? "border-[#DFFF00]/55 bg-[#F6FFD5]" : "border-black/10 bg-white"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-4">
@@ -484,18 +694,29 @@ export default function Dashboard() {
           </article>
 
           <article className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_22px_60px_-28px_rgba(0,0,0,0.12)] sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-col gap-4">
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Alert preview</div>
                 <h2 className="mt-3 font-['DM_Serif_Display'] text-4xl tracking-tight text-neutral-950">WhatsApp-style alert</h2>
+                <p className="mt-2 text-sm text-neutral-500">22 Indian languages supported</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsHindi((current) => !current)}
-                className="inline-flex h-11 items-center justify-center rounded-full border border-black/10 bg-[#f7f7f3] px-4 text-sm font-medium text-neutral-700 transition hover:border-black/20 hover:bg-white"
-              >
-                {isHindi ? "See in English" : "हिंदी में देखें"}
-              </button>
+
+              <div className="flex flex-wrap gap-2">
+                {(Object.keys(languageLabels) as LangCode[]).map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => setAlertLang(code)}
+                    className={`rounded-full px-3 py-1 text-[11px] font-semibold transition ${
+                      alertLang === code
+                        ? "border border-black bg-[#DFFF00] text-black"
+                        : "border border-black/10 bg-[#f7f7f3] text-neutral-600"
+                    }`}
+                  >
+                    {languageLabels[code]}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="mt-6 rounded-[1.6rem] border border-black/10 bg-[#e9efe1] p-4">
@@ -505,7 +726,11 @@ export default function Dashboard() {
                     <MessageSquareText className="h-3.5 w-3.5" />
                     Alert preview
                   </div>
-                  <p>{isHindi ? hindiAlert : englishAlert}</p>
+                  <p className="whitespace-pre-line">{alertMessages[alertLang]}</p>
+                  <div className="mt-3 flex items-center justify-end gap-2 text-[10px] font-mono uppercase tracking-[0.12em] text-[#6b7f35]">
+                    <span>11:42 AM</span>
+                    <span aria-hidden>✓✓</span>
+                  </div>
                 </div>
               </div>
             </div>
