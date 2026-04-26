@@ -16,7 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
-import { MapContainer, Marker, Polyline, TileLayer, Tooltip, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { getApp, getApps, initializeApp } from "firebase/app";
 import { addDoc, collection, getFirestore, serverTimestamp } from "firebase/firestore";
@@ -49,25 +49,14 @@ type LangCode =
   | "sat"
   | "ne";
 
+type NominatimResult = {
+  lat: string;
+  lon: string;
+};
+
 const INDIA_CENTER: LatLngTuple = [22.5937, 78.9629];
-const COIMBATORE: LatLngTuple = [11.0168, 76.9558];
-const SURAT: LatLngTuple = [21.1702, 72.8311];
-
-const currentRoute: LatLngTuple[] = [
-  COIMBATORE,
-  [12.9716, 77.5946],
-  [17.385, 78.4867],
-  [19.076, 72.8777],
-  SURAT,
-];
-
-const alternateRoute: LatLngTuple[] = [
-  COIMBATORE,
-  [12.2958, 76.6394],
-  [15.3647, 75.124],
-  [18.5204, 73.8567],
-  SURAT,
-];
+const currentRoute: LatLngTuple[] = [];
+const alternateRoute: LatLngTuple[] = [];
 
 const routeOptions = [
   {
@@ -118,37 +107,40 @@ const languageLabels: Record<LangCode, string> = {
   ne: "नेपाली",
 };
 
-const alertMessages: Record<LangCode, string> = {
-  en: "🚨 ClearPath Alert: Coimbatore→Surat shipment is HIGH RISK.\nRecommended: Reroute via NH-48. Saves 11hrs, costs ₹800 extra.\nTap below to approve.",
-  hi: "🚨 ClearPath अलर्ट: कोयंबटूर→सूरत शिपमेंट उच्च जोखिम में है।\nसुझाव: NH-48 से रास्ता बदलें। 11 घंटे बचेंगे, ₹800 अतिरिक्त।\nअनुमोदन के लिए नीचे टैप करें।",
-  gu: "🚨 ClearPath એલર્ટ: કોઈમ્બતૂર→સુરત શિપમેન્ટ ઉચ્ચ જોખમમાં છે।\nભલામણ: NH-48 થી માર્ગ બદલો। 11 કલાક બચશે, ₹800 વધારાના।\nમંજૂરી માટે નીચે ટેપ કરો।",
-  ta: "🚨 ClearPath எச்சரிக்கை: கோயம்புத்தூர்→சூரத் ஏற்றுமதி அதிக ஆபத்தில் உள்ளது.\nபரிந்துரை: NH-48 வழியாக திசை மாற்றவும். 11 மணி நேரம் மிச்சம், ₹800 கூடுதல்.\nஒப்புதலுக்கு கீழே தட்டவும்.",
-  mr: "🚨 ClearPath सूचना: कोइम्बतूर→सुरत शिपमेंट उच्च धोक्यात आहे.\nशिफारस: NH-48 मार्गे वळवा. 11 तास वाचतील, ₹800 अतिरिक्त.\nमंजुरीसाठी खाली टॅप करा.",
-  bn: "🚨 ClearPath সতর্কতা: কোয়েম্বাটোর→সুরাট শিপমেন্ট উচ্চ ঝুঁকিতে আছে।\nপরামর্শ: NH-48 দিয়ে পথ পরিবর্তন করুন। ১১ ঘণ্টা বাঁচবে, ₹৮০০ অতিরিক্ত।\nঅনুমোদনের জন্য নিচে ট্যাপ করুন।",
-  te: "🚨 ClearPath హెచ్చరిక: కోయంబత్తూర్→సూరత్ షిప్‌మెంట్ అధిక ప్రమాదంలో ఉంది.\nసిఫార్సు: NH-48 ద్వారా మళ్లించండి. 11 గంటలు ఆదా, ₹800 అదనంగా.\nఆమోదానికి క్రింద నొక్కండి.",
-  kn: "🚨 ClearPath ಎಚ್ಚರಿಕೆ: ಕೊಯಮತ್ತೂರು→ಸೂರತ್ ಶಿಪ್‌ಮೆಂಟ್ ಹೆಚ್ಚಿನ ಅಪಾಯದಲ್ಲಿದೆ.\nಶಿಫಾರಸು: NH-48 ಮೂಲಕ ತಿರುಗಿಸಿ. 11 ಗಂಟೆ ಉಳಿತಾಯ, ₹800 ಹೆಚ್ಚುವರಿ.\nಅನುಮೋದನೆಗೆ ಕೆಳಗೆ ಟ್ಯಾಪ್ ಮಾಡಿ.",
-  ml: "🚨 ClearPath മുന്നറിയിപ്പ്: കോയമ്പത്തൂർ→സൂറത്ത് ഷിപ്പ്‌മെന്റ് ഉയർന്ന അപകടത്തിലാണ്.\nശുപാർശ: NH-48 വഴി തിരിച്ചുവിടുക. 11 മണിക്കൂർ ലാഭം, ₹800 അധികം.\nഅംഗീകാരത്തിന് താഴെ ടാപ്പ് ചെയ്യുക.",
-  pa: "🚨 ClearPath ਚੇਤਾਵਨੀ: ਕੋਇੰਬਟੂਰ→ਸੂਰਤ ਸ਼ਿਪਮੈਂਟ ਉੱਚ ਜੋਖਮ ਵਿੱਚ ਹੈ।\nਸਿਫਾਰਸ਼: NH-48 ਰਾਹੀਂ ਰੂਟ ਬਦਲੋ। 11 ਘੰਟੇ ਬਚਣਗੇ, ₹800 ਵਾਧੂ।\nਪ੍ਰਵਾਨਗੀ ਲਈ ਹੇਠਾਂ ਟੈਪ ਕਰੋ।",
-  or: "🚨 ClearPath ସତର୍କତା: କୋଇମ୍ବାଟୋର→ସୁରାଟ ଶିପମେଣ୍ଟ ଉଚ୍ଚ ଜୋଖିମରେ ଅଛି।\nସୁପାରିଶ: NH-48 ମାଧ୍ୟମରେ ରୁଟ ବଦଳାନ୍ତୁ। 11 ଘଣ୍ଟା ସଞ୍ଚୟ, ₹800 ଅତିରିକ୍ତ।\nଅନୁମୋଦନ ପାଇଁ ତଳୁ ଟ୍ୟାପ କରନ୍ତୁ।",
-  as: "🚨 ClearPath সতৰ্কবাৰ্তা: কোইম্বাটোৰ→ছুৰাট শিপমেণ্ট উচ্চ বিপদত আছে।\nপৰামৰ্শ: NH-48 ৰ মাজেৰে পথ সলনি কৰক। ১১ ঘণ্টা ৰাহি, ₹৮০০ অতিৰিক্ত।\nঅনুমোদনৰ বাবে তললৈ টেপ কৰক।",
-  ur: "🚨 ClearPath انتباہ: کوئمبٹور→سورت شپمنٹ اعلی خطرے میں ہے۔\nتجویز: NH-48 سے راستہ بدلیں۔ 11 گھنٹے بچیں گے، ₹800 اضافی۔\nمنظوری کے لیے نیچے ٹیپ کریں۔",
-  sa: "🚨 ClearPath सूचना: कोयम्बत्तूर→सूरत प्रेषणम् उच्च जोखिमे अस्ति।\nअनुशंसा: NH-48 मार्गेण परिवर्तयतु। 11 घण्टाः रक्ष्यन्ते, ₹800 अधिकम्।\nअनुमोदनाय अधः स्पृशतु।",
-  ks: "🚨 ClearPath خبردار: کوئمبٹور→سورت شپمنٹ ہیوو خطرہ چھ۔\nصلاہ: NH-48 راستہ تبدیل کرو۔ 11 گھنٹہ بچہ، ₹800 زیادہ۔\nمنظوری دِتھ تلہ ٹیپ کرو۔",
-  sd: "🚨 ClearPath خبردار: ڪوئمبٽور→سورت شپمينٽ تي وڏو خطرو آهي.\nصلاح: NH-48 ذريعي رستو بدلايو. 11 ڪلاڪ بچندا، ₹800 وڌيڪ.\nمنظوري لاءِ هيٺ ٽيپ ڪريو.",
-  mai: "🚨 ClearPath चेतावनी: कोयम्बत्तूर→सूरत शिपमेंट उच्च जोखिम मे अछि।\nसुझाव: NH-48 सँ रस्ता बदलू। 11 घंटा बचत, ₹800 अतिरिक्त।\nस्वीकृतिक लेल नीचाँ टैप करू।",
-  kok: "🚨 ClearPath इशारो: कोइम्बतूर→सुरत शिपमेंट उच्च धोक्यात आसा.\nशिफारस: NH-48 मार्गान वळोवचें. 11 वरां वाचतलीं, ₹800 अधिक.\nमान्यताक खाल टॅप करचें.",
-  doi: "🚨 ClearPath चेतावनी: कोयम्बत्तूर→सूरत शिपमेंट उच्च जोखिम च है।\nसुझाव: NH-48 थमां रस्ता बदलो। 11 घैंटे बचणे, ₹800 अतिरिक्त।\nपरवानगी आस्तै थल्ले टैप करो।",
-  mni: "🚨 ClearPath লাইরিক্কী: কোইমবাটোর→সুরাট শিপমেন্ট হেন্না খঙদনবা ফবদা লৈ।\nচাউখৎলকপা: NH-48 গী মফম্দা ফেরাউ। মতম ১১ চহী ঙাকথোকপা, ₹৮০০ চপ্পা।\nসম্মতি পীবা দাইরেক্ট তাক্লি।",
-  sat: "🚨 ClearPath ᱥᱮᱛᱟᱜ: ᱠᱚᱭᱢᱵᱟᱴᱩᱨ→ᱥᱩᱨᱟᱴ ᱥᱤᱯᱢᱮᱱᱴ ᱦᱟᱹᱴᱤᱛ ᱮᱢ ᱟᱠᱟᱱ ᱠᱟᱱᱟ.\nᱵᱟᱹᱭᱞᱟᱹ: NH-48 ᱨᱟᱥᱛᱟ ᱵᱚᱫᱚᱞ. 11 ᱸᱥᱚᱠ ᱵᱟᱹᱪᱟᱣ, ₹800 ᱡᱟᱹᱰᱤ.\nᱢᱟᱱ ᱫᱮᱵᱟᱜ ᱛᱮᱞᱮ ᱴᱮᱯ ᱢᱮ.",
-  ne: "🚨 ClearPath सूचना: कोयम्बत्तूर→सुरत ढुवानी उच्च जोखिममा छ।\nसुझाव: NH-48 बाट बाटो बदल्नुस्। ११ घण्टा बच्छ, ₹800 थप।\nस्वीकृतिका लागि तल ट्याप गर्नुस्।",
-};
-
 const demoSteps = [
   { title: "👁 See HIGH RISK", description: "Red pulsing marker on Surat" },
   { title: "🤖 Run AI Analysis", description: "Click the lime button → Gemini responds" },
   { title: "✅ Approve Route", description: "One tap → map updates instantly" },
   { title: "🌐 Switch Language", description: "Pick any of 22 Indian languages" },
 ] as const;
+
+function getAlertMessages(origin: string, dest: string): Record<LangCode, string> {
+  const route = origin && dest ? `${origin}→${dest}` : "Coimbatore→Surat";
+  return {
+    en: `🚨 ClearPath Alert: ${route} shipment is HIGH RISK.\nRecommended: Reroute via NH-48. Saves 11hrs, costs ₹800 extra.\nTap below to approve.`,
+    hi: `🚨 ClearPath अलर्ट: ${route} शिपमेंट उच्च जोखिम में है।\nसुझाव: NH-48 से रास्ता बदलें। 11 घंटे बचेंगे, ₹800 अतिरिक्त।\nअनुमोदन के लिए नीचे टैप करें।`,
+    gu: `🚨 ClearPath એલર્ટ: ${route} શિપમેન્ટ ઉચ્ચ જોખમમાં છે.\nભલામણ: NH-48 થી માર્ગ બદલો. 11 કલાક બચશે, ₹800 વધારાના.\nમંજૂરી માટે નીચે ટેપ કરો.`,
+    ta: `🚨 ClearPath எச்சரிக்கை: ${route} ஏற்றுமதி அதிக ஆபத்தில் உள்ளது.\nபரிந்துரை: NH-48 வழியாக திசை மாற்றவும். 11 மணி நேரம் மிச்சம், ₹800 கூடுதல்.\nஒப்புதலுக்கு கீழே தட்டவும்.`,
+    mr: `🚨 ClearPath सूचना: ${route} शिपमेंट उच्च धोक्यात आहे.\nशिफारस: NH-48 मार्गे वळवा. 11 तास वाचतील, ₹800 अतिरिक्त.\nमंजुरीसाठी खाली टॅप करा.`,
+    bn: `🚨 ClearPath সতর্কতা: ${route} শিপমেন্ট উচ্চ ঝুঁকিতে আছে।\nপরামর্শ: NH-48 দিয়ে পথ পরিবর্তন করুন। ১১ ঘণ্টা বাঁচবে, ₹৮০০ অতিরিক্ত।\nঅনুমোদনের জন্য নিচে ট্যাপ করুন।`,
+    te: `🚨 ClearPath హెచ్చరిక: ${route} షిప్‌మెంట్ అధిక ప్రమాదంలో ఉంది.\nసిఫార్సు: NH-48 ద్వారా మళ్లించండి. 11 గంటలు ఆదా, ₹800 అదనంగా.\nఆమోదానికి క్రింద నొక్కండి.`,
+    kn: `🚨 ClearPath ಎಚ್ಚರಿಕೆ: ${route} ಶಿಪ್‌ಮೆಂಟ್ ಹೆಚ್ಚಿನ ಅಪಾಯದಲ್ಲಿದೆ.\nಶಿಫಾರಸು: NH-48 ಮೂಲಕ ತಿರುಗಿಸಿ. 11 ಗಂಟೆ ಉಳಿತಾಯ, ₹800 ಹೆಚ್ಚುವರಿ.\nಅನುಮೋದನೆಗೆ ಕೆಳಗೆ ಟ್ಯಾಪ್ ಮಾಡಿ.`,
+    ml: `🚨 ClearPath മുന്നറിയിപ്പ്: ${route} ഷിപ്പ്‌മെന്റ് ഉയർന്ന അപകടത്തിലാണ്.\nശുപാർശ: NH-48 വഴി തിരിച്ചുവിടുക. 11 മണിക്കൂർ ലാഭം, ₹800 അധികം.\nഅംഗീകാരത്തിന് താഴെ ടാപ്പ് ചെയ്യുക.`,
+    pa: `🚨 ClearPath ਚੇਤਾਵਨੀ: ${route} ਸ਼ਿਪਮੈਂਟ ਉੱਚ ਜੋਖਮ ਵਿੱਚ ਹੈ।\nਸਿਫਾਰਸ਼: NH-48 ਰਾਹੀਂ ਰੂਟ ਬਦਲੋ। 11 ਘੰਟੇ ਬਚਣਗੇ, ₹800 ਵਾਧੂ।\nਪ੍ਰਵਾਨਗੀ ਲਈ ਹੇਠਾਂ ਟੈਪ ਕਰੋ।`,
+    or: `🚨 ClearPath ସତର୍କତା: ${route} ଶିପମେଣ୍ଟ ଉଚ୍ଚ ଜୋଖିମରେ ଅଛି।\nସୁପାରିଶ: NH-48 ମାଧ୍ୟମରେ ରୁଟ ବଦଳାନ୍ତୁ। 11 ଘଣ୍ଟା ସଞ୍ଚୟ, ₹800 ଅତିରିକ୍ତ।\nଅନୁମୋଦନ ପାଇଁ ତଳୁ ଟ୍ୟାପ କରନ୍ତୁ।`,
+    as: `🚨 ClearPath সতৰ্কবাৰ্তা: ${route} শিপমেণ্ট উচ্চ বিপদত আছে।\nপৰামৰ্শ: NH-48 ৰ মাজেৰে পথ সলনি কৰক। ১১ ঘণ্টা ৰাহি, ₹৮০০ অতিৰিক্ত।\nঅনুমোদনৰ বাবে তললৈ টেপ কৰক।`,
+    ur: `🚨 ClearPath انتباہ: ${route} شپمنٹ اعلی خطرے میں ہے۔\nتجویز: NH-48 سے راستہ بدلیں۔ 11 گھنٹے بچیں گے، ₹800 اضافی۔\nمنظوری کے لیے نیچے ٹیپ کریں۔`,
+    sa: `🚨 ClearPath सूचना: ${route} प्रेषणम् उच्च जोखिमे अस्ति।\nअनुशंसा: NH-48 मार्गेण परिवर्तयतु। 11 घण्टाः रक्ष्यन्ते, ₹800 अधिकम्।\nअनुमोदनाय अधः स्पृशतु।`,
+    ks: `🚨 ClearPath خبردار: ${route} شپمنٹ ہیوو خطرہ چھ۔\nصلاہ: NH-48 راستہ تبدیل کرو۔ 11 گھنٹہ بچہ، ₹800 زیادہ۔\nمنظوری دِتھ تلہ ٹیپ کرو۔`,
+    sd: `🚨 ClearPath خبردار: ${route} شپمينٽ تي وڏو خطرو آهي.\nصلاح: NH-48 ذريعي رستو بدلايو. 11 ڪلاڪ بچندا، ₹800 وڌيڪ.\nمنظوري لاءِ هيٺ ٽيپ ڪريو.`,
+    mai: `🚨 ClearPath चेतावनी: ${route} शिपमेंट उच्च जोखिम मे अछि।\nसुझाव: NH-48 सँ रस्ता बदलू। 11 घंटा बचत, ₹800 अतिरिक्त।\nस्वीकृतिक लेल नीचाँ टैप करू।`,
+    kok: `🚨 ClearPath इशारो: ${route} शिपमेंट उच्च धोक्यात आसा.\nशिफारस: NH-48 मार्गान वळोवचें. 11 वरां वाचतलीं, ₹800 अधिक.\nमान्यताक खाल टॅप करचें.`,
+    doi: `🚨 ClearPath चेतावनी: ${route} शिपमेंट उच्च जोखिम च है।\nसुझाव: NH-48 थमां रस्ता बदलो। 11 घैंटे बचणे, ₹800 अतिरिक्त।\nपरवानगी आस्तै थल्ले टैप करो।`,
+    mni: `🚨 ClearPath লাইরিক্কী: ${route} শিপমেন্ট হেন্না খঙদনবা ফবদা লৈ।\nচাউখৎলকপা: NH-48 গী মফম্দা ফেরাউ। মতম ১১ চহী ঙাকথোকপা, ₹৮০০ চপ্পা।\nসম্মতি পীবা দাইরেক্ট তাক্লি।`,
+    sat: `🚨 ClearPath ᱥᱮᱛᱟᱜ: ${route} ᱥᱤᱯᱢᱮᱱᱴ ᱦᱟᱹᱴᱤᱛ ᱮᱢ ᱟᱠᱟᱱ ᱠᱟᱱᱟ.\nᱵᱟᱹᱭᱞᱟᱹ: NH-48 ᱨᱟᱥᱛᱟ ᱵᱚᱫᱚᱞ. 11 ᱸᱥᱚᱠ ᱵᱟᱹᱪᱟᱣ, ₹800 ᱡᱟᱹᱰᱤ.\nᱢᱟᱱ ᱫᱮᱵᱟᱜ ᱛᱮᱞᱮ ᱴᱮᱯ ᱢᱮ.`,
+    ne: `🚨 ClearPath सूचना: ${route} ढुवानी उच्च जोखिममा छ।\nसुझाव: NH-48 बाट बाटो बदल्नुस्। ११ घण्टा बच्छ, ₹800 थप।\nस्वीकृतिका लागि तल ट्याप गर्नुस्।`,
+  };
+}
 
 function createSignalIcon(color: string, pulse: boolean) {
   return L.divIcon({
@@ -181,6 +173,16 @@ function MapClickHandler({ onMapClick }: { onMapClick: (latlng: LatLngTuple) => 
   return null;
 }
 
+function MapBoundsFitter({ coords }: { coords: [LatLngTuple, LatLngTuple] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    map.fitBounds(coords, { padding: [60, 60] });
+  }, [map, coords]);
+
+  return null;
+}
+
 function formatEtaAfterApproval() {
   const eta = new Date(Date.now() + 31 * 60 * 60 * 1000);
   return eta.toLocaleString("en-IN", {
@@ -209,7 +211,7 @@ function getFirebaseOptions() {
   };
 }
 
-async function logDisruptionApproval(userId: string | undefined) {
+async function logDisruptionApproval(userId: string | undefined, origin: string, destination: string) {
   const firebaseOptions = getFirebaseOptions();
   if (!firebaseOptions) return;
 
@@ -217,8 +219,8 @@ async function logDisruptionApproval(userId: string | undefined) {
   const db = getFirestore(app);
   await addDoc(collection(db, "disruptions"), {
     shipmentId: "DEMO-001",
-    origin: "Coimbatore",
-    destination: "Surat",
+    origin,
+    destination,
     riskRoute: "NH-44",
     approvedRoute: "NH-48",
     timeSaved: "11 hours",
@@ -244,6 +246,14 @@ export default function Dashboard() {
   const [savedAlternateRoute, setSavedAlternateRoute] = useState<LatLngTuple[]>(alternateRoute);
   const [isGuideExpanded, setIsGuideExpanded] = useState(true);
   const [showConfidence, setShowConfidence] = useState(false);
+  const [originCoords, setOriginCoords] = useState<LatLngTuple | null>(null);
+  const [destCoords, setDestCoords] = useState<LatLngTuple | null>(null);
+  const [shipmentActive, setShipmentActive] = useState(false);
+  const [originCity, setOriginCity] = useState("");
+  const [destCity, setDestCity] = useState("");
+  const [originInput, setOriginInput] = useState("");
+  const [destInput, setDestInput] = useState("");
+  const [shipmentLoading, setShipmentLoading] = useState(false);
 
   useEffect(() => {
     document.title = "ClearPath Dashboard — Live Shipment Intelligence";
@@ -264,6 +274,9 @@ export default function Dashboard() {
     [routeApproved],
   );
   const waypointIcon = useMemo(() => createWaypointIcon(), []);
+  const alertMessages = useMemo(() => getAlertMessages(originCity, destCity), [originCity, destCity]);
+
+  const shipmentLabel = shipmentActive && originCity && destCity ? `${originCity} → ${destCity}` : "No active shipment";
 
   const runAiAnalysis = async () => {
     const backendUrl =
@@ -304,7 +317,73 @@ export default function Dashboard() {
     }
   };
 
+  const analyzeShipment = async () => {
+    const nextOrigin = originInput.trim();
+    const nextDestination = destInput.trim();
+
+    if (!nextOrigin || !nextDestination) {
+      toast.error("Enter both origin and destination cities.");
+      return;
+    }
+
+    setShipmentLoading(true);
+
+    try {
+      const [originResponse, destResponse] = await Promise.all([
+        fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(nextOrigin)}&countrycodes=in&format=json&limit=1`,
+        ),
+        fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(nextDestination)}&countrycodes=in&format=json&limit=1`,
+        ),
+      ]);
+
+      if (!originResponse.ok || !destResponse.ok) {
+        throw new Error("Geocoding failed");
+      }
+
+      const [originResults, destResults] = (await Promise.all([
+        originResponse.json(),
+        destResponse.json(),
+      ])) as [NominatimResult[], NominatimResult[]];
+
+      if (!originResults[0] || !destResults[0]) {
+        toast.error("City not found. Try a different spelling.");
+        return;
+      }
+
+      const nextOriginCoords: LatLngTuple = [Number.parseFloat(originResults[0].lat), Number.parseFloat(originResults[0].lon)];
+      const nextDestCoords: LatLngTuple = [Number.parseFloat(destResults[0].lat), Number.parseFloat(destResults[0].lon)];
+
+      setOriginCoords(nextOriginCoords);
+      setDestCoords(nextDestCoords);
+      setOriginCity(nextOrigin);
+      setDestCity(nextDestination);
+      setShipmentActive(true);
+      setRouteApproved(false);
+      setAnalysis("");
+      setDrawnRoute([]);
+      setDrawingTarget(null);
+      setIsDrawingMode(false);
+      setSavedCurrentRoute([nextOriginCoords, nextDestCoords]);
+      setSavedAlternateRoute([nextOriginCoords, nextDestCoords]);
+
+      toast.success("Shipment mapped", {
+        description: `${nextOrigin} to ${nextDestination} is ready for analysis.`,
+      });
+    } catch {
+      toast.error("City not found. Try a different spelling.");
+    } finally {
+      setShipmentLoading(false);
+    }
+  };
+
   const approveBestRoute = async () => {
+    if (!shipmentActive || !originCity || !destCity) {
+      toast.error("Enter a shipment above to begin analysis.");
+      return;
+    }
+
     if (routeApproved) {
       toast.message("Best route already approved", {
         description: `New ETA: ${formatEtaAfterApproval()}`,
@@ -315,7 +394,7 @@ export default function Dashboard() {
     setRouteApproved(true);
 
     try {
-      await logDisruptionApproval(authUser?.id);
+      await logDisruptionApproval(authUser?.id, originCity, destCity);
     } catch (error) {
       console.warn("Unable to log disruption approval to Firestore.", error);
     }
@@ -326,6 +405,11 @@ export default function Dashboard() {
   };
 
   const startDrawingRoute = (target: "current" | "alternate") => {
+    if (!shipmentActive) {
+      toast.error("Enter a shipment above before drawing a route.");
+      return;
+    }
+
     setDrawingTarget(target);
     setDrawnRoute([]);
     setIsDrawingMode(true);
@@ -362,6 +446,13 @@ export default function Dashboard() {
     setSavedAlternateRoute(alternateRoute);
     setIsDrawingMode(false);
     setDrawingTarget(null);
+    setShipmentActive(false);
+    setOriginCoords(null);
+    setDestCoords(null);
+    setOriginCity("");
+    setDestCity("");
+    setOriginInput("");
+    setDestInput("");
     toast.message("Demo reset", {
       description: "Ready to present again.",
     });
@@ -513,17 +604,47 @@ export default function Dashboard() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {[
-                { label: "Shipment lane", value: "Coimbatore → Surat" },
-                { label: "Delay probability", value: "85%" },
-                { label: "Best alternate", value: "NH-48" },
-              ].map((item) => (
-                <div key={item.label} className="rounded-[1.6rem] border border-black/10 bg-[#f7f7f3] p-5 shadow-sm">
-                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">{item.label}</div>
-                  <div className="mt-3 text-xl font-semibold tracking-tight text-neutral-950">{item.value}</div>
-                </div>
-              ))}
+            <div className="w-full max-w-2xl rounded-[1.6rem] border border-black/10 bg-[#f7f7f3] p-4 shadow-sm">
+              <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                <input
+                  type="text"
+                  value={originInput}
+                  onChange={(event) => setOriginInput(event.target.value)}
+                  placeholder="e.g. Coimbatore"
+                  className="h-12 rounded-xl border border-black/15 bg-white px-4 text-sm text-black outline-none transition focus:border-black/25 focus:ring-2 focus:ring-[#DFFF00]/40"
+                />
+                <input
+                  type="text"
+                  value={destInput}
+                  onChange={(event) => setDestInput(event.target.value)}
+                  placeholder="e.g. Surat"
+                  className="h-12 rounded-xl border border-black/15 bg-white px-4 text-sm text-black outline-none transition focus:border-black/25 focus:ring-2 focus:ring-[#DFFF00]/40"
+                />
+                <button
+                  type="button"
+                  onClick={analyzeShipment}
+                  disabled={shipmentLoading}
+                  className="inline-flex h-12 items-center justify-center rounded-full border border-black bg-[#DFFF00] px-6 text-sm font-semibold text-black transition hover:bg-[#c8e800] disabled:cursor-wait disabled:opacity-70"
+                >
+                  {shipmentLoading ? "Locating cities..." : "🔍 Analyze Shipment"}
+                </button>
+              </div>
+              <div className="mt-3 text-[10px] font-mono uppercase tracking-[0.16em] text-neutral-400">
+                Geocoding powered by OpenStreetMap Nominatim.
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {[
+                  { label: "Shipment lane", value: shipmentActive ? shipmentLabel : "Awaiting input" },
+                  { label: "Delay probability", value: shipmentActive ? "Analyzing..." : "Pending" },
+                  { label: "Best alternate", value: shipmentActive ? "NH-48" : "Pending" },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-[1.2rem] border border-black/10 bg-white p-4 shadow-sm">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">{item.label}</div>
+                    <div className="mt-3 text-base font-semibold tracking-tight text-neutral-950">{item.value}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>
@@ -610,34 +731,57 @@ export default function Dashboard() {
             </div>
 
             <div className="mt-5 overflow-hidden rounded-[1.8rem] border border-black/10">
-              <div className={`h-[300px] bg-[#eef0e8] sm:h-[450px] ${isDrawingMode ? "map-drawing-mode" : ""}`}>
-                <MapContainer center={INDIA_CENTER} zoom={5} scrollWheelZoom className="z-0">
+              <div className={`relative h-[300px] bg-[#eef0e8] sm:h-[450px] ${isDrawingMode ? "map-drawing-mode" : ""}`}>
+                <MapContainer
+                  key={
+                    shipmentActive && originCoords && destCoords
+                      ? `${originCoords.join(",")}-${destCoords.join(",")}`
+                      : "default-map"
+                  }
+                  center={INDIA_CENTER}
+                  zoom={5}
+                  scrollWheelZoom
+                  className="z-0"
+                >
                   <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
 
+                  {shipmentActive && originCoords && destCoords ? (
+                    <MapBoundsFitter coords={[originCoords, destCoords]} />
+                  ) : null}
+
                   {isDrawingMode ? (
                     <MapClickHandler onMapClick={(latlng) => setDrawnRoute((existing) => [...existing, latlng])} />
                   ) : null}
 
-                  <Marker position={COIMBATORE} icon={originIcon}>
-                    <Tooltip direction="top" offset={[0, -14]} permanent>
-                      Origin
-                    </Tooltip>
-                  </Marker>
+                  {shipmentActive && originCoords ? (
+                    <Marker position={originCoords} icon={originIcon}>
+                      <Tooltip direction="top" offset={[0, -14]} permanent>
+                        {originCity || "Origin"}
+                      </Tooltip>
+                    </Marker>
+                  ) : null}
 
-                  <Marker position={SURAT} icon={highRiskIcon}>
-                    <Tooltip direction="top" offset={[0, -14]} permanent>
-                      {routeApproved ? "Route secured" : "HIGH RISK"}
-                    </Tooltip>
-                  </Marker>
+                  {shipmentActive && destCoords ? (
+                    <Marker position={destCoords} icon={highRiskIcon}>
+                      <Tooltip direction="top" offset={[0, -14]} permanent>
+                        {routeApproved ? `${destCity} secured` : destCity || "Destination"}
+                      </Tooltip>
+                    </Marker>
+                  ) : null}
 
-                  <Polyline
-                    positions={savedCurrentRoute}
-                    pathOptions={{ color: "#ef6a3c", weight: 5, dashArray: "12 12", lineCap: "round" }}
-                  />
-                  <Polyline positions={savedAlternateRoute} pathOptions={{ color: "#87b800", weight: 6, lineCap: "round" }} />
+                  {shipmentActive && savedCurrentRoute.length > 0 ? (
+                    <Polyline
+                      positions={savedCurrentRoute}
+                      pathOptions={{ color: "#ef6a3c", weight: 5, dashArray: "12 12", lineCap: "round" }}
+                    />
+                  ) : null}
+
+                  {shipmentActive && savedAlternateRoute.length > 0 && routeApproved ? (
+                    <Polyline positions={savedAlternateRoute} pathOptions={{ color: "#87b800", weight: 6, lineCap: "round" }} />
+                  ) : null}
 
                   {isDrawingMode && drawnRoute.length > 0 ? (
                     <>
@@ -651,17 +795,28 @@ export default function Dashboard() {
                     </>
                   ) : null}
                 </MapContainer>
+
+                {!shipmentActive ? (
+                  <div className="absolute inset-0 z-[400] flex items-center justify-center bg-[#eef0e8]/70 p-4">
+                    <div className="rounded-[1.4rem] border border-black/10 bg-white px-5 py-4 text-center shadow-sm">
+                      <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Shipment map</div>
+                      <div className="mt-2 text-sm font-semibold text-neutral-900">
+                        Enter origin and destination to begin analysis
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
 
             <div className="mt-4 flex flex-wrap gap-3">
               <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-[#f7f7f3] px-3 py-2 text-sm text-neutral-700">
                 <MapPinned className="h-4 w-4 text-[#7c8b00]" />
-                Coimbatore origin
+                {shipmentActive && originCity ? `${originCity} origin` : "Awaiting origin"}
               </div>
               <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-[#f7f7f3] px-3 py-2 text-sm text-neutral-700">
                 <AlertTriangle className="h-4 w-4 text-red-500" />
-                Surat destination flagged
+                {shipmentActive && destCity ? `${destCity} destination flagged` : "Awaiting destination"}
               </div>
               {routeApproved ? (
                 <div className="inline-flex items-center gap-2 rounded-full border border-[#DFFF00]/35 bg-[#DFFF00]/12 px-3 py-2 text-sm text-[#667300]">
@@ -685,7 +840,9 @@ export default function Dashboard() {
 
             <div className="mt-6 rounded-[1.6rem] border border-black/10 bg-[#f7f7f3] p-5">
               <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Shipment</div>
-              <div className="mt-2 text-xl font-semibold text-neutral-950">Coimbatore → Surat</div>
+              <div className="mt-2 text-xl font-semibold text-neutral-950">
+                {shipmentActive ? shipmentLabel : "No active shipment - enter cities above to begin"}
+              </div>
               <div className="mt-4 space-y-3 text-sm leading-7 text-neutral-700">
                 <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
                   Heavy rainfall on NH-44 - 85% delay probability
@@ -790,7 +947,7 @@ export default function Dashboard() {
                 <p className="min-h-[180px] text-base leading-8 text-neutral-700">{analysis}</p>
               ) : (
                 <p className="min-h-[180px] text-base leading-8 text-neutral-500">
-                  Click &apos;Run AI Analysis&apos; to get Gemini&apos;s recommendation
+                  Enter a shipment above, then click &apos;Run AI Analysis&apos; to get Gemini&apos;s recommendation.
                 </p>
               )}
             </div>
