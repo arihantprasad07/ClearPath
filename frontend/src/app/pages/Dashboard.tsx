@@ -791,10 +791,6 @@ export default function Dashboard() {
                 </button>
               </div>
 
-              <div className="mt-3 text-[10px] font-mono uppercase tracking-[0.16em] text-neutral-400">
-                Geocoding powered by OpenStreetMap Nominatim.
-              </div>
-
               <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {[
                   { label: "Shipment lane", value: shipmentActive ? shipmentLabel : "Awaiting input" },
