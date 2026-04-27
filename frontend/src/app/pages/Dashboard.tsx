@@ -431,6 +431,9 @@ export default function Dashboard() {
   const hindiAlert =
     alertLanguages.find((language) => language.lang === "Hindi") ??
     fallbackAlerts.find((language) => language.lang === "Hindi");
+  const additionalAlertLanguages = alertLanguages.filter(
+    (language) => language.lang !== "English" && language.lang !== "Hindi",
+  );
   const analysisBullets = aiResult
     ? [
         `Weather impact: ${liveSignals.weather}.`,
@@ -501,7 +504,6 @@ export default function Dashboard() {
       setApprovalLoading(false);
       setAnalysis("");
       setAiResult(null);
-      setAlertLang("en");
       setDrawnRoute([]);
       setDrawingTarget(null);
       setIsDrawingMode(false);
@@ -586,7 +588,6 @@ export default function Dashboard() {
     setApprovalLoading(false);
     setAnalysis("");
     setAiResult(null);
-    setAlertLang("en");
     setDrawnRoute([]);
     setSavedCurrentRoute(EMPTY_ROUTE);
     setSavedAlternateRoute(EMPTY_ROUTE);
@@ -1241,9 +1242,9 @@ export default function Dashboard() {
                   </button>
                 </div>
 
-                {showAllAlertLanguages ? (
+                {showAllAlertLanguages && additionalAlertLanguages.length > 0 ? (
                   <div className="mx-auto mt-4 grid max-w-[28rem] gap-3">
-                    {alertLanguages.map((language) => (
+                    {additionalAlertLanguages.map((language) => (
                       <div key={language.lang} className="rounded-[1.2rem] border border-black/10 bg-white/80 px-4 py-4 shadow-sm">
                         <strong className="text-sm text-neutral-950">{language.lang}</strong>
                         <p className="mt-2 whitespace-pre-line break-words text-sm leading-7 text-neutral-700">{language.text}</p>
