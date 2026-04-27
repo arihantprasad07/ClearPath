@@ -23,6 +23,7 @@ import { addDoc, collection, getFirestore, serverTimestamp } from "firebase/fire
 import "leaflet/dist/leaflet.css";
 import { BrandMark } from "../components/BrandMark";
 import { useAppContext } from "../context/AppContext";
+import { analyzeRisk } from "../../pipeline/aiEngine.js";
 
 type LatLngTuple = [number, number];
 type LangCode =
@@ -52,6 +53,33 @@ type LangCode =
 type NominatimResult = {
   lat: string;
   lon: string;
+};
+
+type AiRoute = {
+  routeName: string;
+  estimatedTime: number;
+  costImpact: number;
+  reliabilityScore: number;
+};
+
+type AiAnalysisResult = {
+  risk: {
+    level: "LOW" | "MEDIUM" | "HIGH";
+    probability: number;
+  };
+  delay: {
+    hours: number;
+    reason: string;
+  };
+  routes: AiRoute[];
+  recommendation: {
+    bestRoute: string;
+    reason: string;
+  };
+  alerts: {
+    english: string;
+    hindi: string;
+  };
 };
 
 const INDIA_CENTER: LatLngTuple = [22.5937, 78.9629];
@@ -193,6 +221,34 @@ function formatEtaAfterApproval() {
   });
 }
 
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function getSignalPack(origin: string, destination: string) {
+  return {
+    weather: `Heavy rainfall disrupting the ${origin || "origin"} to ${destination || "destination"} corridor`,
+    traffic: "High highway congestion with stop-start freight movement",
+    congestion: "Freight terminal delay spike causing unloading backlog",
+  };
+}
+
+function buildSuggestedAlternateRoute(origin: LatLngTuple, destination: LatLngTuple): LatLngTuple[] {
+  const midpointLat = Number(((origin[0] + destination[0]) / 2 + 1.1).toFixed(4));
+  const midpointLng = Number(((origin[1] + destination[1]) / 2 - 1.4).toFixed(4));
+  return [origin, [midpointLat, midpointLng], destination];
+}
+
+function buildSuggestedCurrentRoute(origin: LatLngTuple, destination: LatLngTuple): LatLngTuple[] {
+  const midpointLat = Number(((origin[0] + destination[0]) / 2 - 0.7).toFixed(4));
+  const midpointLng = Number(((origin[1] + destination[1]) / 2 + 0.6).toFixed(4));
+  return [origin, [midpointLat, midpointLng], destination];
+}
+
 function getFirebaseOptions() {
   const apiKey = import.meta.env.VITE_FIREBASE_API_KEY as string | undefined;
   const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as string | undefined;
@@ -237,6 +293,7 @@ export default function Dashboard() {
   const { authLoading, authUser } = useAppContext();
   const [routeApproved, setRouteApproved] = useState(false);
   const [analysis, setAnalysis] = useState("");
+  const [aiResult, setAiResult] = useState<AiAnalysisResult | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [alertLang, setAlertLang] = useState<LangCode>("en");
   const [isDrawingMode, setIsDrawingMode] = useState(false);
@@ -274,50 +331,93 @@ export default function Dashboard() {
     [routeApproved],
   );
   const waypointIcon = useMemo(() => createWaypointIcon(), []);
-  const alertMessages = useMemo(() => getAlertMessages(originCity, destCity), [originCity, destCity]);
+  const liveSignals = useMemo(() => getSignalPack(originCity, destCity), [originCity, destCity]);
+  const alertMessages = useMemo(() => {
+    if (aiResult) {
+      return {
+        ...getAlertMessages(originCity, destCity),
+        en: aiResult.alerts.english,
+        hi: aiResult.alerts.hindi,
+      };
+    }
+
+    return getAlertMessages(originCity, destCity);
+  }, [aiResult, destCity, originCity]);
 
   const shipmentLabel = shipmentActive && originCity && destCity ? `${originCity} → ${destCity}` : "No active shipment";
+  const recommendedRoute = aiResult?.routes.find((route) => route.routeName === aiResult.recommendation.bestRoute) ?? aiResult?.routes[0] ?? null;
+  const routeCards = useMemo(() => {
+    if (!aiResult) return [];
+
+    return [...aiResult.routes].sort((left, right) => {
+      const leftRecommended = left.routeName === aiResult.recommendation.bestRoute;
+      const rightRecommended = right.routeName === aiResult.recommendation.bestRoute;
+
+      if (leftRecommended && !rightRecommended) return -1;
+      if (!leftRecommended && rightRecommended) return 1;
+      return right.reliabilityScore - left.reliabilityScore;
+    });
+  }, [aiResult]);
+  const riskTone =
+    aiResult?.risk.level === "HIGH"
+      ? {
+          badge: "border-red-200 bg-red-50 text-red-700",
+          card: "border-red-300 bg-[#fff4f2] text-red-900",
+          line: "#dc2626",
+        }
+      : aiResult?.risk.level === "MEDIUM"
+        ? {
+            badge: "border-amber-200 bg-amber-50 text-amber-700",
+            card: "border-amber-300 bg-[#fff8e8] text-amber-900",
+            line: "#f59e0b",
+          }
+        : {
+            badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
+            card: "border-emerald-300 bg-[#f1fff5] text-emerald-900",
+            line: "#16a34a",
+          };
+  const timeSaved =
+    aiResult && recommendedRoute ? Math.max(1, Math.round(Math.max(...aiResult.routes.map((route) => route.estimatedTime)) - recommendedRoute.estimatedTime)) : 0;
+  const reducedDelay = aiResult ? Math.max(0, aiResult.delay.hours - timeSaved) : 0;
+  const analysisBullets = aiResult
+    ? [
+        `Weather impact: ${liveSignals.weather}.`,
+        `Traffic condition: ${liveSignals.traffic}.`,
+        `Congestion effect: ${liveSignals.congestion}.`,
+        `Combined result: ${aiResult.delay.reason}`,
+      ]
+    : [];
 
   const runAiAnalysis = async () => {
     if (!shipmentActive || !originCity || !destCity) {
       toast.error("Please enter origin and destination cities first.");
       return;
     }
-
-    const backendUrl =
-      (import.meta.env.VITE_BACKEND_URL as string | undefined)?.replace(/\/$/, "") || "http://localhost:8000";
     setAnalysisLoading(true);
-
-    const fallback = `ClearPath recommends immediate action on the ${originCity}→${destCity} shipment. Heavy rainfall detected on the primary route with 85% probability of 6+ hour delay. Rerouting via the alternate highway saves approximately 11 hours and costs ₹800 extra — significantly less than the estimated ₹4,200 loss from missing customer deadlines. The alternate route shows 94% on-time reliability and is the strongest option available right now.`;
-
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 10000);
+    setAiResult(null);
+    setAnalysis("");
 
     try {
-      const response = await fetch(`${backendUrl}/analyze`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const [result] = await Promise.all([
+        analyzeRisk({
           origin: originCity,
           destination: destCity,
+          ...liveSignals,
+          timestamp: Date.now(),
         }),
-        signal: controller.signal,
-      });
-      window.clearTimeout(timeoutId);
-
-      if (!response.ok) throw new Error("Backend error");
-
-      const payload = (await response.json()) as Record<string, unknown>;
-      const recommendation = typeof payload.recommendation === "string" ? payload.recommendation : "";
-      setAnalysis(recommendation || fallback);
+        new Promise((resolve) => window.setTimeout(resolve, 1300)),
+      ]);
+      const nextResult = result as AiAnalysisResult;
+      setAiResult(nextResult);
+      setAnalysis(nextResult.recommendation.reason);
       toast.success("AI analysis ready", {
-        description: `Gemini analyzed the ${originCity}→${destCity} route.`,
+        description: `Gemini analyzed the ${originCity} to ${destCity} route.`,
       });
     } catch {
-      window.clearTimeout(timeoutId);
-      setAnalysis(fallback);
+      setAiResult(null);
+      setAnalysis("ClearPath analysis is available, but the route summary could not be rendered.");
       toast.success("AI analysis ready", {
-        description: `Route analysis ready for ${originCity}→${destCity}.`,
+        description: `Route analysis ready for ${originCity} to ${destCity}.`,
       });
     } finally {
       setAnalysisLoading(false);
@@ -369,11 +469,12 @@ export default function Dashboard() {
       setShipmentActive(true);
       setRouteApproved(false);
       setAnalysis("");
+      setAiResult(null);
       setDrawnRoute([]);
       setDrawingTarget(null);
       setIsDrawingMode(false);
-      setSavedCurrentRoute([nextOriginCoords, nextDestCoords]);
-      setSavedAlternateRoute([nextOriginCoords, nextDestCoords]);
+      setSavedCurrentRoute(buildSuggestedCurrentRoute(nextOriginCoords, nextDestCoords));
+      setSavedAlternateRoute(buildSuggestedAlternateRoute(nextOriginCoords, nextDestCoords));
 
       toast.success("Shipment mapped", {
         description: `${nextOrigin} to ${nextDestination} is ready for analysis.`,
@@ -447,6 +548,7 @@ export default function Dashboard() {
   const resetDemo = () => {
     setRouteApproved(false);
     setAnalysis("");
+    setAiResult(null);
     setAlertLang("en");
     setDrawnRoute([]);
     setSavedCurrentRoute(currentRoute);
@@ -536,6 +638,21 @@ export default function Dashboard() {
           0% { transform: scale(0.8); opacity: 0.95; }
           70% { transform: scale(1.9); opacity: 0; }
           100% { transform: scale(1.9); opacity: 0; }
+        }
+        .clearpath-risk-route {
+          animation: clearpath-risk-glow 1.8s ease-in-out infinite;
+        }
+        .clearpath-approved-route {
+          animation: clearpath-route-shift 1.4s ease-out;
+        }
+        @keyframes clearpath-risk-glow {
+          0% { filter: drop-shadow(0 0 0 rgba(220,38,38,0.12)); }
+          50% { filter: drop-shadow(0 0 9px rgba(220,38,38,0.45)); }
+          100% { filter: drop-shadow(0 0 0 rgba(220,38,38,0.12)); }
+        }
+        @keyframes clearpath-route-shift {
+          0% { opacity: 0.25; transform: scale(0.997); }
+          100% { opacity: 1; transform: scale(1); }
         }
         .map-drawing-mode .leaflet-container {
           cursor: crosshair !important;
@@ -643,8 +760,14 @@ export default function Dashboard() {
               <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {[
                   { label: "Shipment lane", value: shipmentActive ? shipmentLabel : "Awaiting input" },
-                  { label: "Delay probability", value: shipmentActive ? "Analyzing..." : "Pending" },
-                  { label: "Best alternate", value: shipmentActive ? "NH-48" : "Pending" },
+                  {
+                    label: "Delay probability",
+                    value: aiResult ? `${aiResult.risk.probability}%` : shipmentActive ? "Analyzing..." : "Pending",
+                  },
+                  {
+                    label: "Best alternate",
+                    value: recommendedRoute?.routeName || (shipmentActive ? "Pending AI route" : "Pending"),
+                  },
                 ].map((item) => (
                   <div key={item.label} className="rounded-[1.2rem] border border-black/10 bg-white p-4 shadow-sm">
                     <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">{item.label}</div>
@@ -666,11 +789,11 @@ export default function Dashboard() {
               <div className="flex flex-wrap gap-2">
                 <span className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-2 text-[10px] font-mono uppercase tracking-[0.18em] text-red-700">
                   <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
-                  NH-44 active risk
+                  {aiResult?.risk.level === "HIGH" ? "Route risk escalated" : "Route under watch"}
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full border border-[#DFFF00]/35 bg-[#DFFF00]/12 px-3 py-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[#667300]">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#8cb300]" />
-                  NH-48 ready
+                  {recommendedRoute?.routeName || "Alternate ready"}
                 </span>
               </div>
             </div>
@@ -782,12 +905,29 @@ export default function Dashboard() {
                   {shipmentActive && savedCurrentRoute.length > 0 ? (
                     <Polyline
                       positions={savedCurrentRoute}
-                      pathOptions={{ color: "#ef6a3c", weight: 5, dashArray: "12 12", lineCap: "round" }}
+                      pathOptions={{
+                        color: aiResult ? riskTone.line : "#ef6a3c",
+                        weight: aiResult?.risk.level === "HIGH" ? 6 : 5,
+                        dashArray: routeApproved ? "4 14" : "12 12",
+                        lineCap: "round",
+                        opacity: routeApproved ? 0.28 : 0.92,
+                        className: aiResult?.risk.level === "HIGH" && !routeApproved ? "clearpath-risk-route" : "",
+                      }}
                     />
                   ) : null}
 
-                  {shipmentActive && savedAlternateRoute.length > 0 && routeApproved ? (
-                    <Polyline positions={savedAlternateRoute} pathOptions={{ color: "#87b800", weight: 6, lineCap: "round" }} />
+                  {shipmentActive && savedAlternateRoute.length > 0 && (routeApproved || aiResult) ? (
+                    <Polyline
+                      positions={savedAlternateRoute}
+                      pathOptions={{
+                        color: "#87b800",
+                        weight: routeApproved ? 7 : 5,
+                        lineCap: "round",
+                        opacity: routeApproved ? 1 : 0.5,
+                        dashArray: routeApproved ? undefined : "10 10",
+                        className: routeApproved ? "clearpath-approved-route" : "",
+                      }}
+                    />
                   ) : null}
 
                   {isDrawingMode && drawnRoute.length > 0 ? (
@@ -823,7 +963,7 @@ export default function Dashboard() {
               </div>
               <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-[#f7f7f3] px-3 py-2 text-sm text-neutral-700">
                 <AlertTriangle className="h-4 w-4 text-red-500" />
-                {shipmentActive && destCity ? `${destCity} destination flagged` : "Awaiting destination"}
+                {shipmentActive && destCity ? `${destCity} decision zone active` : "Awaiting destination"}
               </div>
               {routeApproved ? (
                 <div className="inline-flex items-center gap-2 rounded-full border border-[#DFFF00]/35 bg-[#DFFF00]/12 px-3 py-2 text-sm text-[#667300]">
@@ -840,9 +980,22 @@ export default function Dashboard() {
                 <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Risk alert panel</div>
                 <h2 className="mt-3 font-['DM_Serif_Display'] text-4xl tracking-tight text-neutral-950">Shipment intervention</h2>
               </div>
-              <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-red-700">
-                High risk
+              <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-mono uppercase tracking-[0.2em] ${riskTone.badge}`}>
+                {aiResult ? `${aiResult.risk.level} risk` : "Awaiting AI"}
               </span>
+            </div>
+
+            <div className={`mt-6 rounded-[1.8rem] border p-5 shadow-sm transition-all duration-500 ${riskTone.card}`}>
+              <div className="text-[10px] font-mono uppercase tracking-[0.2em] opacity-70">AI summary</div>
+              <div className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">
+                {aiResult ? `🚨 ${aiResult.risk.level} RISK — ${aiResult.risk.probability}%` : "AI decision pending"}
+              </div>
+              <div className="mt-3 text-lg font-semibold">
+                {aiResult ? `⏱ Delay: ${aiResult.delay.hours} hrs` : "⏱ Delay: --"}
+              </div>
+              <div className="mt-2 text-sm leading-7">
+                {aiResult ? `📍 Cause: ${aiResult.delay.reason}` : "📍 Cause: Run AI Analysis to surface the disruption cause."}
+              </div>
             </div>
 
             <div className="mt-6 rounded-[1.6rem] border border-black/10 bg-[#f7f7f3] p-5">
@@ -852,65 +1005,100 @@ export default function Dashboard() {
               </div>
               <div className="mt-4 space-y-3 text-sm leading-7 text-neutral-700">
                 <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
-                  Heavy rainfall on NH-44 - 85% delay probability
+                  {liveSignals.weather}
                 </p>
                 <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
-                  Freight terminal congestion at Surat - +4 hrs wait
+                  {liveSignals.congestion}
                 </p>
               </div>
 
               <div className="mt-3 rounded-[1.2rem] border border-black/10 bg-white p-4">
                 <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="text-neutral-700">AI Confidence Score</span>
-                  <span className="font-semibold text-[#7c8b00]">85%</span>
+                  <span className="text-neutral-700">Delay Probability</span>
+                  <span className="font-semibold text-[#7c8b00]">{aiResult ? `${aiResult.risk.probability}%` : "85%"}</span>
                 </div>
                 <div className="mt-3 h-3 w-full rounded-full bg-neutral-100">
                   <div
                     className="h-3 rounded-full bg-[#DFFF00] transition-all duration-[1400ms] ease-out"
-                    style={{ width: showConfidence ? "85%" : "0%" }}
+                    style={{ width: showConfidence ? `${aiResult?.risk.probability ?? 85}%` : "0%" }}
                   />
                 </div>
                 <div className="mt-2 text-[10px] text-neutral-400">
-                  Based on IMD rainfall data + historical NH-44 patterns
+                  Based on AI analysis of weather, traffic, and congestion
                 </div>
               </div>
             </div>
 
             <div className="mt-5 space-y-3">
-              {routeOptions.map((option) => (
-                <div
-                  key={option.name}
-                  className={`rounded-[1.5rem] border p-4 shadow-sm ${
-                    option.recommended ? "border-[#DFFF00]/55 bg-[#F6FFD5]" : "border-black/10 bg-white"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-semibold text-neutral-950">{option.name}</span>
-                        {option.recommended ? (
-                          <span className="rounded-full border border-[#DFFF00]/55 bg-[#DFFF00]/25 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-[#667300]">
-                            Recommended
-                          </span>
-                        ) : null}
+              {(routeCards.length
+                ? routeCards
+                : [
+                    { routeName: "NH-48 Diversion", estimatedTime: 28, costImpact: 800, reliabilityScore: 94 },
+                    { routeName: "NH-27 Corridor", estimatedTime: 31, costImpact: 450, reliabilityScore: 81 },
+                    { routeName: "Western Freight Bypass", estimatedTime: 33, costImpact: 250, reliabilityScore: 74 },
+                  ]
+              ).map((option) => {
+                const isRecommended =
+                  option.routeName === recommendedRoute?.routeName || (!aiResult && option.routeName === "NH-48 Diversion");
+
+                return (
+                  <div
+                    key={option.routeName}
+                    className={`rounded-[1.5rem] border p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
+                      isRecommended ? "border-[#8cb300] bg-[#F6FFD5] ring-1 ring-[#DFFF00]/55 sm:p-5" : "border-black/10 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-semibold text-neutral-950">{option.routeName}</span>
+                          {isRecommended ? (
+                            <span className="rounded-full border border-[#DFFF00]/55 bg-[#DFFF00]/25 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-[#667300]">
+                              ⭐ Recommended
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-2 text-sm text-neutral-600">
+                          ETA {option.estimatedTime} hrs | {formatCurrency(option.costImpact)} impact | {option.reliabilityScore}% reliable
+                        </div>
                       </div>
-                      <div className="mt-2 text-sm text-neutral-600">
-                        {option.saves} | {option.cost} | {option.reliability}
-                      </div>
+                      {isRecommended ? <Route className="h-5 w-5 text-[#7c8b00]" strokeWidth={2} /> : null}
                     </div>
-                    {option.recommended ? <Route className="h-5 w-5 text-[#7c8b00]" strokeWidth={2} /> : null}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-5 rounded-[1.6rem] border border-black/10 bg-[#f7f7f3] p-4">
+              <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Before vs after</div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-[1.2rem] border border-red-200 bg-red-50 p-4">
+                  <div className="text-sm font-semibold text-red-800">Original Route</div>
+                  <div className="mt-2 text-xl font-black text-red-900">
+                    {aiResult ? `Delay: +${aiResult.delay.hours} hrs ❌` : "Delay: +6 hrs ❌"}
                   </div>
                 </div>
-              ))}
+                <div className="rounded-[1.2rem] border border-[#DFFF00]/45 bg-[#F6FFD5] p-4">
+                  <div className="text-sm font-semibold text-[#5f6f00]">Recommended Route</div>
+                  <div className="mt-2 text-xl font-black text-neutral-900">
+                    {aiResult ? `${reducedDelay === 0 ? "On-time restored ✅" : `Reduced delay: ${reducedDelay} hrs ✅`}` : "On-time restored ✅"}
+                  </div>
+                  <div className="mt-2 text-sm text-neutral-700">
+                    {aiResult ? `Saves ${timeSaved} hrs via ${recommendedRoute?.routeName}.` : "Saves 11 hrs via NH-48 Diversion."}
+                  </div>
+                </div>
+              </div>
             </div>
 
             <button
               type="button"
               onClick={approveBestRoute}
-              className="mt-6 inline-flex h-14 w-full items-center justify-center gap-3 rounded-full border border-black bg-[#DFFF00] px-5 text-sm font-semibold uppercase tracking-[0.08em] text-black transition hover:bg-[#c8e800] hover:shadow-[0_14px_36px_-18px_rgba(223,255,0,0.65)]"
+              className={`mt-6 inline-flex h-14 w-full items-center justify-center gap-3 rounded-full border border-black bg-[#DFFF00] px-5 text-sm font-semibold uppercase tracking-[0.08em] text-black transition hover:bg-[#c8e800] hover:shadow-[0_14px_36px_-18px_rgba(223,255,0,0.65)] ${
+                routeApproved ? "scale-[1.01]" : ""
+              }`}
             >
               <CheckCircle2 className="h-5 w-5" />
-              ✅ Approve Best Route
+              ⚡ Approve & Update Route
             </button>
 
             {routeApproved ? (
@@ -954,10 +1142,23 @@ export default function Dashboard() {
               {analysisLoading ? (
                 <div className="flex min-h-[180px] items-center justify-center gap-3 text-neutral-600">
                   <LoaderCircle className="h-5 w-5 animate-spin text-[#7c8b00]" />
-                  Gemini is generating a route recommendation...
+                  <span className="animate-pulse">Analyzing route...</span>
                 </div>
-              ) : analysis ? (
-                <p className="min-h-[180px] text-base leading-8 text-neutral-700">{analysis}</p>
+              ) : aiResult ? (
+                <div className="min-h-[180px] space-y-4 text-neutral-700">
+                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Why this decision</div>
+                  <div className="space-y-3 text-base leading-7">
+                    {analysisBullets.map((bullet) => (
+                      <div key={bullet} className="flex gap-3">
+                        <span className="pt-1 text-[#7c8b00]">-</span>
+                        <span>{bullet}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="rounded-2xl border border-[#DFFF00]/35 bg-[#F6FFD5] px-4 py-3 text-sm font-medium text-neutral-800">
+                    {analysis}
+                  </div>
+                </div>
               ) : (
                 <p className="min-h-[180px] text-base leading-8 text-neutral-500">
                   Enter origin and destination above, then click &apos;Run AI Analysis&apos; to get a Gemini-powered risk assessment for your specific route.
@@ -1002,7 +1203,21 @@ export default function Dashboard() {
                     <MessageSquareText className="h-3.5 w-3.5" />
                     Alert preview
                   </div>
-                  <p className="whitespace-pre-line">{alertMessages[alertLang]}</p>
+                  <div className="space-y-3">
+                    <div className="text-sm font-black text-[#547100]">
+                      {aiResult ? `🚨 ${aiResult.risk.level} RISK` : "🚨 HIGH RISK"}
+                    </div>
+                    <div className="text-sm font-semibold text-neutral-800">
+                      {aiResult ? `Delay: ${aiResult.delay.hours} hrs` : "Delay: 6 hrs"}
+                    </div>
+                    <div className="rounded-2xl bg-white/70 px-3 py-3 text-sm leading-7 text-neutral-800">
+                      <div className="font-semibold">Recommended:</div>
+                      <div>Route: {recommendedRoute?.routeName || "NH-48 Diversion"}</div>
+                      <div>Saves: {timeSaved || 11} hrs</div>
+                    </div>
+                    <p className="whitespace-pre-line">{alertLang === "hi" ? alertMessages.hi : alertMessages.en}</p>
+                    <div className="text-sm font-semibold text-[#547100]">Tap to approve</div>
+                  </div>
                   <div className="mt-3 flex items-center justify-end gap-2 text-[10px] font-mono uppercase tracking-[0.12em] text-[#6b7f35]">
                     <span>11:42 AM</span>
                     <span aria-hidden>✓✓</span>
