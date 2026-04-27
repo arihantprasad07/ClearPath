@@ -26,29 +26,6 @@ import { useAppContext } from "../context/AppContext";
 import { analyzeRisk } from "../../pipeline/aiEngine.js";
 
 type LatLngTuple = [number, number];
-type LangCode =
-  | "en"
-  | "hi"
-  | "gu"
-  | "ta"
-  | "mr"
-  | "bn"
-  | "te"
-  | "kn"
-  | "ml"
-  | "pa"
-  | "or"
-  | "as"
-  | "ur"
-  | "sa"
-  | "ks"
-  | "sd"
-  | "mai"
-  | "kok"
-  | "doi"
-  | "mni"
-  | "sat"
-  | "ne";
 
 type NominatimResult = {
   lat: string;
@@ -88,31 +65,6 @@ type AiAnalysisResult = {
 
 const INDIA_CENTER: LatLngTuple = [22.5937, 78.9629];
 const EMPTY_ROUTE: LatLngTuple[] = [];
-
-const languageLabels: Record<LangCode, string> = {
-  en: "English",
-  hi: "Hindi",
-  gu: "Gujarati",
-  ta: "Tamil",
-  mr: "Marathi",
-  bn: "Bengali",
-  te: "Telugu",
-  kn: "Kannada",
-  ml: "Malayalam",
-  pa: "Punjabi",
-  or: "Odia",
-  as: "Assamese",
-  ur: "Urdu",
-  sa: "Sanskrit",
-  ks: "Kashmiri",
-  sd: "Sindhi",
-  mai: "Maithili",
-  kok: "Konkani",
-  doi: "Dogri",
-  mni: "Manipuri",
-  sat: "Santali",
-  ne: "Nepali",
-};
 
 const demoSteps = [
   { title: "See risk instantly", description: "AI summary stays pinned on mobile." },
@@ -348,7 +300,7 @@ export default function Dashboard() {
   const [analysis, setAnalysis] = useState("");
   const [aiResult, setAiResult] = useState<AiAnalysisResult | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [alertLang, setAlertLang] = useState<LangCode>("en");
+  const [showAllAlertLanguages, setShowAllAlertLanguages] = useState(false);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [drawnRoute, setDrawnRoute] = useState<LatLngTuple[]>([]);
   const [drawingTarget, setDrawingTarget] = useState<"current" | "alternate" | null>(null);
@@ -418,14 +370,14 @@ export default function Dashboard() {
   }, [aiResult]);
   const timeSaved = aiResult && recommendedRoute ? Math.max(1, Math.round(Math.max(...aiResult.routes.map((route) => route.estimatedTime)) - recommendedRoute.estimatedTime)) : 11;
   const reducedDelay = aiResult ? Math.max(0, aiResult.delay.hours - timeSaved) : 0;
-  const alertMessages = useMemo(
-    () => ({
-      ...fallbackAlerts,
-      en: aiResult?.alerts.english || fallbackAlerts.en,
-      hi: aiResult?.alerts.hindi || fallbackAlerts.hi,
-    }),
-    [aiResult?.alerts.english, aiResult?.alerts.hindi, fallbackAlerts],
-  );
+  const languages = aiResult?.alerts?.languages || [];
+  const alertLanguages = languages.length ? languages : fallbackAlerts;
+  const englishAlert =
+    alertLanguages.find((language) => language.lang === "English") ??
+    fallbackAlerts.find((language) => language.lang === "English");
+  const hindiAlert =
+    alertLanguages.find((language) => language.lang === "Hindi") ??
+    fallbackAlerts.find((language) => language.lang === "Hindi");
   const analysisBullets = aiResult
     ? [
         `Weather impact: ${liveSignals.weather}.`,
@@ -1209,25 +1161,9 @@ export default function Dashboard() {
                 <div>
                   <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Alert preview</div>
                   <h2 className="mt-3 font-['DM_Serif_Display'] text-3xl tracking-tight text-neutral-950 sm:text-4xl">WhatsApp-style alert</h2>
-                  <p className="mt-2 text-sm text-neutral-500">Operator-ready preview with quick approval context.</p>
+                  <p className="mt-2 text-sm text-neutral-500">Operator-ready preview with English and Hindi shown first, plus every AI-generated language on demand.</p>
                 </div>
 
-                <div className="mb-2">
-                  <label className="mb-2 block text-[10px] font-mono uppercase tracking-widest text-neutral-500">
-                    Select alert language
-                  </label>
-                  <select
-                    value={alertLang}
-                    onChange={(event) => setAlertLang(event.target.value as LangCode)}
-                    className="h-11 w-full cursor-pointer rounded-xl border border-black/15 bg-white px-4 text-sm font-medium text-neutral-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-[#DFFF00]/40"
-                  >
-                    {(Object.keys(languageLabels) as LangCode[]).map((code) => (
-                      <option key={code} value={code}>
-                        {languageLabels[code]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
               </div>
 
               <div className="mt-6 rounded-[1.6rem] border border-black/10 bg-[#e9efe1] p-4">
@@ -1252,7 +1188,14 @@ export default function Dashboard() {
                         <div>Route: {recommendedRoute?.routeName || "NH-48 Diversion"}</div>
                         <div>Saves: {timeSaved} hrs</div>
                       </div>
-                      <p className="whitespace-pre-line break-words">{alertLang === "hi" ? alertMessages.hi : alertMessages.en}</p>
+                      <div className="space-y-3">
+                        {[englishAlert, hindiAlert].filter((language): language is AlertLanguageEntry => Boolean(language)).map((language) => (
+                          <div key={language.lang} className="rounded-2xl border border-[#bfd27a] bg-white/55 px-3 py-3">
+                            <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-[#6b7f35]">{language.lang}</div>
+                            <p className="mt-2 whitespace-pre-line break-words">{language.text}</p>
+                          </div>
+                        ))}
+                      </div>
                       <div className="text-sm font-semibold text-[#547100]">Tap to approve</div>
                     </div>
 
@@ -1262,6 +1205,29 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
+
+                <div className="mx-auto mt-4 max-w-[28rem]">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllAlertLanguages((current) => !current)}
+                    className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-neutral-900 transition hover:border-black/25 hover:bg-neutral-50"
+                    aria-expanded={showAllAlertLanguages}
+                  >
+                    {showAllAlertLanguages ? "Hide all languages" : "View all languages"}
+                    {showAllAlertLanguages ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </button>
+                </div>
+
+                {showAllAlertLanguages ? (
+                  <div className="mx-auto mt-4 grid max-w-[28rem] gap-3">
+                    {alertLanguages.map((language) => (
+                      <div key={language.lang} className="rounded-[1.2rem] border border-black/10 bg-white/80 px-4 py-4 shadow-sm">
+                        <strong className="text-sm text-neutral-950">{language.lang}</strong>
+                        <p className="mt-2 whitespace-pre-line break-words text-sm leading-7 text-neutral-700">{language.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
               {showApprovalAlert ? (
