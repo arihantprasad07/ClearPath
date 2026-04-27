@@ -434,8 +434,8 @@ function LandingContactBlock() {
             <div className="space-y-2 text-sm text-white/64">
               <p className="text-[11px] uppercase tracking-[0.22em] text-[#AAFF45]">Contact us:</p>
               <p className="inline-flex items-center gap-2"><Star className="h-4 w-4 text-[#AAFF45]" /> Team GroundUp </p>
-              <p className="inline-flex items-center gap-2"><Phone className="h-4 w-4 text-[#AAFF45]" /> Arihant </p>
-              <p className="inline-flex items-center gap-2"><MapPinned className="h-4 w-4 text-[#AAFF45]" /> Indore, India</p>
+              <p className="inline-flex items-center gap-2">< Phone className="h-4 w-4 text-[#AAFF45]" /> Arihant </p>
+              <p className="inline-flex items-center gap-2">< MapPinned className="h-4 w-4 text-[#AAFF45]" /> Indore, India</p>
             </div>
 
             <p className="text-sm text-white/45">
