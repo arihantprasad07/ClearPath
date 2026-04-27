@@ -62,6 +62,11 @@ type AiRoute = {
   reliabilityScore: number;
 };
 
+type AlertLanguageEntry = {
+  lang: string;
+  text: string;
+};
+
 type AiAnalysisResult = {
   risk: {
     level: "LOW" | "MEDIUM" | "HIGH";
@@ -77,8 +82,7 @@ type AiAnalysisResult = {
     reason: string;
   };
   alerts: {
-    english: string;
-    hindi: string;
+    languages: AlertLanguageEntry[];
   };
 };
 
@@ -119,10 +123,36 @@ const demoSteps = [
 
 function buildFallbackAlerts(origin: string, destination: string) {
   const route = origin && destination ? `${origin} -> ${destination}` : "Coimbatore -> Surat";
-  return {
-    en: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.`,
-    hi: `ClearPath Alert: ${route} par high risk hai. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap karke approve karein.`,
-  };
+  return [
+    {
+      lang: "English",
+      text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.`,
+    },
+    {
+      lang: "Hindi",
+      text: `ClearPath Alert: ${route} par high risk hai. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap karke approve karein.`,
+    },
+    { lang: "Marathi", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Gujarati", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Tamil", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Telugu", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Kannada", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Malayalam", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Punjabi", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Bengali", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Odia", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Assamese", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Urdu", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Sanskrit", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Konkani", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Maithili", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Dogri", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Manipuri", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Bodo", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Santali", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Kashmiri", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+    { lang: "Nepali", text: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.` },
+  ] satisfies AlertLanguageEntry[];
 }
 
 function createSignalIcon(color: string, pulse: boolean) {

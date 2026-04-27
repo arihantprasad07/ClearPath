@@ -1,12 +1,44 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const MODEL_NAME = "gemini-1.5-flash";
+const REQUIRED_ALERT_LANGUAGES = [
+  "English",
+  "Hindi",
+  "Marathi",
+  "Gujarati",
+  "Tamil",
+  "Telugu",
+  "Kannada",
+  "Malayalam",
+  "Punjabi",
+  "Bengali",
+  "Odia",
+  "Assamese",
+  "Urdu",
+  "Sanskrit",
+  "Konkani",
+  "Maithili",
+  "Dogri",
+  "Manipuri",
+  "Bodo",
+  "Santali",
+  "Kashmiri",
+  "Nepali",
+];
+
+function buildFallbackLanguageAlerts(message) {
+  return REQUIRED_ALERT_LANGUAGES.map((lang) => ({
+    lang,
+    text: message,
+  }));
+}
 
 function getFallbackRiskAnalysis(data = {}) {
   const route = [data.origin, data.destination].filter(Boolean).join(" -> ") || "Mumbai -> Delhi";
   const weather = data.weather || "Heavy rainfall on NH-44";
   const traffic = data.traffic || "High congestion";
   const congestion = data.congestion || "Freight terminal delay spike";
+  const fallbackAlertMessage = `ClearPath Alert: High disruption risk detected on ${route}. Expected delay is about 6 hours. Recommended action: shift to NH-48 Diversion immediately.`;
 
   return {
     risk: {
@@ -42,8 +74,7 @@ function getFallbackRiskAnalysis(data = {}) {
       reason: "This route offers the best balance of delay recovery, operational reliability, and manageable incremental cost under current disruption conditions.",
     },
     alerts: {
-      english: `ClearPath Alert: High disruption risk detected on ${route}. Expected delay is about 6 hours. Recommended action: shift to NH-48 Diversion immediately.`,
-      hindi: `ClearPath Alert: ${route} route par high risk hai. Lagbhag 6 ghante ki delay ho sakti hai. Best option: turant NH-48 Diversion use karein.`,
+      languages: buildFallbackLanguageAlerts(fallbackAlertMessage),
     },
   };
 }
@@ -64,6 +95,22 @@ function normalizeRoute(route, index) {
 function normalizeRiskAnalysis(parsed, fallback) {
   const parsedRoutes = Array.isArray(parsed?.routes) ? parsed.routes.slice(0, 3).map(normalizeRoute) : [];
   const routes = parsedRoutes.length ? parsedRoutes : fallback.routes;
+  const parsedLanguages = Array.isArray(parsed?.alerts?.languages)
+    ? parsed.alerts.languages
+        .filter((item) => item && typeof item.lang === "string" && typeof item.text === "string")
+        .slice(0, REQUIRED_ALERT_LANGUAGES.length)
+    : [];
+  const languages =
+    parsedLanguages.length === REQUIRED_ALERT_LANGUAGES.length
+      ? REQUIRED_ALERT_LANGUAGES.map((lang, index) => ({
+          lang,
+          text:
+            parsedLanguages.find((item) => item.lang === lang)?.text ||
+            parsedLanguages[index]?.text ||
+            fallback.alerts.languages[index]?.text ||
+            fallback.alerts.languages[0].text,
+        }))
+      : fallback.alerts.languages;
 
   return {
     risk: {
@@ -80,8 +127,7 @@ function normalizeRiskAnalysis(parsed, fallback) {
       reason: parsed?.recommendation?.reason?.trim() || fallback.recommendation.reason,
     },
     alerts: {
-      english: parsed?.alerts?.english?.trim() || fallback.alerts.english,
-      hindi: parsed?.alerts?.hindi?.trim() || fallback.alerts.hindi,
+      languages,
     },
   };
 }
@@ -147,9 +193,34 @@ Step 4: Recommendation
 - Choose the route that is operationally best under the current disruption signals.
 
 Step 5: Alerts
-- english: short, professional, action-oriented.
-- hindi: simple WhatsApp-style message.
-- Both alerts MUST include numbers such as delay hours and the chosen route.
+- Generate alerts in EXACTLY 22 Indian languages.
+- Return them as an array called "languages".
+- If fewer than 22 are returned, the response is INVALID.
+- Each language must be present. Do not skip any.
+- Every alert must be short, action-oriented, and include numbers such as delay hours and the chosen route.
+- Use this exact language set:
+  - English
+  - Hindi
+  - Marathi
+  - Gujarati
+  - Tamil
+  - Telugu
+  - Kannada
+  - Malayalam
+  - Punjabi
+  - Bengali
+  - Odia
+  - Assamese
+  - Urdu
+  - Sanskrit
+  - Konkani
+  - Maithili
+  - Dogri
+  - Manipuri
+  - Bodo
+  - Santali
+  - Kashmiri
+  - Nepali
 
 RULES:
 - Return ONLY valid JSON.
@@ -184,8 +255,30 @@ Return JSON with this exact structure:
     "reason": "Best balance of speed, reliability, and acceptable additional cost."
   },
   "alerts": {
-    "english": "Professional logistics alert message",
-    "hindi": "Simple WhatsApp style Hindi message"
+    "languages": [
+      { "lang": "English", "text": "Professional logistics alert message" },
+      { "lang": "Hindi", "text": "Simple WhatsApp style Hindi message" },
+      { "lang": "Marathi", "text": "..." },
+      { "lang": "Gujarati", "text": "..." },
+      { "lang": "Tamil", "text": "..." },
+      { "lang": "Telugu", "text": "..." },
+      { "lang": "Kannada", "text": "..." },
+      { "lang": "Malayalam", "text": "..." },
+      { "lang": "Punjabi", "text": "..." },
+      { "lang": "Bengali", "text": "..." },
+      { "lang": "Odia", "text": "..." },
+      { "lang": "Assamese", "text": "..." },
+      { "lang": "Urdu", "text": "..." },
+      { "lang": "Sanskrit", "text": "..." },
+      { "lang": "Konkani", "text": "..." },
+      { "lang": "Maithili", "text": "..." },
+      { "lang": "Dogri", "text": "..." },
+      { "lang": "Manipuri", "text": "..." },
+      { "lang": "Bodo", "text": "..." },
+      { "lang": "Santali", "text": "..." },
+      { "lang": "Kashmiri", "text": "..." },
+      { "lang": "Nepali", "text": "..." }
+    ]
   }
 }
 `.trim();
