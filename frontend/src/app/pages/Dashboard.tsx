@@ -83,90 +83,45 @@ type AiAnalysisResult = {
 };
 
 const INDIA_CENTER: LatLngTuple = [22.5937, 78.9629];
-const currentRoute: LatLngTuple[] = [];
-const alternateRoute: LatLngTuple[] = [];
-
-const routeOptions = [
-  {
-    name: "NH-48",
-    saves: "Saves 11hrs",
-    cost: "₹800 extra",
-    reliability: "94% on-time",
-    recommended: true,
-  },
-  {
-    name: "NH-27",
-    saves: "Saves 6hrs",
-    cost: "₹400 extra",
-    reliability: "78% on-time",
-    recommended: false,
-  },
-  {
-    name: "NH-8",
-    saves: "Saves 3hrs",
-    cost: "₹200 extra",
-    reliability: "65% on-time",
-    recommended: false,
-  },
-] as const;
+const EMPTY_ROUTE: LatLngTuple[] = [];
 
 const languageLabels: Record<LangCode, string> = {
   en: "English",
-  hi: "हिंदी",
-  gu: "ગુજરાતી",
-  ta: "தமிழ்",
-  mr: "मराठी",
-  bn: "বাংলা",
-  te: "తెలుగు",
-  kn: "ಕನ್ನಡ",
-  ml: "മലയാളം",
-  pa: "ਪੰਜਾਬੀ",
-  or: "ଓଡ଼ିଆ",
-  as: "অসমীয়া",
-  ur: "اردو",
-  sa: "संस्कृत",
-  ks: "کٲشُر",
-  sd: "سنڌي",
-  mai: "मैथिली",
-  kok: "कोंकणी",
-  doi: "डोगरी",
-  mni: "মণিপুরী",
-  sat: "ᱥᱟᱱᱛᱟᱲᱤ",
-  ne: "नेपाली",
+  hi: "Hindi",
+  gu: "Gujarati",
+  ta: "Tamil",
+  mr: "Marathi",
+  bn: "Bengali",
+  te: "Telugu",
+  kn: "Kannada",
+  ml: "Malayalam",
+  pa: "Punjabi",
+  or: "Odia",
+  as: "Assamese",
+  ur: "Urdu",
+  sa: "Sanskrit",
+  ks: "Kashmiri",
+  sd: "Sindhi",
+  mai: "Maithili",
+  kok: "Konkani",
+  doi: "Dogri",
+  mni: "Manipuri",
+  sat: "Santali",
+  ne: "Nepali",
 };
 
 const demoSteps = [
-  { title: "👁 See HIGH RISK", description: "Red pulsing marker on Surat" },
-  { title: "🤖 Run AI Analysis", description: "Click the lime button → Gemini responds" },
-  { title: "✅ Approve Route", description: "One tap → map updates instantly" },
-  { title: "🌐 Switch Language", description: "Pick any of 22 Indian languages" },
+  { title: "See risk instantly", description: "AI summary stays pinned on mobile." },
+  { title: "Run AI analysis", description: "Structured route decision appears in one pass." },
+  { title: "Approve reroute", description: "Map and operator alert update together." },
+  { title: "Present anywhere", description: "Responsive flow works on phone and desktop." },
 ] as const;
 
-function getAlertMessages(origin: string, dest: string): Record<LangCode, string> {
-  const route = origin && dest ? `${origin}→${dest}` : "Coimbatore→Surat";
+function buildFallbackAlerts(origin: string, destination: string) {
+  const route = origin && destination ? `${origin} -> ${destination}` : "Coimbatore -> Surat";
   return {
-    en: `🚨 ClearPath Alert: ${route} shipment is HIGH RISK.\nRecommended: Reroute via NH-48. Saves 11hrs, costs ₹800 extra.\nTap below to approve.`,
-    hi: `🚨 ClearPath अलर्ट: ${route} शिपमेंट उच्च जोखिम में है।\nसुझाव: NH-48 से रास्ता बदलें। 11 घंटे बचेंगे, ₹800 अतिरिक्त।\nअनुमोदन के लिए नीचे टैप करें।`,
-    gu: `🚨 ClearPath એલર્ટ: ${route} શિપમેન્ટ ઉચ્ચ જોખમમાં છે.\nભલામણ: NH-48 થી માર્ગ બદલો. 11 કલાક બચશે, ₹800 વધારાના.\nમંજૂરી માટે નીચે ટેપ કરો.`,
-    ta: `🚨 ClearPath எச்சரிக்கை: ${route} ஏற்றுமதி அதிக ஆபத்தில் உள்ளது.\nபரிந்துரை: NH-48 வழியாக திசை மாற்றவும். 11 மணி நேரம் மிச்சம், ₹800 கூடுதல்.\nஒப்புதலுக்கு கீழே தட்டவும்.`,
-    mr: `🚨 ClearPath सूचना: ${route} शिपमेंट उच्च धोक्यात आहे.\nशिफारस: NH-48 मार्गे वळवा. 11 तास वाचतील, ₹800 अतिरिक्त.\nमंजुरीसाठी खाली टॅप करा.`,
-    bn: `🚨 ClearPath সতর্কতা: ${route} শিপমেন্ট উচ্চ ঝুঁকিতে আছে।\nপরামর্শ: NH-48 দিয়ে পথ পরিবর্তন করুন। ১১ ঘণ্টা বাঁচবে, ₹৮০০ অতিরিক্ত।\nঅনুমোদনের জন্য নিচে ট্যাপ করুন।`,
-    te: `🚨 ClearPath హెచ్చరిక: ${route} షిప్‌మెంట్ అధిక ప్రమాదంలో ఉంది.\nసిఫార్సు: NH-48 ద్వారా మళ్లించండి. 11 గంటలు ఆదా, ₹800 అదనంగా.\nఆమోదానికి క్రింద నొక్కండి.`,
-    kn: `🚨 ClearPath ಎಚ್ಚರಿಕೆ: ${route} ಶಿಪ್‌ಮೆಂಟ್ ಹೆಚ್ಚಿನ ಅಪಾಯದಲ್ಲಿದೆ.\nಶಿಫಾರಸು: NH-48 ಮೂಲಕ ತಿರುಗಿಸಿ. 11 ಗಂಟೆ ಉಳಿತಾಯ, ₹800 ಹೆಚ್ಚುವರಿ.\nಅನುಮೋದನೆಗೆ ಕೆಳಗೆ ಟ್ಯಾಪ್ ಮಾಡಿ.`,
-    ml: `🚨 ClearPath മുന്നറിയിപ്പ്: ${route} ഷിപ്പ്‌മെന്റ് ഉയർന്ന അപകടത്തിലാണ്.\nശുപാർശ: NH-48 വഴി തിരിച്ചുവിടുക. 11 മണിക്കൂർ ലാഭം, ₹800 അധികം.\nഅംഗീകാരത്തിന് താഴെ ടാപ്പ് ചെയ്യുക.`,
-    pa: `🚨 ClearPath ਚੇਤਾਵਨੀ: ${route} ਸ਼ਿਪਮੈਂਟ ਉੱਚ ਜੋਖਮ ਵਿੱਚ ਹੈ।\nਸਿਫਾਰਸ਼: NH-48 ਰਾਹੀਂ ਰੂਟ ਬਦਲੋ। 11 ਘੰਟੇ ਬਚਣਗੇ, ₹800 ਵਾਧੂ।\nਪ੍ਰਵਾਨਗੀ ਲਈ ਹੇਠਾਂ ਟੈਪ ਕਰੋ।`,
-    or: `🚨 ClearPath ସତର୍କତା: ${route} ଶିପମେଣ୍ଟ ଉଚ୍ଚ ଜୋଖିମରେ ଅଛି।\nସୁପାରିଶ: NH-48 ମାଧ୍ୟମରେ ରୁଟ ବଦଳାନ୍ତୁ। 11 ଘଣ୍ଟା ସଞ୍ଚୟ, ₹800 ଅତିରିକ୍ତ।\nଅନୁମୋଦନ ପାଇଁ ତଳୁ ଟ୍ୟାପ କରନ୍ତୁ।`,
-    as: `🚨 ClearPath সতৰ্কবাৰ্তা: ${route} শিপমেণ্ট উচ্চ বিপদত আছে।\nপৰামৰ্শ: NH-48 ৰ মাজেৰে পথ সলনি কৰক। ১১ ঘণ্টা ৰাহি, ₹৮০০ অতিৰিক্ত।\nঅনুমোদনৰ বাবে তললৈ টেপ কৰক।`,
-    ur: `🚨 ClearPath انتباہ: ${route} شپمنٹ اعلی خطرے میں ہے۔\nتجویز: NH-48 سے راستہ بدلیں۔ 11 گھنٹے بچیں گے، ₹800 اضافی۔\nمنظوری کے لیے نیچے ٹیپ کریں۔`,
-    sa: `🚨 ClearPath सूचना: ${route} प्रेषणम् उच्च जोखिमे अस्ति।\nअनुशंसा: NH-48 मार्गेण परिवर्तयतु। 11 घण्टाः रक्ष्यन्ते, ₹800 अधिकम्।\nअनुमोदनाय अधः स्पृशतु।`,
-    ks: `🚨 ClearPath خبردار: ${route} شپمنٹ ہیوو خطرہ چھ۔\nصلاہ: NH-48 راستہ تبدیل کرو۔ 11 گھنٹہ بچہ، ₹800 زیادہ۔\nمنظوری دِتھ تلہ ٹیپ کرو۔`,
-    sd: `🚨 ClearPath خبردار: ${route} شپمينٽ تي وڏو خطرو آهي.\nصلاح: NH-48 ذريعي رستو بدلايو. 11 ڪلاڪ بچندا، ₹800 وڌيڪ.\nمنظوري لاءِ هيٺ ٽيپ ڪريو.`,
-    mai: `🚨 ClearPath चेतावनी: ${route} शिपमेंट उच्च जोखिम मे अछि।\nसुझाव: NH-48 सँ रस्ता बदलू। 11 घंटा बचत, ₹800 अतिरिक्त।\nस्वीकृतिक लेल नीचाँ टैप करू।`,
-    kok: `🚨 ClearPath इशारो: ${route} शिपमेंट उच्च धोक्यात आसा.\nशिफारस: NH-48 मार्गान वळोवचें. 11 वरां वाचतलीं, ₹800 अधिक.\nमान्यताक खाल टॅप करचें.`,
-    doi: `🚨 ClearPath चेतावनी: ${route} शिपमेंट उच्च जोखिम च है।\nसुझाव: NH-48 थमां रस्ता बदलो। 11 घैंटे बचणे, ₹800 अतिरिक्त।\nपरवानगी आस्तै थल्ले टैप करो।`,
-    mni: `🚨 ClearPath লাইরিক্কী: ${route} শিপমেন্ট হেন্না খঙদনবা ফবদা লৈ।\nচাউখৎলকপা: NH-48 গী মফম্দা ফেরাউ। মতম ১১ চহী ঙাকথোকপা, ₹৮০০ চপ্পা।\nসম্মতি পীবা দাইরেক্ট তাক্লি।`,
-    sat: `🚨 ClearPath ᱥᱮᱛᱟᱜ: ${route} ᱥᱤᱯᱢᱮᱱᱴ ᱦᱟᱹᱴᱤᱛ ᱮᱢ ᱟᱠᱟᱱ ᱠᱟᱱᱟ.\nᱵᱟᱹᱭᱞᱟᱹ: NH-48 ᱨᱟᱥᱛᱟ ᱵᱚᱫᱚᱞ. 11 ᱸᱥᱚᱠ ᱵᱟᱹᱪᱟᱣ, ₹800 ᱡᱟᱹᱰᱤ.\nᱢᱟᱱ ᱫᱮᱵᱟᱜ ᱛᱮᱞᱮ ᱴᱮᱯ ᱢᱮ.`,
-    ne: `🚨 ClearPath सूचना: ${route} ढुवानी उच्च जोखिममा छ।\nसुझाव: NH-48 बाट बाटो बदल्नुस्। ११ घण्टा बच्छ, ₹800 थप।\nस्वीकृतिका लागि तल ट्याप गर्नुस्।`,
+    en: `ClearPath Alert: ${route} is high risk. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap to approve.`,
+    hi: `ClearPath Alert: ${route} par high risk hai. Delay 6 hrs. Recommended route: NH-48 Diversion. Tap karke approve karein.`,
   };
 }
 
@@ -194,10 +149,11 @@ function createWaypointIcon() {
 
 function MapClickHandler({ onMapClick }: { onMapClick: (latlng: LatLngTuple) => void }) {
   useMapEvents({
-    click(e) {
-      onMapClick([e.latlng.lat, e.latlng.lng]);
+    click(event) {
+      onMapClick([event.latlng.lat, event.latlng.lng]);
     },
   });
+
   return null;
 }
 
@@ -205,8 +161,8 @@ function MapBoundsFitter({ coords }: { coords: [LatLngTuple, LatLngTuple] }) {
   const map = useMap();
 
   useEffect(() => {
-    map.fitBounds(coords, { padding: [60, 60] });
-  }, [map, coords]);
+    map.fitBounds(coords, { padding: [48, 48] });
+  }, [coords, map]);
 
   return null;
 }
@@ -237,16 +193,50 @@ function getSignalPack(origin: string, destination: string) {
   };
 }
 
+function buildSuggestedCurrentRoute(origin: LatLngTuple, destination: LatLngTuple): LatLngTuple[] {
+  const midpointLat = Number(((origin[0] + destination[0]) / 2 - 0.7).toFixed(4));
+  const midpointLng = Number(((origin[1] + destination[1]) / 2 + 0.6).toFixed(4));
+  return [origin, [midpointLat, midpointLng], destination];
+}
+
 function buildSuggestedAlternateRoute(origin: LatLngTuple, destination: LatLngTuple): LatLngTuple[] {
   const midpointLat = Number(((origin[0] + destination[0]) / 2 + 1.1).toFixed(4));
   const midpointLng = Number(((origin[1] + destination[1]) / 2 - 1.4).toFixed(4));
   return [origin, [midpointLat, midpointLng], destination];
 }
 
-function buildSuggestedCurrentRoute(origin: LatLngTuple, destination: LatLngTuple): LatLngTuple[] {
-  const midpointLat = Number(((origin[0] + destination[0]) / 2 - 0.7).toFixed(4));
-  const midpointLng = Number(((origin[1] + destination[1]) / 2 + 0.6).toFixed(4));
-  return [origin, [midpointLat, midpointLng], destination];
+function summarizeReason(reason: string) {
+  if (!reason) return "Run AI analysis to surface the disruption cause.";
+  const firstSentence = reason.split(".")[0]?.trim();
+  const shortened = firstSentence || reason.trim();
+  return shortened.length > 88 ? `${shortened.slice(0, 85).trim()}...` : shortened;
+}
+
+function getRiskTone(level?: AiAnalysisResult["risk"]["level"]) {
+  if (level === "HIGH") {
+    return {
+      badge: "border-red-200 bg-red-50 text-red-700",
+      summary: "border-red-300 bg-[#fff4f2] text-red-950",
+      line: "#dc2626",
+      glow: "shadow-[0_18px_44px_-30px_rgba(220,38,38,0.7)]",
+    };
+  }
+
+  if (level === "MEDIUM") {
+    return {
+      badge: "border-amber-200 bg-amber-50 text-amber-700",
+      summary: "border-amber-300 bg-[#fff8e8] text-amber-950",
+      line: "#f59e0b",
+      glow: "shadow-[0_18px_44px_-30px_rgba(245,158,11,0.6)]",
+    };
+  }
+
+  return {
+    badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    summary: "border-emerald-300 bg-[#f1fff5] text-emerald-950",
+    line: "#16a34a",
+    glow: "shadow-[0_18px_44px_-30px_rgba(22,163,74,0.55)]",
+  };
 }
 
 function getFirebaseOptions() {
@@ -273,25 +263,58 @@ async function logDisruptionApproval(userId: string | undefined, origin: string,
 
   const app = getApps().length ? getApp() : initializeApp(firebaseOptions);
   const db = getFirestore(app);
+
   await addDoc(collection(db, "disruptions"), {
     shipmentId: "DEMO-001",
     origin,
     destination,
     riskRoute: "NH-44",
-    approvedRoute: "NH-48",
+    approvedRoute: "NH-48 Diversion",
     timeSaved: "11 hours",
-    extraCost: "₹800",
+    extraCost: "INR 800",
     reliability: "94%",
     approvedAt: serverTimestamp(),
     userId: userId ?? "demo-user",
   });
-  console.log("Disruption logged to Firestore: DEMO-001");
+}
+
+function SummaryCard({
+  aiResult,
+  stickyMobile = false,
+}: {
+  aiResult: AiAnalysisResult | null;
+  stickyMobile?: boolean;
+}) {
+  const tone = getRiskTone(aiResult?.risk.level);
+  const reason = summarizeReason(aiResult?.delay.reason || "");
+
+  return (
+    <div
+      className={[
+        "rounded-[1.6rem] border p-4 sm:p-5",
+        tone.summary,
+        tone.glow,
+        stickyMobile ? "sticky top-3 z-[500] lg:hidden" : "",
+      ].join(" ")}
+    >
+      <div className="text-[10px] font-mono uppercase tracking-[0.18em] opacity-70">AI Summary</div>
+      <div className="mt-3 text-xl font-black leading-tight sm:text-2xl">
+        {aiResult ? `🚨 ${aiResult.risk.level} RISK — ${aiResult.risk.probability}%` : "🚨 AI DECISION PENDING"}
+      </div>
+      <div className="mt-2 text-base font-bold sm:text-lg">
+        {aiResult ? `⏱ Delay: ${aiResult.delay.hours} hrs` : "⏱ Delay: --"}
+      </div>
+      <div className="mt-2 text-sm font-medium leading-6 sm:text-base">{`📍 ${reason}`}</div>
+    </div>
+  );
 }
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { authLoading, authUser } = useAppContext();
+
   const [routeApproved, setRouteApproved] = useState(false);
+  const [approvalLoading, setApprovalLoading] = useState(false);
   const [analysis, setAnalysis] = useState("");
   const [aiResult, setAiResult] = useState<AiAnalysisResult | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
@@ -299,10 +322,10 @@ export default function Dashboard() {
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [drawnRoute, setDrawnRoute] = useState<LatLngTuple[]>([]);
   const [drawingTarget, setDrawingTarget] = useState<"current" | "alternate" | null>(null);
-  const [savedCurrentRoute, setSavedCurrentRoute] = useState<LatLngTuple[]>(currentRoute);
-  const [savedAlternateRoute, setSavedAlternateRoute] = useState<LatLngTuple[]>(alternateRoute);
+  const [savedCurrentRoute, setSavedCurrentRoute] = useState<LatLngTuple[]>(EMPTY_ROUTE);
+  const [savedAlternateRoute, setSavedAlternateRoute] = useState<LatLngTuple[]>(EMPTY_ROUTE);
   const [isGuideExpanded, setIsGuideExpanded] = useState(true);
-  const [showConfidence, setShowConfidence] = useState(false);
+  const [showProbability, setShowProbability] = useState(false);
   const [originCoords, setOriginCoords] = useState<LatLngTuple | null>(null);
   const [destCoords, setDestCoords] = useState<LatLngTuple | null>(null);
   const [shipmentActive, setShipmentActive] = useState(false);
@@ -311,9 +334,10 @@ export default function Dashboard() {
   const [originInput, setOriginInput] = useState("");
   const [destInput, setDestInput] = useState("");
   const [shipmentLoading, setShipmentLoading] = useState(false);
+  const [showApprovalAlert, setShowApprovalAlert] = useState(false);
 
   useEffect(() => {
-    document.title = "ClearPath Dashboard — Live Shipment Intelligence";
+    document.title = "ClearPath Dashboard - Live Shipment Intelligence";
   }, []);
 
   useEffect(() => {
@@ -321,64 +345,57 @@ export default function Dashboard() {
   }, [authLoading, authUser, navigate]);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => setShowConfidence(true), 300);
+    const timeoutId = window.setTimeout(() => setShowProbability(true), 250);
     return () => window.clearTimeout(timeoutId);
   }, []);
 
+  useEffect(() => {
+    if (!showApprovalAlert) return undefined;
+    const timeoutId = window.setTimeout(() => setShowApprovalAlert(false), 3200);
+    return () => window.clearTimeout(timeoutId);
+  }, [showApprovalAlert]);
+
+  const liveSignals = useMemo(() => getSignalPack(originCity, destCity), [destCity, originCity]);
+  const riskTone = useMemo(() => getRiskTone(aiResult?.risk.level), [aiResult?.risk.level]);
   const originIcon = useMemo(() => createSignalIcon("#22c55e", false), []);
   const highRiskIcon = useMemo(
-    () => createSignalIcon(routeApproved ? "#22c55e" : "#ef4444", !routeApproved),
-    [routeApproved],
+    () => createSignalIcon(routeApproved ? "#16a34a" : aiResult?.risk.level === "HIGH" ? "#dc2626" : "#f59e0b", !routeApproved),
+    [aiResult?.risk.level, routeApproved],
   );
   const waypointIcon = useMemo(() => createWaypointIcon(), []);
-  const liveSignals = useMemo(() => getSignalPack(originCity, destCity), [originCity, destCity]);
-  const alertMessages = useMemo(() => {
-    if (aiResult) {
-      return {
-        ...getAlertMessages(originCity, destCity),
-        en: aiResult.alerts.english,
-        hi: aiResult.alerts.hindi,
-      };
-    }
 
-    return getAlertMessages(originCity, destCity);
-  }, [aiResult, destCity, originCity]);
-
-  const shipmentLabel = shipmentActive && originCity && destCity ? `${originCity} → ${destCity}` : "No active shipment";
-  const recommendedRoute = aiResult?.routes.find((route) => route.routeName === aiResult.recommendation.bestRoute) ?? aiResult?.routes[0] ?? null;
+  const shipmentLabel = shipmentActive && originCity && destCity ? `${originCity} -> ${destCity}` : "No active shipment";
+  const fallbackAlerts = useMemo(() => buildFallbackAlerts(originCity, destCity), [destCity, originCity]);
+  const recommendedRoute =
+    aiResult?.routes.find((route) => route.routeName === aiResult.recommendation.bestRoute) ?? aiResult?.routes[0] ?? null;
   const routeCards = useMemo(() => {
-    if (!aiResult) return [];
+    const fallbackRoutes: AiRoute[] = [
+      { routeName: "NH-48 Diversion", estimatedTime: 28, costImpact: 800, reliabilityScore: 94 },
+      { routeName: "NH-27 Corridor", estimatedTime: 31, costImpact: 450, reliabilityScore: 81 },
+      { routeName: "Western Freight Bypass", estimatedTime: 33, costImpact: 250, reliabilityScore: 74 },
+    ];
 
-    return [...aiResult.routes].sort((left, right) => {
-      const leftRecommended = left.routeName === aiResult.recommendation.bestRoute;
-      const rightRecommended = right.routeName === aiResult.recommendation.bestRoute;
+    const source = aiResult?.routes?.length ? aiResult.routes : fallbackRoutes;
+    const bestRoute = aiResult?.recommendation.bestRoute || "NH-48 Diversion";
 
+    return [...source].sort((left, right) => {
+      const leftRecommended = left.routeName === bestRoute;
+      const rightRecommended = right.routeName === bestRoute;
       if (leftRecommended && !rightRecommended) return -1;
       if (!leftRecommended && rightRecommended) return 1;
       return right.reliabilityScore - left.reliabilityScore;
     });
   }, [aiResult]);
-  const riskTone =
-    aiResult?.risk.level === "HIGH"
-      ? {
-          badge: "border-red-200 bg-red-50 text-red-700",
-          card: "border-red-300 bg-[#fff4f2] text-red-900",
-          line: "#dc2626",
-        }
-      : aiResult?.risk.level === "MEDIUM"
-        ? {
-            badge: "border-amber-200 bg-amber-50 text-amber-700",
-            card: "border-amber-300 bg-[#fff8e8] text-amber-900",
-            line: "#f59e0b",
-          }
-        : {
-            badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
-            card: "border-emerald-300 bg-[#f1fff5] text-emerald-900",
-            line: "#16a34a",
-          };
-  const timeSaved =
-    aiResult && recommendedRoute ? Math.max(1, Math.round(Math.max(...aiResult.routes.map((route) => route.estimatedTime)) - recommendedRoute.estimatedTime)) : 0;
+  const timeSaved = aiResult && recommendedRoute ? Math.max(1, Math.round(Math.max(...aiResult.routes.map((route) => route.estimatedTime)) - recommendedRoute.estimatedTime)) : 11;
   const reducedDelay = aiResult ? Math.max(0, aiResult.delay.hours - timeSaved) : 0;
+  const alertMessages = useMemo(
+    () => ({
+      ...fallbackAlerts,
+      en: aiResult?.alerts.english || fallbackAlerts.en,
+      hi: aiResult?.alerts.hindi || fallbackAlerts.hi,
+    }),
+    [aiResult?.alerts.english, aiResult?.alerts.hindi, fallbackAlerts],
+  );
   const analysisBullets = aiResult
     ? [
         `Weather impact: ${liveSignals.weather}.`,
@@ -393,9 +410,12 @@ export default function Dashboard() {
       toast.error("Please enter origin and destination cities first.");
       return;
     }
+
     setAnalysisLoading(true);
     setAiResult(null);
     setAnalysis("");
+    setRouteApproved(false);
+    setShowApprovalAlert(false);
 
     try {
       const [result] = await Promise.all([
@@ -405,20 +425,17 @@ export default function Dashboard() {
           ...liveSignals,
           timestamp: Date.now(),
         }),
-        new Promise((resolve) => window.setTimeout(resolve, 1300)),
+        new Promise((resolve) => window.setTimeout(resolve, 1200)),
       ]);
+
       const nextResult = result as AiAnalysisResult;
       setAiResult(nextResult);
       setAnalysis(nextResult.recommendation.reason);
       toast.success("AI analysis ready", {
-        description: `Gemini analyzed the ${originCity} to ${destCity} route.`,
+        description: `ClearPath analyzed ${originCity} to ${destCity}.`,
       });
     } catch {
-      setAiResult(null);
-      setAnalysis("ClearPath analysis is available, but the route summary could not be rendered.");
-      toast.success("AI analysis ready", {
-        description: `Route analysis ready for ${originCity} to ${destCity}.`,
-      });
+      toast.error("AI analysis could not be completed.");
     } finally {
       setAnalysisLoading(false);
     }
@@ -436,7 +453,7 @@ export default function Dashboard() {
     setShipmentLoading(true);
 
     try {
-      const [originResponse, destResponse] = await Promise.all([
+      const [originResponse, destinationResponse] = await Promise.all([
         fetch(
           `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(nextOrigin)}&countrycodes=in&format=json&limit=1`,
         ),
@@ -445,36 +462,45 @@ export default function Dashboard() {
         ),
       ]);
 
-      if (!originResponse.ok || !destResponse.ok) {
+      if (!originResponse.ok || !destinationResponse.ok) {
         throw new Error("Geocoding failed");
       }
 
-      const [originResults, destResults] = (await Promise.all([
+      const [originResults, destinationResults] = (await Promise.all([
         originResponse.json(),
-        destResponse.json(),
+        destinationResponse.json(),
       ])) as [NominatimResult[], NominatimResult[]];
 
-      if (!originResults[0] || !destResults[0]) {
+      if (!originResults[0] || !destinationResults[0]) {
         toast.error("City not found. Try a different spelling.");
         return;
       }
 
-      const nextOriginCoords: LatLngTuple = [Number.parseFloat(originResults[0].lat), Number.parseFloat(originResults[0].lon)];
-      const nextDestCoords: LatLngTuple = [Number.parseFloat(destResults[0].lat), Number.parseFloat(destResults[0].lon)];
+      const nextOriginCoords: LatLngTuple = [
+        Number.parseFloat(originResults[0].lat),
+        Number.parseFloat(originResults[0].lon),
+      ];
+      const nextDestinationCoords: LatLngTuple = [
+        Number.parseFloat(destinationResults[0].lat),
+        Number.parseFloat(destinationResults[0].lon),
+      ];
 
       setOriginCoords(nextOriginCoords);
-      setDestCoords(nextDestCoords);
+      setDestCoords(nextDestinationCoords);
       setOriginCity(nextOrigin);
       setDestCity(nextDestination);
       setShipmentActive(true);
       setRouteApproved(false);
+      setApprovalLoading(false);
       setAnalysis("");
       setAiResult(null);
+      setAlertLang("en");
       setDrawnRoute([]);
       setDrawingTarget(null);
       setIsDrawingMode(false);
-      setSavedCurrentRoute(buildSuggestedCurrentRoute(nextOriginCoords, nextDestCoords));
-      setSavedAlternateRoute(buildSuggestedAlternateRoute(nextOriginCoords, nextDestCoords));
+      setShowApprovalAlert(false);
+      setSavedCurrentRoute(buildSuggestedCurrentRoute(nextOriginCoords, nextDestinationCoords));
+      setSavedAlternateRoute(buildSuggestedAlternateRoute(nextOriginCoords, nextDestinationCoords));
 
       toast.success("Shipment mapped", {
         description: `${nextOrigin} to ${nextDestination} is ready for analysis.`,
@@ -492,24 +518,25 @@ export default function Dashboard() {
       return;
     }
 
-    if (routeApproved) {
-      toast.message("Best route already approved", {
-        description: `New ETA: ${formatEtaAfterApproval()}`,
-      });
+    if (routeApproved || approvalLoading) {
       return;
     }
 
-    setRouteApproved(true);
+    setApprovalLoading(true);
 
     try {
+      await new Promise((resolve) => window.setTimeout(resolve, 700));
+      setRouteApproved(true);
+      setShowApprovalAlert(true);
       await logDisruptionApproval(authUser?.id, originCity, destCity);
-    } catch (error) {
-      console.warn("Unable to log disruption approval to Firestore.", error);
+      toast.success("Route updated", {
+        description: `New ETA: ${formatEtaAfterApproval()}`,
+      });
+    } catch {
+      toast.error("Route approval could not be logged.");
+    } finally {
+      setApprovalLoading(false);
     }
-
-    toast.success("✅ Route approved. Transporter notified.", {
-      description: `New ETA: ${formatEtaAfterApproval()}`,
-    });
   };
 
   const startDrawingRoute = (target: "current" | "alternate") => {
@@ -547,12 +574,13 @@ export default function Dashboard() {
 
   const resetDemo = () => {
     setRouteApproved(false);
+    setApprovalLoading(false);
     setAnalysis("");
     setAiResult(null);
     setAlertLang("en");
     setDrawnRoute([]);
-    setSavedCurrentRoute(currentRoute);
-    setSavedAlternateRoute(alternateRoute);
+    setSavedCurrentRoute(EMPTY_ROUTE);
+    setSavedAlternateRoute(EMPTY_ROUTE);
     setIsDrawingMode(false);
     setDrawingTarget(null);
     setShipmentActive(false);
@@ -562,6 +590,8 @@ export default function Dashboard() {
     setDestCity("");
     setOriginInput("");
     setDestInput("");
+    setShowApprovalAlert(false);
+
     toast.message("Demo reset", {
       description: "Ready to present again.",
     });
@@ -573,18 +603,13 @@ export default function Dashboard() {
         <div className="mx-auto max-w-7xl animate-pulse space-y-6">
           <div className="h-8 w-48 rounded-full bg-neutral-100" />
           <div className="h-64 rounded-[2rem] bg-neutral-100" />
-          <div className="grid gap-6 xl:grid-cols-[1.22fr_0.78fr]">
-            <div className="h-[500px] rounded-[2rem] bg-neutral-100" />
-            <div className="h-[500px] rounded-[2rem] bg-neutral-100" />
+          <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="h-[420px] rounded-[2rem] bg-neutral-100" />
+            <div className="h-[420px] rounded-[2rem] bg-neutral-100" />
           </div>
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="h-64 rounded-[2rem] bg-neutral-100" />
             <div className="h-64 rounded-[2rem] bg-neutral-100" />
-          </div>
-          <div className="flex justify-center pt-4">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-300">
-              Loading ClearPath...
-            </span>
           </div>
         </div>
       </div>
@@ -596,7 +621,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden bg-white text-black">
+    <div className="relative min-h-[100dvh] overflow-x-hidden bg-white text-black">
       <style>{`
         .leaflet-container {
           height: 100%;
@@ -643,7 +668,10 @@ export default function Dashboard() {
           animation: clearpath-risk-glow 1.8s ease-in-out infinite;
         }
         .clearpath-approved-route {
-          animation: clearpath-route-shift 1.4s ease-out;
+          animation: clearpath-route-shift 1.1s ease-out;
+        }
+        .clearpath-alert-enter {
+          animation: clearpath-alert-enter 0.45s ease-out;
         }
         @keyframes clearpath-risk-glow {
           0% { filter: drop-shadow(0 0 0 rgba(220,38,38,0.12)); }
@@ -651,8 +679,12 @@ export default function Dashboard() {
           100% { filter: drop-shadow(0 0 0 rgba(220,38,38,0.12)); }
         }
         @keyframes clearpath-route-shift {
-          0% { opacity: 0.25; transform: scale(0.997); }
+          0% { opacity: 0.2; transform: scale(0.996); }
           100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes clearpath-alert-enter {
+          0% { opacity: 0; transform: translateY(12px); }
+          100% { opacity: 1; transform: translateY(0); }
         }
         .map-drawing-mode .leaflet-container {
           cursor: crosshair !important;
@@ -684,7 +716,7 @@ export default function Dashboard() {
 
         <section className="mt-6 rounded-[1.6rem] border border-[#DFFF00]/40 bg-[#DFFF00]/8 p-4">
           <div className="flex items-center justify-between gap-4">
-            <div className="text-[10px] font-mono uppercase tracking-widest text-[#667300]">🎯 Judge Demo Guide</div>
+            <div className="text-[10px] font-mono uppercase tracking-widest text-[#667300]">Judge Demo Guide</div>
             <button
               type="button"
               onClick={() => setIsGuideExpanded((current) => !current)}
@@ -704,14 +736,11 @@ export default function Dashboard() {
                   <div className="mt-1 text-xs text-neutral-500">{step.description}</div>
                 </div>
               ))}
-              <div className="inline-flex items-center justify-center rounded-full border border-[#DFFF00]/50 bg-[#DFFF00] px-4 py-2 text-[11px] font-semibold text-black">
-                ⏱ Total demo time: under 60 seconds
-              </div>
             </div>
           ) : null}
         </section>
 
-        <section className="mt-8 rounded-[2.2rem] border border-black/10 bg-white/88 p-6 shadow-[0_28px_80px_-36px_rgba(0,0,0,0.18)] backdrop-blur sm:p-8 lg:p-10">
+        <section className="mt-8 rounded-[2.2rem] border border-black/10 bg-white/88 p-5 shadow-[0_28px_80px_-36px_rgba(0,0,0,0.18)] backdrop-blur sm:p-8">
           <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <BrandMark />
@@ -719,12 +748,11 @@ export default function Dashboard() {
                 <ShieldAlert className="h-3.5 w-3.5 text-[#7c8b00]" strokeWidth={2.1} />
                 Live route intervention
               </div>
-              <h1 className="mt-6 font-['DM_Serif_Display'] text-5xl leading-[0.95] tracking-tight text-neutral-950 sm:text-6xl">
+              <h1 className="mt-6 font-['DM_Serif_Display'] text-4xl leading-[0.96] tracking-tight text-neutral-950 sm:text-5xl lg:text-6xl">
                 Detect the disruption. Explain the risk. Approve the reroute in one tap.
               </h1>
-              <p className="mt-6 max-w-2xl text-base leading-8 text-neutral-600 sm:text-lg">
-                This prototype dashboard is tuned for the judge demo: one high-risk textile shipment, three route
-                options, one AI recommendation, and a single approval moment that changes the route state instantly.
+              <p className="mt-5 max-w-2xl text-sm leading-7 text-neutral-600 sm:text-base sm:leading-8">
+                ClearPath turns route disruption into a decision flow with AI risk scoring, route comparison, and one-tap operational approval.
               </p>
             </div>
 
@@ -748,11 +776,12 @@ export default function Dashboard() {
                   type="button"
                   onClick={analyzeShipment}
                   disabled={shipmentLoading}
-                  className="inline-flex h-12 items-center justify-center rounded-full border border-black bg-[#DFFF00] px-6 text-sm font-semibold text-black transition hover:bg-[#c8e800] disabled:cursor-wait disabled:opacity-70"
+                  className="inline-flex h-12 w-full items-center justify-center rounded-full border border-black bg-[#DFFF00] px-6 text-sm font-semibold text-black transition hover:bg-[#c8e800] disabled:cursor-wait disabled:opacity-70 md:w-auto"
                 >
-                  {shipmentLoading ? "Locating cities..." : "🔍 Analyze Shipment"}
+                  {shipmentLoading ? "Locating cities..." : "Analyze Shipment"}
                 </button>
               </div>
+
               <div className="mt-3 text-[10px] font-mono uppercase tracking-[0.16em] text-neutral-400">
                 Geocoding powered by OpenStreetMap Nominatim.
               </div>
@@ -771,7 +800,7 @@ export default function Dashboard() {
                 ].map((item) => (
                   <div key={item.label} className="rounded-[1.2rem] border border-black/10 bg-white p-4 shadow-sm">
                     <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">{item.label}</div>
-                    <div className="mt-3 text-base font-semibold tracking-tight text-neutral-950">{item.value}</div>
+                    <div className="mt-3 break-words text-base font-semibold tracking-tight text-neutral-950">{item.value}</div>
                   </div>
                 ))}
               </div>
@@ -779,12 +808,16 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-[1.22fr_0.78fr]">
-          <article className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_22px_60px_-28px_rgba(0,0,0,0.12)] sm:p-6">
+        <div className="mt-6">
+          <SummaryCard aiResult={aiResult} stickyMobile />
+        </div>
+
+        <section className="mt-6 flex flex-col gap-6 lg:grid lg:grid-cols-[1.15fr_0.85fr]">
+          <article className="order-2 rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_22px_60px_-28px_rgba(0,0,0,0.12)] sm:p-6 lg:order-1">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Shipment map</div>
-                <h2 className="mt-3 font-['DM_Serif_Display'] text-4xl tracking-tight text-neutral-950">India route view</h2>
+                <h2 className="mt-3 font-['DM_Serif_Display'] text-3xl tracking-tight text-neutral-950 sm:text-4xl">India route view</h2>
               </div>
               <div className="flex flex-wrap gap-2">
                 <span className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-2 text-[10px] font-mono uppercase tracking-[0.18em] text-red-700">
@@ -801,23 +834,23 @@ export default function Dashboard() {
             <div className="mt-5 rounded-[1.6rem] border border-black/10 bg-[#f7f7f3] p-4 shadow-sm">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Route Editor</div>
-                  <h3 className="mt-2 font-mono text-sm uppercase tracking-[0.2em] text-neutral-800">Route Editor</h3>
+                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Route editor</div>
+                  <h3 className="mt-2 font-mono text-sm uppercase tracking-[0.2em] text-neutral-800">Adjust map paths live</h3>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                   <button
                     type="button"
                     onClick={() => startDrawingRoute("current")}
-                    className="inline-flex items-center justify-center rounded-full border border-black bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-black transition hover:bg-[#f1f4e4]"
+                    className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-black bg-white px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-black transition hover:bg-[#f1f4e4] sm:w-auto"
                   >
-                    Draw NH-44 Route
+                    Draw active route
                   </button>
                   <button
                     type="button"
                     onClick={() => startDrawingRoute("alternate")}
-                    className="inline-flex items-center justify-center rounded-full border border-black bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-black transition hover:bg-[#f1f4e4]"
+                    className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-black bg-white px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-black transition hover:bg-[#f1f4e4] sm:w-auto"
                   >
-                    Draw NH-48 Route
+                    Draw alternate route
                   </button>
                 </div>
               </div>
@@ -827,26 +860,26 @@ export default function Dashboard() {
                   <div className="rounded-[1.2rem] border border-[#DFFF00]/60 bg-[#F6FFD5] px-4 py-3 text-sm font-medium text-neutral-800">
                     Click on the map to add waypoints. {drawnRoute.length} points added.
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <button
                       type="button"
                       onClick={saveDrawnRoute}
                       disabled={drawnRoute.length === 0}
-                      className="inline-flex items-center justify-center rounded-full border border-black bg-[#DFFF00] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-black transition hover:bg-[#c8e800] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-black bg-[#DFFF00] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-black transition hover:bg-[#c8e800] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                     >
-                      Save Route
+                      Save route
                     </button>
                     <button
                       type="button"
                       onClick={clearDrawnPoints}
-                      className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-700 transition hover:border-black/20"
+                      className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-black/10 bg-white px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-700 transition hover:border-black/20 sm:w-auto"
                     >
-                      Clear Points
+                      Clear points
                     </button>
                     <button
                       type="button"
                       onClick={cancelDrawing}
-                      className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-700 transition hover:border-black/20"
+                      className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-black/10 bg-white px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-700 transition hover:border-black/20 sm:w-auto"
                     >
                       Cancel
                     </button>
@@ -854,18 +887,18 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="mt-4 space-y-1 text-[11px] font-mono uppercase tracking-[0.14em] text-neutral-500">
-                  <div>NH-44 route: {savedCurrentRoute.length} waypoints</div>
-                  <div>NH-48 route: {savedAlternateRoute.length} waypoints</div>
+                  <div>Active route: {savedCurrentRoute.length} waypoints</div>
+                  <div>Alternate route: {savedAlternateRoute.length} waypoints</div>
                 </div>
               )}
             </div>
 
             <div className="mt-5 overflow-hidden rounded-[1.8rem] border border-black/10">
-              <div className={`relative h-[300px] bg-[#eef0e8] sm:h-[450px] ${isDrawingMode ? "map-drawing-mode" : ""}`}>
+              <div className={`relative h-[300px] bg-[#eef0e8] sm:h-[320px] lg:h-[520px] ${isDrawingMode ? "map-drawing-mode" : ""}`}>
                 <MapContainer
                   key={
                     shipmentActive && originCoords && destCoords
-                      ? `${originCoords.join(",")}-${destCoords.join(",")}`
+                      ? `${originCoords.join(",")}-${destCoords.join(",")}-${routeApproved ? "approved" : "pending"}`
                       : "default-map"
                   }
                   center={INDIA_CENTER}
@@ -878,13 +911,8 @@ export default function Dashboard() {
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
 
-                  {shipmentActive && originCoords && destCoords ? (
-                    <MapBoundsFitter coords={[originCoords, destCoords]} />
-                  ) : null}
-
-                  {isDrawingMode ? (
-                    <MapClickHandler onMapClick={(latlng) => setDrawnRoute((existing) => [...existing, latlng])} />
-                  ) : null}
+                  {shipmentActive && originCoords && destCoords ? <MapBoundsFitter coords={[originCoords, destCoords]} /> : null}
+                  {isDrawingMode ? <MapClickHandler onMapClick={(latlng) => setDrawnRoute((current) => [...current, latlng])} /> : null}
 
                   {shipmentActive && originCoords ? (
                     <Marker position={originCoords} icon={originIcon}>
@@ -906,11 +934,11 @@ export default function Dashboard() {
                     <Polyline
                       positions={savedCurrentRoute}
                       pathOptions={{
-                        color: aiResult ? riskTone.line : "#ef6a3c",
+                        color: riskTone.line,
                         weight: aiResult?.risk.level === "HIGH" ? 6 : 5,
                         dashArray: routeApproved ? "4 14" : "12 12",
                         lineCap: "round",
-                        opacity: routeApproved ? 0.28 : 0.92,
+                        opacity: routeApproved ? 0.22 : 0.92,
                         className: aiResult?.risk.level === "HIGH" && !routeApproved ? "clearpath-risk-route" : "",
                       }}
                     />
@@ -974,258 +1002,245 @@ export default function Dashboard() {
             </div>
           </article>
 
-          <article className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_22px_60px_-28px_rgba(0,0,0,0.12)] sm:p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Risk alert panel</div>
-                <h2 className="mt-3 font-['DM_Serif_Display'] text-4xl tracking-tight text-neutral-950">Shipment intervention</h2>
-              </div>
-              <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-mono uppercase tracking-[0.2em] ${riskTone.badge}`}>
-                {aiResult ? `${aiResult.risk.level} risk` : "Awaiting AI"}
-              </span>
-            </div>
-
-            <div className={`mt-6 rounded-[1.8rem] border p-5 shadow-sm transition-all duration-500 ${riskTone.card}`}>
-              <div className="text-[10px] font-mono uppercase tracking-[0.2em] opacity-70">AI summary</div>
-              <div className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">
-                {aiResult ? `🚨 ${aiResult.risk.level} RISK — ${aiResult.risk.probability}%` : "AI decision pending"}
-              </div>
-              <div className="mt-3 text-lg font-semibold">
-                {aiResult ? `⏱ Delay: ${aiResult.delay.hours} hrs` : "⏱ Delay: --"}
-              </div>
-              <div className="mt-2 text-sm leading-7">
-                {aiResult ? `📍 Cause: ${aiResult.delay.reason}` : "📍 Cause: Run AI Analysis to surface the disruption cause."}
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-[1.6rem] border border-black/10 bg-[#f7f7f3] p-5">
-              <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Shipment</div>
-              <div className="mt-2 text-xl font-semibold text-neutral-950">
-                {shipmentActive ? shipmentLabel : "No active shipment - enter cities above to begin"}
-              </div>
-              <div className="mt-4 space-y-3 text-sm leading-7 text-neutral-700">
-                <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
-                  {liveSignals.weather}
-                </p>
-                <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
-                  {liveSignals.congestion}
-                </p>
+          <div className="order-1 flex flex-col gap-6 lg:order-2">
+            <article className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_22px_60px_-28px_rgba(0,0,0,0.12)] sm:p-6">
+              <div className="hidden lg:block">
+                <SummaryCard aiResult={aiResult} />
               </div>
 
-              <div className="mt-3 rounded-[1.2rem] border border-black/10 bg-white p-4">
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="text-neutral-700">Delay Probability</span>
-                  <span className="font-semibold text-[#7c8b00]">{aiResult ? `${aiResult.risk.probability}%` : "85%"}</span>
+              <div className="mt-0 lg:mt-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Risk alert panel</div>
+                    <h2 className="mt-3 font-['DM_Serif_Display'] text-3xl tracking-tight text-neutral-950 sm:text-4xl">Shipment intervention</h2>
+                  </div>
+                  <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-mono uppercase tracking-[0.2em] ${riskTone.badge}`}>
+                    {aiResult ? `${aiResult.risk.level} risk` : "Awaiting AI"}
+                  </span>
                 </div>
-                <div className="mt-3 h-3 w-full rounded-full bg-neutral-100">
+
+                <div className="mt-6 rounded-[1.6rem] border border-black/10 bg-[#f7f7f3] p-5">
+                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Shipment</div>
+                  <div className="mt-2 text-xl font-semibold text-neutral-950">
+                    {shipmentActive ? shipmentLabel : "No active shipment - enter cities above to begin"}
+                  </div>
+                  <div className="mt-4 space-y-3 text-sm leading-7 text-neutral-700">
+                    <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">{liveSignals.weather}</p>
+                    <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">{liveSignals.congestion}</p>
+                  </div>
+
+                  <div className="mt-3 rounded-[1.2rem] border border-black/10 bg-white p-4">
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-neutral-700">Delay Probability</span>
+                      <span className="font-semibold text-[#7c8b00]">{aiResult ? `${aiResult.risk.probability}%` : "85%"}</span>
+                    </div>
+                    <div className="mt-3 h-3 w-full rounded-full bg-neutral-100">
+                      <div
+                        className="h-3 rounded-full bg-[#DFFF00] transition-all duration-[1400ms] ease-out"
+                        style={{ width: showProbability ? `${aiResult?.risk.probability ?? 85}%` : "0%" }}
+                      />
+                    </div>
+                    <div className="mt-2 text-[10px] text-neutral-400">
+                      Based on AI analysis of weather, traffic, and congestion
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  {routeCards.map((option) => {
+                    const isRecommended = option.routeName === (recommendedRoute?.routeName || "NH-48 Diversion");
+
+                    return (
+                      <div
+                        key={option.routeName}
+                        className={`rounded-[1.5rem] border p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
+                          isRecommended ? "border-[#8cb300] bg-[#F6FFD5] ring-1 ring-[#DFFF00]/55 sm:p-5" : "border-black/10 bg-white"
+                        }`}
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="break-words text-lg font-semibold text-neutral-950">{option.routeName}</span>
+                              {isRecommended ? (
+                                <span className="rounded-full border border-[#DFFF00]/55 bg-[#DFFF00]/25 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-[#667300]">
+                                  STAR RECOMMENDED
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="mt-2 break-words text-sm text-neutral-600">
+                              ETA {option.estimatedTime} hrs | {formatCurrency(option.costImpact)} impact | {option.reliabilityScore}% reliable
+                            </div>
+                          </div>
+                          {isRecommended ? <Route className="h-5 w-5 shrink-0 text-[#7c8b00]" strokeWidth={2} /> : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-5 rounded-[1.6rem] border border-black/10 bg-[#f7f7f3] p-4">
+                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Before vs after</div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-[1.2rem] border border-red-200 bg-red-50 p-4">
+                      <div className="text-sm font-semibold text-red-800">Original Route</div>
+                      <div className="mt-2 text-xl font-black text-red-900">
+                        {aiResult ? `Delay: +${aiResult.delay.hours} hrs` : "Delay: +6 hrs"}
+                      </div>
+                    </div>
+                    <div className="rounded-[1.2rem] border border-[#DFFF00]/45 bg-[#F6FFD5] p-4">
+                      <div className="text-sm font-semibold text-[#5f6f00]">Recommended Route</div>
+                      <div className="mt-2 text-xl font-black text-neutral-900">
+                        {aiResult ? (reducedDelay === 0 ? "On-time restored" : `Reduced delay: ${reducedDelay} hrs`) : "On-time restored"}
+                      </div>
+                      <div className="mt-2 text-sm text-neutral-700">
+                        Saves {timeSaved} hrs via {recommendedRoute?.routeName || "NH-48 Diversion"}.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={approveBestRoute}
+                  disabled={approvalLoading || !shipmentActive}
+                  className={`mt-6 inline-flex min-h-[56px] w-full items-center justify-center gap-3 rounded-full border border-black bg-[#DFFF00] px-5 py-4 text-sm font-semibold uppercase tracking-[0.08em] text-black transition hover:bg-[#c8e800] hover:shadow-[0_14px_36px_-18px_rgba(223,255,0,0.65)] disabled:cursor-wait disabled:opacity-70 ${
+                    approvalLoading ? "scale-[0.98]" : routeApproved ? "scale-[1.01]" : ""
+                  }`}
+                >
+                  {approvalLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
+                  {approvalLoading ? "Updating route..." : "Approve & Update Route"}
+                </button>
+
+                {routeApproved ? (
+                  <button
+                    type="button"
+                    onClick={resetDemo}
+                    className="mt-2 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-4 py-3 text-sm text-neutral-700 transition hover:border-black/20 hover:bg-neutral-50"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Reset Demo
+                  </button>
+                ) : null}
+              </div>
+            </article>
+
+            <article className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_22px_60px_-28px_rgba(0,0,0,0.12)] sm:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">AI analysis</div>
+                  <h2 className="mt-3 font-['DM_Serif_Display'] text-3xl tracking-tight text-neutral-950 sm:text-4xl">ClearPath AI Analysis</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={runAiAnalysis}
+                  disabled={!shipmentActive || analysisLoading}
+                  className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full border border-black bg-[#DFFF00] px-5 py-3 text-sm font-semibold text-black transition hover:bg-[#c8e800] disabled:cursor-wait disabled:opacity-70 sm:w-auto"
+                >
+                  {analysisLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
+                  Run AI Analysis
+                </button>
+              </div>
+
+              {!shipmentActive && !analysisLoading ? (
+                <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.14em] text-neutral-400">Enter cities above first</p>
+              ) : null}
+
+              <div className="mt-6 rounded-[1.6rem] border border-black/10 bg-[#f7f7f3] p-5">
+                {analysisLoading ? (
+                  <div className="flex min-h-[180px] items-center justify-center gap-3 text-neutral-600">
+                    <LoaderCircle className="h-5 w-5 animate-spin text-[#7c8b00]" />
+                    <span className="animate-pulse">Analyzing route...</span>
+                  </div>
+                ) : aiResult ? (
+                  <div className="min-h-[180px] space-y-4 text-neutral-700">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Why this decision</div>
+                    <div className="space-y-3 text-sm leading-7 sm:text-base">
+                      {analysisBullets.map((bullet) => (
+                        <div key={bullet} className="flex gap-3">
+                          <span className="pt-1 text-[#7c8b00]">-</span>
+                          <span>{bullet}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="rounded-2xl border border-[#DFFF00]/35 bg-[#F6FFD5] px-4 py-3 text-sm font-medium text-neutral-800">
+                      {analysis}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="min-h-[180px] text-base leading-8 text-neutral-500">
+                    Enter origin and destination above, then click "Run AI Analysis" to get a Gemini-powered risk assessment for your route.
+                  </p>
+                )}
+              </div>
+            </article>
+
+            <article className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_22px_60px_-28px_rgba(0,0,0,0.12)] sm:p-6">
+              <div className="flex flex-col gap-4">
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Alert preview</div>
+                  <h2 className="mt-3 font-['DM_Serif_Display'] text-3xl tracking-tight text-neutral-950 sm:text-4xl">WhatsApp-style alert</h2>
+                  <p className="mt-2 text-sm text-neutral-500">Operator-ready preview with quick approval context.</p>
+                </div>
+
+                <div className="mb-2">
+                  <label className="mb-2 block text-[10px] font-mono uppercase tracking-widest text-neutral-500">
+                    Select alert language
+                  </label>
+                  <select
+                    value={alertLang}
+                    onChange={(event) => setAlertLang(event.target.value as LangCode)}
+                    className="h-11 w-full cursor-pointer rounded-xl border border-black/15 bg-white px-4 text-sm font-medium text-neutral-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-[#DFFF00]/40"
+                  >
+                    {(Object.keys(languageLabels) as LangCode[]).map((code) => (
+                      <option key={code} value={code}>
+                        {languageLabels[code]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-[1.6rem] border border-black/10 bg-[#e9efe1] p-4">
+                <div className="mx-auto max-w-[28rem] rounded-[1.6rem] border border-[#bfd27a] bg-white p-4 shadow-sm">
                   <div
-                    className="h-3 rounded-full bg-[#DFFF00] transition-all duration-[1400ms] ease-out"
-                    style={{ width: showConfidence ? `${aiResult?.risk.probability ?? 85}%` : "0%" }}
-                  />
-                </div>
-                <div className="mt-2 text-[10px] text-neutral-400">
-                  Based on AI analysis of weather, traffic, and congestion
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 space-y-3">
-              {(routeCards.length
-                ? routeCards
-                : [
-                    { routeName: "NH-48 Diversion", estimatedTime: 28, costImpact: 800, reliabilityScore: 94 },
-                    { routeName: "NH-27 Corridor", estimatedTime: 31, costImpact: 450, reliabilityScore: 81 },
-                    { routeName: "Western Freight Bypass", estimatedTime: 33, costImpact: 250, reliabilityScore: 74 },
-                  ]
-              ).map((option) => {
-                const isRecommended =
-                  option.routeName === recommendedRoute?.routeName || (!aiResult && option.routeName === "NH-48 Diversion");
-
-                return (
-                  <div
-                    key={option.routeName}
-                    className={`rounded-[1.5rem] border p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
-                      isRecommended ? "border-[#8cb300] bg-[#F6FFD5] ring-1 ring-[#DFFF00]/55 sm:p-5" : "border-black/10 bg-white"
+                    className={`rounded-[1.3rem] bg-[#DCF8C6] px-4 py-4 text-sm leading-7 text-neutral-800 shadow-[0_14px_34px_-20px_rgba(0,0,0,0.18)] ${
+                      showApprovalAlert ? "clearpath-alert-enter" : ""
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-semibold text-neutral-950">{option.routeName}</span>
-                          {isRecommended ? (
-                            <span className="rounded-full border border-[#DFFF00]/55 bg-[#DFFF00]/25 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-[#667300]">
-                              ⭐ Recommended
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="mt-2 text-sm text-neutral-600">
-                          ETA {option.estimatedTime} hrs | {formatCurrency(option.costImpact)} impact | {option.reliabilityScore}% reliable
-                        </div>
+                    <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[#6b7f35]">
+                      <MessageSquareText className="h-3.5 w-3.5" />
+                      Alert preview
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="text-sm font-black text-[#547100]">{aiResult ? `🚨 ${aiResult.risk.level} RISK` : "🚨 HIGH RISK"}</div>
+                      <div className="text-sm font-semibold text-neutral-800">
+                        {aiResult ? `Delay: ${aiResult.delay.hours} hrs` : "Delay: 6 hrs"}
                       </div>
-                      {isRecommended ? <Route className="h-5 w-5 text-[#7c8b00]" strokeWidth={2} /> : null}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-5 rounded-[1.6rem] border border-black/10 bg-[#f7f7f3] p-4">
-              <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Before vs after</div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[1.2rem] border border-red-200 bg-red-50 p-4">
-                  <div className="text-sm font-semibold text-red-800">Original Route</div>
-                  <div className="mt-2 text-xl font-black text-red-900">
-                    {aiResult ? `Delay: +${aiResult.delay.hours} hrs ❌` : "Delay: +6 hrs ❌"}
-                  </div>
-                </div>
-                <div className="rounded-[1.2rem] border border-[#DFFF00]/45 bg-[#F6FFD5] p-4">
-                  <div className="text-sm font-semibold text-[#5f6f00]">Recommended Route</div>
-                  <div className="mt-2 text-xl font-black text-neutral-900">
-                    {aiResult ? `${reducedDelay === 0 ? "On-time restored ✅" : `Reduced delay: ${reducedDelay} hrs ✅`}` : "On-time restored ✅"}
-                  </div>
-                  <div className="mt-2 text-sm text-neutral-700">
-                    {aiResult ? `Saves ${timeSaved} hrs via ${recommendedRoute?.routeName}.` : "Saves 11 hrs via NH-48 Diversion."}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={approveBestRoute}
-              className={`mt-6 inline-flex h-14 w-full items-center justify-center gap-3 rounded-full border border-black bg-[#DFFF00] px-5 text-sm font-semibold uppercase tracking-[0.08em] text-black transition hover:bg-[#c8e800] hover:shadow-[0_14px_36px_-18px_rgba(223,255,0,0.65)] ${
-                routeApproved ? "scale-[1.01]" : ""
-              }`}
-            >
-              <CheckCircle2 className="h-5 w-5" />
-              ⚡ Approve & Update Route
-            </button>
-
-            {routeApproved ? (
-              <button
-                type="button"
-                onClick={resetDemo}
-                className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-black/10 bg-white text-sm text-neutral-700 transition hover:border-black/20 hover:bg-neutral-50"
-              >
-                <RefreshCw className="h-4 w-4" />
-                ↺ Reset Demo
-              </button>
-            ) : null}
-          </article>
-        </section>
-
-        <section className="mt-6 grid gap-6 lg:grid-cols-2">
-          <article className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_22px_60px_-28px_rgba(0,0,0,0.12)] sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">AI analysis</div>
-                <h2 className="mt-3 font-['DM_Serif_Display'] text-4xl tracking-tight text-neutral-950">ClearPath AI Analysis</h2>
-              </div>
-              <button
-                type="button"
-                onClick={runAiAnalysis}
-                disabled={!shipmentActive || analysisLoading}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-black bg-[#DFFF00] px-5 text-sm font-semibold text-black transition hover:bg-[#c8e800] disabled:cursor-wait disabled:opacity-70"
-              >
-                {analysisLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
-                Run AI Analysis
-              </button>
-            </div>
-
-            {!shipmentActive && !analysisLoading ? (
-              <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.14em] text-neutral-400">
-                Enter cities above first
-              </p>
-            ) : null}
-
-            <div className="mt-6 rounded-[1.6rem] border border-black/10 bg-[#f7f7f3] p-5">
-              {analysisLoading ? (
-                <div className="flex min-h-[180px] items-center justify-center gap-3 text-neutral-600">
-                  <LoaderCircle className="h-5 w-5 animate-spin text-[#7c8b00]" />
-                  <span className="animate-pulse">Analyzing route...</span>
-                </div>
-              ) : aiResult ? (
-                <div className="min-h-[180px] space-y-4 text-neutral-700">
-                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Why this decision</div>
-                  <div className="space-y-3 text-base leading-7">
-                    {analysisBullets.map((bullet) => (
-                      <div key={bullet} className="flex gap-3">
-                        <span className="pt-1 text-[#7c8b00]">-</span>
-                        <span>{bullet}</span>
+                      <div className="rounded-2xl bg-white/70 px-3 py-3 text-sm leading-7 text-neutral-800">
+                        <div className="font-semibold">Recommended:</div>
+                        <div>Route: {recommendedRoute?.routeName || "NH-48 Diversion"}</div>
+                        <div>Saves: {timeSaved} hrs</div>
                       </div>
-                    ))}
-                  </div>
-                  <div className="rounded-2xl border border-[#DFFF00]/35 bg-[#F6FFD5] px-4 py-3 text-sm font-medium text-neutral-800">
-                    {analysis}
-                  </div>
-                </div>
-              ) : (
-                <p className="min-h-[180px] text-base leading-8 text-neutral-500">
-                  Enter origin and destination above, then click &apos;Run AI Analysis&apos; to get a Gemini-powered risk assessment for your specific route.
-                </p>
-              )}
-            </div>
-          </article>
-
-          <article className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_22px_60px_-28px_rgba(0,0,0,0.12)] sm:p-6">
-            <div className="flex flex-col gap-4">
-              <div>
-                <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Alert preview</div>
-                <h2 className="mt-3 font-['DM_Serif_Display'] text-4xl tracking-tight text-neutral-950">WhatsApp-style alert</h2>
-                <p className="mt-2 text-sm text-neutral-500">22 Indian languages supported</p>
-              </div>
-
-              <div className="mb-4">
-                <label className="mb-2 block text-[10px] font-mono uppercase tracking-widest text-neutral-500">
-                  Select Alert Language
-                </label>
-                <select
-                  value={alertLang}
-                  onChange={(e) => setAlertLang(e.target.value as LangCode)}
-                  className="h-11 w-full cursor-pointer rounded-xl border border-black/15 bg-white px-4 text-sm font-medium text-neutral-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-[#DFFF00]/40"
-                >
-                  {(Object.keys(languageLabels) as LangCode[]).map((code) => (
-                    <option key={code} value={code}>
-                      {languageLabels[code]}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1.5 text-[10px] font-mono text-neutral-400">
-                  22 official Indian languages supported
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-[1.6rem] border border-black/10 bg-[#e9efe1] p-4">
-              <div className="mx-auto max-w-[28rem] rounded-[1.6rem] border border-[#bfd27a] bg-white p-4 shadow-sm">
-                <div className="rounded-[1.3rem] bg-[#DCF8C6] px-4 py-4 text-sm leading-7 text-neutral-800 shadow-[0_14px_34px_-20px_rgba(0,0,0,0.18)]">
-                  <div className="mb-2 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[#6b7f35]">
-                    <MessageSquareText className="h-3.5 w-3.5" />
-                    Alert preview
-                  </div>
-                  <div className="space-y-3">
-                    <div className="text-sm font-black text-[#547100]">
-                      {aiResult ? `🚨 ${aiResult.risk.level} RISK` : "🚨 HIGH RISK"}
+                      <p className="whitespace-pre-line break-words">{alertLang === "hi" ? alertMessages.hi : alertMessages.en}</p>
+                      <div className="text-sm font-semibold text-[#547100]">Tap to approve</div>
                     </div>
-                    <div className="text-sm font-semibold text-neutral-800">
-                      {aiResult ? `Delay: ${aiResult.delay.hours} hrs` : "Delay: 6 hrs"}
+
+                    <div className="mt-3 flex items-center justify-end gap-2 text-[10px] font-mono uppercase tracking-[0.12em] text-[#6b7f35]">
+                      <span>11:42 AM</span>
+                      <span aria-hidden>OK</span>
                     </div>
-                    <div className="rounded-2xl bg-white/70 px-3 py-3 text-sm leading-7 text-neutral-800">
-                      <div className="font-semibold">Recommended:</div>
-                      <div>Route: {recommendedRoute?.routeName || "NH-48 Diversion"}</div>
-                      <div>Saves: {timeSaved || 11} hrs</div>
-                    </div>
-                    <p className="whitespace-pre-line">{alertLang === "hi" ? alertMessages.hi : alertMessages.en}</p>
-                    <div className="text-sm font-semibold text-[#547100]">Tap to approve</div>
-                  </div>
-                  <div className="mt-3 flex items-center justify-end gap-2 text-[10px] font-mono uppercase tracking-[0.12em] text-[#6b7f35]">
-                    <span>11:42 AM</span>
-                    <span aria-hidden>✓✓</span>
                   </div>
                 </div>
               </div>
-            </div>
-          </article>
+
+              {showApprovalAlert ? (
+                <div className="clearpath-alert-enter mt-4 rounded-[1.2rem] border border-[#DFFF00]/45 bg-[#F6FFD5] px-4 py-3 text-sm font-medium text-neutral-800">
+                  Route update approved. Driver and ops timeline synced.
+                </div>
+              ) : null}
+            </article>
+          </div>
         </section>
       </div>
     </div>
