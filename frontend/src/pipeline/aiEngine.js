@@ -106,9 +106,9 @@ function buildPrompt(data) {
   const route = [data.origin, data.destination].filter(Boolean).join(" -> ") || "Unknown route";
 
   return `
-You are an advanced supply chain risk analysis engine for Indian logistics that predicts disruptions and recommends optimal routes.
+You are an advanced AI supply chain risk analysis engine for Indian logistics operations.
 
-INPUT:
+INPUT DATA:
 - Route: ${route}
 - Origin: ${data.origin || "Unknown"}
 - Destination: ${data.destination || "Unknown"}
@@ -118,27 +118,50 @@ INPUT:
 - Timestamp: ${data.timestamp || Date.now()}
 
 TASK:
-1. Predict the route risk level as LOW, MEDIUM, or HIGH.
-2. Provide a disruption probability percentage as a number.
-3. Estimate delay in hours and explain the operational reason clearly.
-4. Generate exactly 3 alternate routes with:
-   - routeName
-   - estimatedTime
-   - costImpact
-   - reliabilityScore
-5. Recommend the best route with a precise explanation.
-6. Generate alerts:
-   - english: professional operations alert
-   - hindi: simple WhatsApp-style alert
+Step 1: Risk Analysis
+- Predict disruption risk as exactly one of: LOW, MEDIUM, HIGH.
+- Include a probability from 0 to 100.
+- You MUST combine weather, traffic, and congestion in the risk judgment.
 
-OUTPUT RULES:
+Step 2: Delay Prediction
+- Output a numeric delay in hours.
+- Explain the delay using all three signals: weather, traffic, and congestion.
+- Avoid generic reasoning. Give a direct operational explanation.
+
+Step 3: Alternate Routes
+- Generate EXACTLY 3 different routes.
+- Route 1 must be the fastest option.
+- Route 2 must be the cheapest option.
+- Route 3 must be the most reliable option.
+- Every route must include:
+  - routeName
+  - estimatedTime
+  - costImpact
+  - reliabilityScore
+- Make the routes clearly distinguishable from each other.
+
+Step 4: Recommendation
+- Select one best route.
+- Be decisive.
+- Explain the tradeoff between time, cost, and reliability.
+- Choose the route that is operationally best under the current disruption signals.
+
+Step 5: Alerts
+- english: short, professional, action-oriented.
+- hindi: simple WhatsApp-style message.
+- Both alerts MUST include numbers such as delay hours and the chosen route.
+
+RULES:
 - Return ONLY valid JSON.
-- Do NOT include markdown.
-- Do NOT include explanation outside JSON.
-- Use specific numbers, not vague phrases.
-- Keep route reasoning tightly grounded in the combined weather, traffic, and congestion signals.
+- No markdown.
+- No extra text outside JSON.
+- Do NOT say "may be delayed".
+- Use realistic numbers.
+- Be specific and decisive.
+- Keep the reasoning multi-signal, not based on a single factor.
 
-Return JSON with this exact schema:
+OUTPUT FORMAT:
+Return JSON with this exact structure:
 {
   "risk": {
     "level": "HIGH",
@@ -199,4 +222,3 @@ export async function analyzeRisk(data) {
     return fallback;
   }
 }
-
