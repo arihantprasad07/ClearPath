@@ -812,8 +812,8 @@ export default function Dashboard() {
           <SummaryCard aiResult={aiResult} stickyMobile />
         </div>
 
-        <section className="mt-6 flex flex-col gap-6 lg:grid lg:grid-cols-[1.15fr_0.85fr]">
-          <article className="order-2 rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_22px_60px_-28px_rgba(0,0,0,0.12)] sm:p-6 lg:order-1">
+        <section className="mt-6 flex flex-col gap-6 lg:grid lg:min-h-[600px] lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch">
+          <article className="order-2 rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_22px_60px_-28px_rgba(0,0,0,0.12)] sm:p-6 lg:order-1 lg:flex lg:h-[600px] lg:min-h-[600px] lg:flex-col">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-500">Shipment map</div>
@@ -893,8 +893,8 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div className="mt-5 overflow-hidden rounded-[1.8rem] border border-black/10">
-              <div className={`relative h-[300px] bg-[#eef0e8] sm:h-[320px] lg:h-[520px] ${isDrawingMode ? "map-drawing-mode" : ""}`}>
+            <div className="mt-5 overflow-hidden rounded-[1.8rem] border border-black/10 lg:flex-1">
+              <div className={`relative h-[300px] min-h-[300px] bg-[#eef0e8] sm:h-[320px] lg:h-full lg:min-h-[500px] ${isDrawingMode ? "map-drawing-mode" : ""}`}>
                 <MapContainer
                   key={
                     shipmentActive && originCoords && destCoords
@@ -1002,7 +1002,7 @@ export default function Dashboard() {
             </div>
           </article>
 
-          <div className="order-1 flex flex-col gap-6 lg:order-2">
+          <div className="order-1 flex flex-col gap-6 lg:order-2 lg:h-[600px] lg:max-h-[600px] lg:overflow-y-auto lg:pr-2">
             <article className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_22px_60px_-28px_rgba(0,0,0,0.12)] sm:p-6">
               <div className="hidden lg:block">
                 <SummaryCard aiResult={aiResult} />
