@@ -167,6 +167,59 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+function normalizeCityInput(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  return trimmed
+    .toLowerCase()
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+async function fetchGeocodeResults(query: string) {
+  const params = new URLSearchParams({
+    q: query,
+    format: "json",
+    limit: "1",
+  });
+
+  const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+    headers: {
+      "User-Agent": "ClearPath-App",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Geocoding failed");
+  }
+
+  const data = (await response.json()) as NominatimResult[];
+  console.log("Geocode response:", data);
+  return data;
+}
+
+async function geocodeCity(city: string) {
+  const normalizedCity = normalizeCityInput(city);
+  const indiaResults = await fetchGeocodeResults(`${normalizedCity}, India`);
+  if (indiaResults.length > 0) {
+    return {
+      normalizedCity,
+      coords: [Number.parseFloat(indiaResults[0].lat), Number.parseFloat(indiaResults[0].lon)] as LatLngTuple,
+    };
+  }
+
+  const fallbackResults = await fetchGeocodeResults(normalizedCity);
+  if (fallbackResults.length > 0) {
+    return {
+      normalizedCity,
+      coords: [Number.parseFloat(fallbackResults[0].lat), Number.parseFloat(fallbackResults[0].lon)] as LatLngTuple,
+    };
+  }
+
+  throw new Error("Could not locate city. Try full name (e.g., 'Indore, India')");
+}
+
 function getSignalPack(origin: string, destination: string) {
   return {
     weather: `Heavy rainfall disrupting the ${origin || "origin"} to ${destination || "destination"} corridor`,
@@ -424,8 +477,8 @@ export default function Dashboard() {
   };
 
   const analyzeShipment = async () => {
-    const nextOrigin = originInput.trim();
-    const nextDestination = destInput.trim();
+    const nextOrigin = normalizeCityInput(originInput);
+    const nextDestination = normalizeCityInput(destInput);
 
     if (!nextOrigin || !nextDestination) {
       toast.error("Enter both origin and destination cities.");
@@ -435,42 +488,14 @@ export default function Dashboard() {
     setShipmentLoading(true);
 
     try {
-      const [originResponse, destinationResponse] = await Promise.all([
-        fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(nextOrigin)}&countrycodes=in&format=json&limit=1`,
-        ),
-        fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(nextDestination)}&countrycodes=in&format=json&limit=1`,
-        ),
-      ]);
-
-      if (!originResponse.ok || !destinationResponse.ok) {
-        throw new Error("Geocoding failed");
-      }
-
-      const [originResults, destinationResults] = (await Promise.all([
-        originResponse.json(),
-        destinationResponse.json(),
-      ])) as [NominatimResult[], NominatimResult[]];
-
-      if (!originResults[0] || !destinationResults[0]) {
-        toast.error("City not found. Try a different spelling.");
-        return;
-      }
-
-      const nextOriginCoords: LatLngTuple = [
-        Number.parseFloat(originResults[0].lat),
-        Number.parseFloat(originResults[0].lon),
-      ];
-      const nextDestinationCoords: LatLngTuple = [
-        Number.parseFloat(destinationResults[0].lat),
-        Number.parseFloat(destinationResults[0].lon),
-      ];
+      const [originResult, destinationResult] = await Promise.all([geocodeCity(nextOrigin), geocodeCity(nextDestination)]);
+      const nextOriginCoords = originResult.coords;
+      const nextDestinationCoords = destinationResult.coords;
 
       setOriginCoords(nextOriginCoords);
       setDestCoords(nextDestinationCoords);
-      setOriginCity(nextOrigin);
-      setDestCity(nextDestination);
+      setOriginCity(originResult.normalizedCity);
+      setDestCity(destinationResult.normalizedCity);
       setShipmentActive(true);
       setRouteApproved(false);
       setApprovalLoading(false);
@@ -485,10 +510,12 @@ export default function Dashboard() {
       setSavedAlternateRoute(buildSuggestedAlternateRoute(nextOriginCoords, nextDestinationCoords));
 
       toast.success("Shipment mapped", {
-        description: `${nextOrigin} to ${nextDestination} is ready for analysis.`,
+        description: `${originResult.normalizedCity} to ${destinationResult.normalizedCity} is ready for analysis.`,
       });
-    } catch {
-      toast.error("City not found. Try a different spelling.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not locate city. Try full name (e.g., 'Indore, India')",
+      );
     } finally {
       setShipmentLoading(false);
     }
